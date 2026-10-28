@@ -81,22 +81,28 @@
   }
   // Combat-only selection: different weapons may be chosen for separate rolls in one Attack action.
   // Keep the first attack's count: a cantrip cannot gain extra weapon attacks, nor vice versa.
+  // Creator attacks are authoritative; changing the first selection changes the
+  // total number of rolls (e.g. weapon Extra Attack versus a one-roll cantrip).
+  // Later selections must use the same action count. This blocks extra spell
+  // casts and never grants extra attacks simply because another weapon exists.
   function heroAttackOptions(p) {
-    const primary = heroAttack(p);
-    const seen = new Set();
+    const primary = heroAttack(p), seen = new Set();
     const matching = (p.attacks || []).filter(a => a && typeof a.name === 'string'
       && Number.isFinite(a.bonus) && typeof a.damage === 'string'
-      && a.damage.trim() && Number(a.count || 1) === Number(primary.count));
+      && a.damage.trim() && Number.isInteger(Number(a.count || 1))
+      && Number(a.count || 1) >= 1 && Number(a.count || 1) <= 4);
     const options = matching.filter(a => {
       if (seen.has(a.name)) return false;
       seen.add(a.name); return true;
-    }).map(a => ({ name: a.name, bonus: a.bonus, damage: a.damage, count: primary.count }));
+    }).map(a => ({ name: a.name, bonus: a.bonus, damage: a.damage, count: Number(a.count || 1) }));
     return options.length ? options : [primary];
   }
   function heroAttackSequence(p, names = []) {
-    const options = heroAttackOptions(p), primary = options[0];
-    return Array.from({ length: primary.count }, (_, i) =>
-      options.find(a => a.name === names[i]) || primary);
+    const options = heroAttackOptions(p);
+    const first = options.find(a => a.name === names?.[0]) || options[0];
+    const matching = options.filter(a => a.count === first.count);
+    return Array.from({ length: first.count }, (_, i) =>
+      matching.find(a => a.name === names?.[i]) || first);
   }
   /* ---- SRD 5.1 lookup (src/app/srd-monsters.js) ---- */
   // Exact names only, after removing what books and cards add: numbers ("Goblin 3"), "mob", sizes ("Chimera, L"),
