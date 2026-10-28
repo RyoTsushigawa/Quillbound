@@ -195,7 +195,7 @@
   // How many d20s this exchange needs: one per attack for Attack and for a damaging enemy move, otherwise one.
   function rollsNeeded(s, d) {
     if (d.mode === 'enemy') return (d.enemyEffect || 'damage') === 'damage' ? Math.max(1, enemyAttacks(actor(s, d.actor) || {}).length) : 1;
-    if (d.action === 'attack') return A().heroAttack(actor(s, d.actor) || {}).count;
+    if (d.action === 'attack') return A().heroAttackSequence(actor(s, d.actor) || {}, d.attackNames || []).length;
     return 1;
   }
   // The roller may roll twice on the first die: an opening from Help, or on defense the cover of a Defend.
