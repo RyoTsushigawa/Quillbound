@@ -1,0 +1,11 @@
+# Paid adventure content and text extracted from it: stays on this computer, never on GitHub
+samples/
+out/
+prototypes/stakes-v2/library-raw.json
+
+# Local copies and installed packages (npm install restores node_modules)
+backups/
+node_modules/
+
+# Personal Claude Code settings
+.claude/settings.local.json

@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import JSZip from 'jszip';
+import { pdfjsLib } from './node-pdf.js';
+import { extractPdf } from '../src/importer/pdftext.js';
+import { cleanDocument, analyseTypography, buildBlocks } from '../src/importer/reader.js';
+const [spec, pat] = process.argv.slice(2);
+const [zipPath, entry] = spec.split('::');
+const bytes = entry ? await (await JSZip.loadAsync(fs.readFileSync(zipPath))).file(entry).async('uint8array') : new Uint8Array(fs.readFileSync(spec));
+const doc = await extractPdf(pdfjsLib, bytes);
+const c = cleanDocument(doc); const t = analyseTypography(c.lines); const b = buildBlocks(c.lines, t);
+const i = b.findIndex(x => x.text.includes(pat));
+for (const x of b.slice(Math.max(0, i - 3), i + 8)) console.log(x.type, x.level || '', x.bold ? 'B' : '', x.italic ? 'I' : '', x.bullet ? '•' : '', JSON.stringify(x.text.slice(0, 120)));

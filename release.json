@@ -1,0 +1,13 @@
+{
+  "id": "2026-10-27-context-playtest",
+  "type": "local-playtest",
+  "features": [
+    "Contextual conditions",
+    "Private plans and layered clues",
+    "Non-damage enemy moves",
+    "Happy Jack import and subclasses"
+  ],
+  "pending": [
+    "HP and stamina redesign"
+  ]
+}

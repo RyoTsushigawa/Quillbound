@@ -1,0 +1,248 @@
+# Quillbound rules
+
+How the app behaves today. Your project rules (no AI pictures or voices, fair dice, usable without AI) are in [PROJECT-RULES.md](PROJECT-RULES.md).
+
+Words used in the app: **Scenes** are the parts of an adventure, **Leads** are clues, rumours and requests the party can follow, **People** are the characters the party meets, and **Fights** are prepared battles. A fight is run on the **Combat** tab with the **Stakes** rules below.
+
+## Dice
+
+- Every die is fair. Each face of a d20 has exactly a 5% chance, and the same goes for the d4 of a push, damage dice, Hit Dice and death saves. The on-screen dice use the browser's secure random numbers with rejection sampling. Nothing is weighted and no result is scripted.
+- You can always type in the results of physical dice instead: one d20 per attack, in order (for example `14 9`), and damage as a number.
+- A natural 20 and a natural 1 count no matter what the bonus is.
+- **Opening** is normal advantage: roll two fair d20s and keep the higher. At the table, enter both like `3/17`.
+- All player dice, including defense rolls, appear on the player screen as soon as they are rolled. Cancelling or undoing an outcome does not erase that roll. The app keeps the latest 20 player rolls; the player screen shows the latest 8.
+- The **DM secret roll** is separate. It never reaches the player screen.
+
+## Hero creator
+
+The **Create a hero** tab builds 2024 (SRD 5.2) heroes from level 1 to 20.
+
+**Layout**
+- **Left: guided steps.** Species, Class & level, Abilities, Background, Skills, Spells (spellcasters only), Equipment, Story and Review.
+  - Each step shows how many choices are still open, or a ✓ when it's done.
+  - **Add to party** stays disabled until nothing is open and the hero has a name.
+- **Right: the live sheet,** recalculated on every click. Its tabs are Summary, Combat, Skills, Spells, Features and Gear.
+  - At phone width it becomes a "View sheet" panel at the bottom.
+
+**Choices**
+- **Quick build:** choose a class card and press it, and every remaining choice is filled with a recommended default you can change.
+  - It keeps a species you already picked.
+  - Spells are filled once the spell list has loaded.
+- **Ability scores,** four ways:
+  - Set values (3–20).
+  - Standard array (15, 14, 13, 12, 10, 8), placed where the class needs them, then click two abilities to swap.
+  - Point buy (27 points, 8–15).
+  - Roll 4d6 drop the lowest, with fair dice. The dice are kept with the hero and can't be rolled again.
+- **Background increases:** the background raises two of its three abilities by +2 and +1, or all three by +1. Scores can't go above 20.
+- **Hit points after level 1:** the average (die ÷ 2 + 1 + Constitution) or a fair roll per level. Rolls are kept.
+- **Levels 4, 8, 12, 16** (and the Fighter's and Rogue's extra levels): an Ability Score Improvement or a feat. **Level 19:** an Epic Boon.
+- **Other choices,** each counted on its step: fighting styles, expertise, weapon masteries, the Skilled and Versatile feats, cantrips and prepared spells.
+
+**Equipment.** You take the class's and the background's starting kit.
+- **More gear:** buy anything from the SRD equipment list with the kits' gold (ammunition by the bundle). The step shows the gold left, and spending more is flagged. Items the DM gives are added free as "granted by the DM".
+- **Training granted by the DM:** armor, shield or weapon kinds, or a single weapon (for example a bard with a longbow). This is a house rule, and it shows on the sheet as one.
+- By default the hero wears the best armor and shield they are trained in and wields every weapon they own. You can change both.
+- **Tools:** tool proficiencies from the class and background are listed on the Skills tab.
+- The sheet works out armor class, including Unarmored Defense and the Defense style.
+- It also works out attacks: finesse, proficiency, Archery, Extra Attack, Sneak Attack, Martial Arts and attack cantrips.
+
+**In combat,** a hero made here fights with the strongest attack on its sheet (highest average damage per action). It also uses the sheet's HP, AC and Hit Dice, and stamina equal to its proficiency bonus.
+
+**What isn't included yet:**
+- Heroes made before this creator keep their simple starter attack. A "Rebuild in the new creator" button for them comes later.
+- Homebrew species, backgrounds and classes come later too.
+
+### Homebrew
+
+The **Homebrew** tab (DM only) builds your own backgrounds, species and classes.
+
+**Built-in table homebrew:** The Night Shift's Vampire species and Artificer class ship with the app (`src/app/table-homebrew.js`). The first time a browser opens Quillbound they are added, approved, unless that browser already has homebrew with the same name. After that they behave like your own: you can edit, unapprove or delete them, and they don't come back.
+
+**Species** have a base (Small or Medium, speed 25–35 ft, creature type) and traits from building blocks. Each block has a weight:
+
+| Weight | Building blocks |
+|---|---|
+| +1 | darkvision 60 ft; resistance to a damage type; advantage on saves against a condition; a skill (fixed or player's choice); +5 ft speed; a climb speed; a cantrip; a spell once per long rest from level 3 or 5; a natural weapon; a small trait |
+| +2 | darkvision 120 ft; an origin feat of the player's choice; +1 HP per level; limited flight; a damaging or powerful action; once per long rest dropping to 1 HP instead of 0 |
+| +1 to +3 | a custom trait (the DM rates it) |
+| −1 to −3 | a drawback |
+
+- **Calibration:** the weights put all 9 SRD species between 4 (Human) and 8 (Elf). A homebrew species is "within the SRD range" at 4–8.
+- **Natural weapons** become attacks on the sheet, and so in combat. A hero is always trained with them; finesse ones may use Dexterity, and Sneak Attack applies to finesse ones.
+- **Fixed skills** count as trained. "A skill of the player's choice" and "an origin feat" work like the Human's Skillful and Versatile.
+
+**Classes** are built from parts the rules already know:
+- **Base:** a hit die (d6–d12), one or two primary abilities, two saving throws, 2–4 skill choices from a list, armor and weapon training, and a kit worth 50–155 GP (the range of the SRD class kits).
+- **Spellcasting:** none, or half, full or pact casting. Slots and prepared spells follow the Paladin, Wizard or Warlock table. You choose the casting ability, which SRD class's spell list it uses, and how many cantrips it starts with (+1 at levels 4 and 10).
+- **Progression:**
+  - Extra Attack at level 5
+  - Fighting Style, Weapon Mastery, Sneak Attack (1d6 per two levels from the level you choose) and a Martial Arts die
+  - Unarmored Defense (10 + DEX + an ability you choose)
+  - Expertise at chosen levels
+  - Class attacks from a level, such as a launcher that uses INT (bonus = ability + proficiency, damage = dice + ability)
+- **Fixed parts:** every class gets Ability Score Improvements at 4, 8, 12 and 16 and an Epic Boon at 19. You add its own features by level.
+- **Subclass:** chosen at level 3, with a name, a summary, its own features, and training it grants at level 3 (for example heavy armor).
+- **The SRD range:** the screen derives a Quick build hero of the class at levels 1, 5, 11 and 17 and compares its HP, AC and average damage per action with all 12 SRD classes. A class is "within the SRD range" unless its HP or damage is more than 10% above the strongest SRD class, or its AC is above the highest SRD AC, at any of those levels.
+- **Test in fights…** runs 150 Stakes fights at level 5 for parties of four identical heroes (yours, Fighter, Rogue, Wizard) against a pack of CR level/4 monsters, a pair of CR level/2 and one tough enemy of CR level. It reports rounds, how often a hero drops, and how often the party is wiped. Healing, stamina and breaking points are left out, so it compares classes rather than tactics.
+
+**The 2024 structure**
+- A background follows the 2024 structure, and the screen checks each part live:
+  - three abilities it can raise
+  - one origin feat
+  - two skills
+  - one tool
+  - a kit worth 40–60 GP (SRD kits are 45–56 GP; players may take 50 GP instead)
+- A comparison table shows it next to the four SRD backgrounds.
+
+**Approval**
+- You can save anything, including unfinished drafts.
+- Only homebrew you switch to **Approved by the DM** appears in the hero creator, with a "Homebrew" chip. Unfinished ones can't be approved.
+- A hero keeps a copy of the homebrew it was made with, so editing, unapproving or deleting it doesn't change existing heroes.
+
+**Export and import**
+- **Export** saves your homebrew as a `.json` file without approvals. On the published link, Claude asks you to confirm the save first.
+- **Import** reads a Quillbound homebrew file and lists what it contains.
+  - Where a name already exists, you choose: keep yours, keep both, or replace yours. Nothing is replaced without that choice.
+  - Imported homebrew starts unapproved.
+
+The rules are in `src/app/homebrew.js` and checked by `tools/homebrew-check.cjs`.
+
+The creator's data is generated by `tools/hero-srd-convert.cjs` from github.com/5e-bits/5e-database (`src/2024/en`) and credited under Help → Credits (SRD 5.2, CC-BY 4.0). The rules are in `src/app/hero-rules.js` and checked by `tools/hero-check.cjs`.
+
+## Stakes combat
+
+Stakes is still being playtested. It keeps 5e character sheets, hit points and stat blocks, and changes how an exchange is resolved: players roll every die, a near miss still counts, and enemies can break before they drop. The design and its simulations are in [prototypes/stakes-v2/RULESET.md](prototypes/stakes-v2/RULESET.md).
+
+### A turn
+
+1. **Choose who acts**: a token on the board or the *Who acts?* list. Choosing an enemy means an enemy move (see below).
+2. **Choose an action**: Attack, Defend, Help, Move or Improvise, and a target where needed.
+3. **Say what's at risk** before rolling ("If it goes wrong, I end up in the open"). It's optional. It becomes the suggested consequence when the roll goes wrong and the enemy can't strike back, and it is written into the fight log.
+4. **Roll**, on screen or at the table. Bonuses come from the sheet and the stat block automatically.
+5. **Confirm the result.** Enter or roll damage for each hit first. Nothing changes until you confirm, and **Undo** reverses a confirmed exchange (the last 20 are kept).
+
+### Attack
+
+Each attack is its own roll: d20 + attack bonus against the target's armor class. Extra Attack means two (or more) rolls. The attack bonus is ability modifier + proficiency; heroes are always proficient with their own attack.
+
+| Roll | Result |
+|---|---|
+| Natural 20 | **Critical hit**: damage dice double. |
+| AC or more | **Hit**: normal damage. |
+| 1–5 below AC | **Graze**: half damage, and the target strikes back. |
+| 6 or more below | **Miss**: the target strikes back. |
+| Natural 1 | Miss, and the target strikes back with a critical. |
+
+A **strike-back** is one of the target's attacks; the app rolls its damage, with no extra roll to hit. If the target can't reach the hero, untick *can reach* and choose another consequence instead: become Exposed, or what was at risk happens (after a natural 1: separated and pinned, or the enemy achieves a major goal). A graze that drops the target draws no strike-back.
+
+A hero made in the hero creator attacks with the strongest attack on its sheet. Older heroes have a simple starter attack per class (for example Fighter greatsword 2d6, Rogue rapier 1d8 with Sneak Attack, Wizard Fire Bolt 1d10). Cantrip dice grow at levels 5, 11 and 17.
+
+### Enemy moves
+
+Choose an enemy, describe what it does, and pick the hero it targets. The hero rolls, using the enemy's turn, not the hero's.
+
+- **Deal damage** (the usual move): one defense roll per attack in the enemy's turn (Multiattack). The hero rolls d20 + AC − 10 and must **beat 11 + the attack bonus**; a tie hits. These are exactly 5e's chances to be hit. A failed defense takes the attack's stat-block damage, which the app rolls and the DM can change. A natural 1 is a critical hit. A natural 20 avoids it and earns an extra benefit (an opening, cover for a hero, or better ground).
+- **Change position, create a condition, advance an objective, or resolve a physical situation**: agree the consequence before rolling. One defense roll against the enemy's best attack bonus; a failed defense applies the stated consequence instead of damage. Objective changes are recorded for the DM to adjudicate.
+
+### Other actions
+
+Help, Defend, Move and Improvise keep the Stakes bands: natural 20 a success with an extra benefit, 15+ success, 8–14 success with a consequence, 7 or less a setback, natural 1 a major reversal. The bonus comes from the sheet: Help uses the class's main ability, Move Dexterity, Defend the better of Dexterity and Constitution, and Improvise a fitting ability for the condition you want (Strength or Dexterity to pin or disarm, Charisma to frighten). Proficiency is added when the character is trained in that ability; a sheet's `combatActions` can set both explicitly.
+
+- **Defend** covers an ally: their next defense roll gets an opening.
+- **Help** gives another hero an opening for their next roll.
+- **Move** reaches a dangerous position or gets out of trouble.
+- **Improvise** creates a condition, moves a target, deals your attack's damage, or achieves a scene objective. Describe what success accomplishes before rolling.
+
+Consequences after 8–14 or a setback: lose your position and become Exposed, an enemy strikes (the DM picks which; its attack damage is rolled), or what was at risk happens. After a natural 1: separated and pinned in open ground, an enemy lands a critical strike, or the enemy achieves a major goal.
+
+### Stamina
+
+- Each hero has **stamina** equal to their proficiency bonus (2 at level 1, up to 6). It comes back only on a long rest.
+- **Push**: after seeing a roll for your own action that went wrong, spend 1 stamina to add 1d4. It can turn a miss into a graze or a hit. Defense rolls can't be pushed; a natural 1 or 20 stands; each roll can be pushed once.
+- **Winded**: with no stamina left you can still push by spending a Hit Die instead (**overexert**). That Hit Die is gone until the long rest. Nothing else changes.
+- The cost is paid when you confirm; a cancelled roll costs nothing.
+
+### Hit points, dying and rests
+
+- Heroes use the HP on their sheet; the sheet keeps current HP, stamina and Hit Dice between fights. Enemies use their stat block's HP.
+- **± HP** on a token damages or heals by hand (potions, spells, corrections). Undo reverses it.
+- At **0 HP** a hero is dying: roll a death save on their turn (10 or higher succeeds, a natural 20 brings them back with 1 HP, a natural 1 counts as two failures; three successes is stable, three failures is death). Damage while dying counts as a failure, and damage that leaves a hero at 0 with at least their maximum HP left over kills outright. Healing brings a hero back. An enemy at 0 HP is out of the fight.
+- When no fight is running, the Combat tab shows the party with **Short rest** (spend Hit Dice: each die + Constitution heals) and **Long rest** (full HP, all Hit Dice back, full stamina).
+
+### Enemies without full numbers
+
+Enemies from a book's stat block bring their HP, AC and attacks.
+
+- **Standard monsters:** anything still missing (for example a creature that only appears on a combat card) is looked up in the SRD 5.1 monster list, which ships with the app (334 monsters).
+  - The match is by exact name, after removing numbers ("Goblin 3"), card sizes ("Chimera, L"), plurals ("Wolves") and card ordering ("Elf, Drow").
+  - There is no guessing between similar names, and the book's own numbers are never replaced.
+  - The importer shows where an enemy's numbers came from.
+- **Anything else** (for example a book's own creature without a stat block) shows **Add numbers**, and the roll waits until the DM enters them.
+  - The dialog suggests typical numbers for the creature's challenge rating: the middle value of the SRD monsters at that rating.
+  - Numbers entered for one member of a group go to the whole group and to its bestiary entry.
+- **Combat cards:** their attack lines are not used yet, because several cards share a page and the lines can't yet be tied to the right card reliably.
+
+The SRD 5.1 is by Wizards of the Coast LLC and licensed under CC-BY 4.0. The attribution is under Help → Credits, and the data was converted with `tools/srd-convert.cjs` from github.com/5e-bits/5e-database.
+
+### Groups, breaking points and the board
+
+- Three or more of the same creature in a fight form a **group**: one card, each member with its own HP. **Group matching enemies** does the same by hand.
+- Most enemies have a **breaking point**, the gold mark on their HP bar: tougher enemies hold out longer. Compared with the party's average level, an enemy whose challenge rating is at most a quarter of it wavers at 30% HP, at most half at 25%, at most equal at 20%, and higher at 15%. A group wavers when half of it is down. Undead, constructs and other enemies without a breaking point fight until they drop.
+- When an enemy wavers, the fight pauses on its card and the DM decides: it **flees**, **surrenders**, **makes a deal** or **fights on**. It asks only once, and Undo reverses the decision.
+- So a fight can end without anyone going down. When you end it, enemies that fled, surrendered or made a deal become suggested leads on the DM desk.
+- **Status…** on an enemy card is for corrections by hand.
+- **Conditions** are plain words such as Disarmed, Pinned or Exposed. They change what is possible in the story; there are no hidden number penalties. Each has a description and a way to clear it (the ⓘ button), and the **Conditions guide** lists them all. You can write your own.
+- The scene has three areas you can rename (by default Cover, Open ground, The objective). Drag tokens or use *Place selected token*. Free placement is a DM correction; use Move when getting there is risky. Areas carry no distance math.
+- **Next round** lets everyone act again. It asks first if someone hasn't acted yet.
+- Every fight has a goal for the opposition, set when you prepare the fight ("Get the crates onto the boat"). It is shown at the top of the Combat tab.
+
+### Not in Stakes yet
+
+Spell slots, limited class features and the full 5e feature set still need design work: use your sheet for those. Hero attacks are simple starter attacks until hero creation is reworked.
+
+A fight saved under the earlier wound-box rules converts when it opens: lost wounds become lost HP by the same share, mobs become groups whose members have their stat-block HP, and stamina starts full. Undo can't go back past the conversion.
+
+## Player screen
+
+A second browser tab for the table or a TV. It shows only what you approve.
+
+1. Start Quillbound with `npm start` and open http://localhost:5173.
+2. Click **Player screen**, then **Open player screen**, and move that tab to your TV or second display. Keep both in the same browser at the same address (localhost and 127.0.0.1 count as different).
+3. On the DM desk, choose **Reveal…** on a scene, lead, person or item. Write what the party has learned, then **Show players**. **Shown · edit** changes or hides it again; private notes never overwrite the approved text.
+4. In the library, **Show players** on an image opens a preview first. Check it for DM labels and give it a title. Only the image and that title are sent, without the file name or metadata, scaled to at most 2400 pixels.
+5. In the Player screen settings you can also share the party and the current fight. Fight sharing omits concealed enemies and uses player-facing names. It shows each hero's HP and stamina; enemies show only Fresh, Hurt, Bloodied, Wavering or Down. Review names and visibility before sharing.
+6. **Clear map / read-aloud** clears the spotlight. **Hide revealed content** removes all revealed cards, party and fight information and the spotlight.
+
+What players never see: secrets, motives and roleplay notes from People, story branches and solutions, enemy statistics (HP, AC, attacks, breaking points) and plans, the DM log and secret rolls.
+
+Revealed cards and sharing settings are saved with the DM page. A shown map or read-aloud text lives only in memory and clears when the DM page reloads. Reloading the player tab asks the DM page for the current state; if the DM page is closed, the player tab keeps the last state and says it is waiting.
+
+**This is a presentation screen, not access control.** Anyone who can use the DM's browser can see DM material, and it does not reach other devices. Real player access needs accounts and a server.
+
+## Checks
+
+Run these after changing the rules, the importer or the player screen (`npm test` runs all of them):
+
+```
+node tools/combat-check.cjs
+node tools/player-check.cjs
+node tools/clarity-check.cjs
+node tools/library-check.cjs
+node tools/hp-check.cjs
+node tools/hero-check.cjs
+node tools/homebrew-check.cjs
+```
+
+The equipment data corrects one error in its source: Parchment costs 1 SP a sheet (the source says 3 GP). Ammunition is priced per bundle (20 arrows for 1 GP).
+
+## Clues, intent and encounter complexity
+
+Private enemy plans are separate from observable tells. Set each hero’s Perception bonus, then prepare layered observations by passive threshold and location. Discoveries remain private until explicitly shared. Revealing a clue does not reveal a concealed enemy.
+
+Simple mode offers clues and plans; Standard adds manually advanced goal clocks; Boss adds manually triggered phase reminders. These modes do not change damage or dice probabilities. Subclasses remain sourced references with manual use reminders.
+
+## Contextual conditions
+
+For Improvise, choose Resolve a physical situation, or choose that consequence for an enemy move. Declare a specific outcome: trap a limb/equipment, knock a weapon away, knock someone down, remove a restraint, recover a weapon, or stand up. Successful hero outcomes (including mixed success) and failed enemy defenses apply or clear the corresponding condition on confirmation. The result previews the condition and the private combat log explains why. Undo restores the conditions. No free-text inference or AI is used.
+
+Removing restraints clears only Pinned or Sword pinned; custom and combined conditions need explicit DM review. Moving to cover while Exposed offers an unchecked DM suggestion to clear Exposed. It only clears if accepted and the character actually remains in cover after consequences. Context rules do not infer safety from an area name.

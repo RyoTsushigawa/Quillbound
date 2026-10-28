@@ -1,0 +1,1078 @@
+<title>Quillbound</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze:wght@500;600;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a graph-paper "DM's desk". Sticky header with the four tools; each tool is a 2–3 column working surface that stacks on phones. */
+:root{
+  --paper:#e8edf0; --grid:rgba(29,107,102,.075); --surface:#fbfcfc; --surface-2:#f1f4f5;
+  --ink:#17212b; --muted:#566573; --line:#cdd6dc;
+  --accent:#1d6b66; --accent-ink:#ffffff; --accent-soft:#d5e8e5;
+  --gold:#946a0c; --gold-soft:#f3e6c2;
+  --ok:#2a7347; --ok-soft:#dbeee1; --warn:#9a5e0b; --warn-soft:#f5e6c9; --bad:#a53727; --bad-soft:#f5dbd6;
+  --display:"Grenze", Georgia, "Times New Roman", serif;
+  --body:"Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0e1419; --grid:rgba(91,184,173,.055); --surface:#151e25; --surface-2:#1b262f;
+  --ink:#e3e9ed; --muted:#91a1ad; --line:#2a3742;
+  --accent:#5bb8ad; --accent-ink:#081613; --accent-soft:#17332f;
+  --gold:#e2b84f; --gold-soft:#372c12;
+  --ok:#6cc58e; --ok-soft:#163023; --warn:#e3a94a; --warn-soft:#372811; --bad:#ec8473; --bad-soft:#3b1c17;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0e1419; --grid:rgba(91,184,173,.055); --surface:#151e25; --surface-2:#1b262f;
+  --ink:#e3e9ed; --muted:#91a1ad; --line:#2a3742;
+  --accent:#5bb8ad; --accent-ink:#081613; --accent-soft:#17332f;
+  --gold:#e2b84f; --gold-soft:#372c12;
+  --ok:#6cc58e; --ok-soft:#163023; --warn:#e3a94a; --warn-soft:#372811; --bad:#ec8473; --bad-soft:#3b1c17;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background-color:var(--paper);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:28px 28px;color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;min-height:100vh}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+.wrap{max-width:1320px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4{font-family:var(--display);font-weight:600;text-wrap:balance;margin:0;line-height:1.1}
+h2{font-size:1.75rem} h3{font-size:1.25rem} h4{font-size:1.05rem}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+.eyebrow{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{display:flex;align-items:center;gap:8px 20px;flex-wrap:wrap;padding-block:10px}
+.brand{display:flex;align-items:center;gap:8px;font-family:var(--display);font-size:1.55rem;font-weight:700;letter-spacing:.01em}
+.brand svg{width:26px;height:26px;color:var(--accent)}
+.proto{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid currentColor;border-radius:3px;padding:1px 5px;font-weight:600}
+.tabs{display:flex;gap:2px;flex-wrap:wrap;flex:1;min-width:0}
+.tab{font:inherit;font-weight:500;background:none;border:0;color:var(--muted);padding:7px 12px;border-radius:5px;cursor:pointer;display:flex;align-items:baseline;gap:7px}
+.tab .n{font-family:var(--mono);font-size:.7rem;opacity:.8}
+.tab:hover{color:var(--ink);background:var(--surface-2)}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+main{padding-block:22px 56px}
+
+/* basics */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0}
+.btn{font:inherit;font-weight:600;font-size:.95rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:5px;padding:7px 13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;line-height:1.2;text-align:left}
+.btn:hover:not(:disabled){border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:4px 9px;font-size:.85rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.discord{border-style:dashed}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:7px 9px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:58px}
+input[type=checkbox],input[type=radio]{width:auto;accent-color:var(--accent)}
+label.f{display:grid;gap:4px;font-size:.88rem;color:var(--muted);font-weight:500}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.stack{display:grid;gap:12px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:.8rem;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.acc{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.chip.gold{background:var(--gold-soft);border-color:transparent;color:var(--gold)}
+.chip.ok{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
+.chip.warn{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
+.chip.bad{background:var(--bad-soft);border-color:transparent;color:var(--bad)}
+button.chip{cursor:pointer;font-family:inherit}
+button.chip:hover{border-color:var(--accent)}
+button.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.why{font-family:var(--mono);font-size:.68rem;color:var(--muted)}
+.empty{border:1px dashed var(--line);border-radius:var(--r);padding:16px;color:var(--muted);text-align:center;font-size:.92rem}
+.pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.pagehead p{max-width:62ch;color:var(--muted);margin-top:6px}
+
+/* creator */
+.stepper{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px;counter-reset:s}
+.stepper button{font:inherit;font-size:.9rem;background:none;border:1px solid transparent;border-radius:99px;padding:4px 12px 4px 6px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:7px}
+.stepper button::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-size:.72rem;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line)}
+.stepper button[aria-current="step"]{color:var(--ink);border-color:var(--line);background:var(--surface)}
+.stepper button[aria-current="step"]::before{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.stepper button.done::before{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.stepper button:disabled{cursor:default;opacity:.55}
+.choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.choice{font:inherit;color:inherit;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;cursor:pointer;display:grid;gap:6px;align-content:start}
+.choice:hover{border-color:var(--accent)}
+.choice[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.choice .pitch{font-family:var(--display);font-size:1.18rem;line-height:1.15;font-weight:600}
+.choice .meta{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.choice .cls{font-weight:700}
+.choice .desc{font-size:.9rem;color:var(--muted)}
+.cr-foot{display:flex;justify-content:space-between;gap:8px;margin-top:18px;flex-wrap:wrap;align-items:center}
+.prompts{display:grid;gap:16px;max-width:760px}
+.abil-table{display:grid;gap:6px;max-width:820px}
+.abil{font:inherit;color:inherit;display:grid;grid-template-columns:52px 54px 1fr auto;gap:12px;align-items:center;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;cursor:pointer}
+.abil:hover{border-color:var(--accent)}
+.abil[aria-pressed="true"]{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.abil .score{font-family:var(--mono);font-size:1.5rem;font-weight:600;text-align:center}
+.abil .mod{font-family:var(--mono);font-size:.95rem;color:var(--accent);font-weight:600}
+.abil .what b{display:block}
+.abil .what span{font-size:.86rem;color:var(--muted)}
+.bar{height:6px;width:90px;background:var(--surface-2);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.sheet{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px}
+.sheet .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.stat{border:1px solid var(--line);border-radius:5px;padding:8px;text-align:center;background:var(--surface-2)}
+.stat b{display:block;font-family:var(--mono);font-size:1.3rem}
+.stat span{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.abils6{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:10px}
+.abils6 div{text-align:center;border:1px solid var(--line);border-radius:5px;padding:6px 2px}
+.abils6 b{display:block;font-family:var(--mono)}
+.abils6 small{display:block;font-size:.7rem;color:var(--muted)}
+.list{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}
+.anchor{border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
+
+/* importer */
+.imp{display:grid;grid-template-columns:330px minmax(0,1fr);gap:16px;align-items:start}
+.drop{display:grid;place-items:center;gap:4px;text-align:center;border:2px dashed var(--line);border-radius:var(--r);padding:22px 12px;cursor:pointer;background:var(--surface-2)}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop b{font-family:var(--display);font-size:1.2rem}
+.mode{display:grid;gap:8px}
+.mode label{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;border:1px solid var(--line);border-radius:5px;padding:9px;font-size:.9rem;align-items:start}
+.mode label.off{opacity:.65}
+.mode label span{font-size:.82rem;color:var(--muted);grid-column:2}
+.readout{font-family:var(--mono);font-size:.78rem;display:grid;gap:3px;color:var(--muted)}
+.readout b{color:var(--ink);font-weight:600}
+.rtabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:12px}
+.rtab{font:inherit;background:none;border:0;border-bottom:2px solid transparent;padding:8px 10px;cursor:pointer;color:var(--muted);font-weight:600;display:flex;gap:6px;align-items:baseline;margin-bottom:-1px}
+.rtab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.rtab .n{font-family:var(--mono);font-size:.75rem}
+.results{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.res{display:grid;gap:6px;align-content:start}
+.res.out{opacity:.5}
+.res-top{display:flex;gap:8px;justify-content:space-between;align-items:flex-start}
+.res-top label{display:flex;gap:7px;align-items:baseline;font-weight:700;font-size:1.02rem;cursor:pointer}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:.88rem}
+.kv dt{color:var(--muted);font-weight:500}
+.kv dd{margin:0}
+.send{position:sticky;bottom:0;margin-top:14px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding-bottom:max(12px,env(safe-area-inset-bottom,0px))}
+
+/* desk */
+.desk-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+.desk-grid.two{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);margin-top:14px}
+.col-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:10px}
+.beat{display:grid;grid-template-columns:22px 1fr;gap:4px 10px;padding:10px 0;border-top:1px solid var(--line)}
+.beat:first-of-type{border-top:0}
+.beat .dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);margin-top:3px;cursor:pointer;background:none;padding:0}
+.beat.active .dot{border-color:var(--accent);background:var(--accent)}
+.beat.done .dot{border-color:var(--muted);background:var(--muted)}
+.beat.done h4{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
+.beat p{font-size:.9rem;color:var(--muted);grid-column:2}
+.beat .branches{grid-column:2;font-size:.85rem;display:grid;gap:3px}
+.hook{display:grid;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
+.hook:first-of-type{border-top:0}
+.clock{display:inline-flex;gap:2px;cursor:pointer;background:none;border:0;padding:2px;align-items:center}
+.clock i{width:13px;height:13px;border:1.5px solid var(--warn);border-radius:2px}
+.clock i.on{background:var(--warn)}
+.clock.full i{border-color:var(--bad)}
+.clock.full i.on{background:var(--bad)}
+.hook select{width:auto;padding:3px 6px;font-size:.85rem}
+.npc{border-top:1px solid var(--line);padding:10px 0}
+.npc:first-of-type{border-top:0}
+.npc button.nm{font:inherit;background:none;border:0;padding:0;cursor:pointer;color:inherit;text-align:left;display:flex;justify-content:space-between;width:100%;gap:8px}
+.npc .rp{display:grid;gap:6px;margin-top:8px;font-size:.9rem}
+.npc .rp div{display:grid;grid-template-columns:76px 1fr;gap:8px}
+.npc .rp dt{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;padding-top:2px}
+.enc{border:1px solid var(--line);border-radius:5px;padding:12px;display:grid;gap:6px;background:var(--surface-2)}
+.encs{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.builder{display:grid;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.builder .g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.foe-add{display:grid;grid-template-columns:1fr 70px auto;gap:8px;align-items:end}
+
+/* combat */
+.cb-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
+.cb-head .goal{margin-top:6px;font-size:.95rem}
+.rules{margin-bottom:14px;padding:0}
+.rules summary{cursor:pointer;padding:12px 16px;font-weight:700;list-style-position:inside}
+.rules .in{padding:0 16px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px 22px;font-size:.92rem}
+.rules .in b{font-family:var(--display);font-size:1.05rem;display:block;margin-bottom:2px}
+.bands{display:flex;border-radius:5px;overflow:hidden;font-family:var(--mono);font-size:.78rem;font-weight:600}
+.bands span{flex:1;padding:5px 8px}
+.b-set{background:var(--bad-soft);color:var(--bad)} .b-cost{background:var(--warn-soft);color:var(--warn)} .b-ok{background:var(--ok-soft);color:var(--ok)}
+.cb-grid{display:grid;grid-template-columns:290px minmax(0,1fr) 320px;gap:14px;align-items:start}
+.roster{display:grid;gap:8px}
+.actor{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;display:grid;gap:6px}
+.actor.down{opacity:.55}
+.actor-top{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.actor-top b{font-size:1rem}
+.spot{width:9px;height:9px;border-radius:50%;background:var(--gold);display:inline-block;margin-right:6px}
+.spot.used{background:transparent;border:1.5px solid var(--line)}
+.slots{display:flex;gap:4px;flex-wrap:wrap}
+.slot{font:inherit;font-size:.72rem;min-width:30px;height:26px;padding:0 6px;border:1.5px solid var(--line);border-radius:4px;background:var(--surface-2);color:var(--muted);display:inline-flex;align-items:center;justify-content:center;cursor:default;position:relative}
+.slot.full{background:var(--bad-soft);border-color:var(--bad);color:var(--bad);font-weight:600;cursor:pointer}
+.slot.brk{margin-left:9px}
+.slot.brk::before{content:"";position:absolute;left:-8px;top:-3px;bottom:-3px;width:2px;background:var(--gold)}
+.actor .goal{font-size:.84rem;color:var(--muted)}
+.breaking{background:var(--gold-soft);border-radius:5px;padding:8px;display:grid;gap:6px;font-size:.88rem}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg.six{grid-template-columns:repeat(3,1fr)}
+.opt{font:inherit;color:inherit;text-align:left;background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:8px 10px;cursor:pointer;display:grid;gap:1px}
+.opt:hover{border-color:var(--accent)}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.opt b{font-size:.95rem}
+.opt small{font-size:.78rem;color:var(--muted)}
+.opt .mono{color:var(--accent);font-weight:600}
+.rollrow{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
+.rollrow input{width:84px;font-family:var(--mono);text-align:center}
+.outcome .result{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;padding:12px 14px;border-radius:5px}
+.outcome .big{font-family:var(--display);font-size:1.9rem;font-weight:700;line-height:1}
+.outcome .math{font-family:var(--mono);font-size:.85rem}
+.res-ok{background:var(--ok-soft);color:var(--ok)} .res-cost{background:var(--warn-soft);color:var(--warn)} .res-set{background:var(--bad-soft);color:var(--bad)}
+.quote{font-style:italic;color:var(--muted);font-size:.95rem}
+.pickrow{display:flex;flex-wrap:wrap;gap:6px}
+.log{display:grid;gap:0;max-height:640px;overflow:auto}
+.entry{padding:9px 0;border-top:1px solid var(--line);font-size:.9rem;display:grid;gap:3px}
+.entry:first-child{border-top:0}
+.entry .tag{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.t-success,.t-crit{color:var(--ok)} .t-cost{color:var(--warn)} .t-setback,.t-foe{color:var(--bad)} .t-scene,.t-break{color:var(--gold)}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(8,12,16,.55);z-index:50;display:grid;place-items:center;padding:16px;padding-top:max(16px,env(safe-area-inset-top,0px));padding-bottom:max(16px,env(safe-area-inset-bottom,0px))}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:8px;width:min(560px,100%);max-height:100%;overflow:auto;padding:18px;display:grid;gap:12px}
+.modal-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.dc{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:12px;display:grid;gap:8px;font-size:.92rem}
+.dc-ch{font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+.dc-bot{display:flex;gap:8px;align-items:center}
+.dc-av{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--display);font-weight:700}
+.dc-embed{border-left:3px solid var(--accent);background:var(--surface);border-radius:4px;padding:10px 12px;display:grid;gap:6px;white-space:pre-wrap}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:max(20px,env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:6px;z-index:60;font-weight:600;font-size:.92rem;max-width:calc(100% - 32px)}
+
+@media (max-width:1100px){
+  .cb-grid{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)}
+  .cb-log{grid-column:1 / -1}
+  .desk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:820px){
+  .imp,.cb-grid,.desk-grid,.desk-grid.two,.sheet{grid-template-columns:minmax(0,1fr)}
+  .abil{grid-template-columns:44px 44px 1fr}
+  .abil .bar{display:none}
+  .builder .g{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+  .seg{grid-template-columns:1fr}
+  .seg.six{grid-template-columns:1fr 1fr}
+  .abils6{grid-template-columns:repeat(3,1fr)}
+  .sheet .stats{grid-template-columns:repeat(2,1fr)}
+  .rollrow{grid-template-columns:1fr auto}
+  .rollrow .or{display:none}
+}
+@media (prefers-reduced-motion:no-preference){
+  .outcome .result{animation:pop .35s ease-out}
+  @keyframes pop{from{transform:scale(.97);opacity:.6}to{transform:none;opacity:1}}
+}
+</style>
+
+<header class="top">
+  <div class="wrap top-in">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M16 2 29 9.5v13L16 30 3 22.5v-13Z"/><path d="M16 2 9 20h14Z"/><path d="M3 9.5 9 20 3 22.5M29 9.5 23 20l6 2.5M9 20l7 10 7-10"/></svg>
+      Quillbound <span class="proto">Prototype</span>
+    </div>
+    <nav class="tabs" aria-label="Tools">
+      <button class="tab" data-act="tab" data-v="create">Create a hero</button>
+      <button class="tab" data-act="tab" data-v="import">Import adventure</button>
+      <button class="tab" data-act="tab" data-v="desk">DM desk</button>
+      <button class="tab" data-act="tab" data-v="combat">Stakes combat</button>
+    </nav>
+    <button class="btn ghost sm" data-act="reset">Reset demo</button>
+  </div>
+</header>
+<main class="wrap" id="view"></main>
+<div id="modal"></div>
+<div id="toast"></div>
+
+<script>
+/* ---------- rules data ---------- */
+const ABIL=['STR','DEX','CON','INT','WIS','CHA'];
+const APPROACH={
+  STR:{name:'Force',plain:'Strength: lifting, shoving, hitting hard'},
+  DEX:{name:'Finesse',plain:'Dexterity: quick, quiet, precise'},
+  CON:{name:'Endure',plain:'Constitution: toughness, holding on'},
+  INT:{name:'Know',plain:'Intelligence: memory, reasoning, magic theory'},
+  WIS:{name:'Notice',plain:'Wisdom: awareness, instinct, reading people'},
+  CHA:{name:'Sway',plain:'Charisma: persuading, scaring, performing'}
+};
+const mod=s=>Math.floor((s-10)/2);
+const fmt=n=>(n>=0?'+':'')+n;
+
+const CLASSES={
+  Fighter:{pitch:'Stand in front and keep your friends alive',blurb:'A trained warrior. Hits hard, wears heavy armor, gets back up.',diff:'Easiest',die:10,order:['STR','CON','DEX','WIS','CHA','INT'],ac:a=>16,acNote:'chain mail',trained:['STR','CON'],play:['Step between an enemy and a friend','Use Second Wind when you get hurt','Describe how you fight, not only that you hit']},
+  Rogue:{pitch:'Be sneaky, clever and hard to pin down',blurb:'Scout, lockpick and backstabber. Rewards clever ideas.',diff:'Easy',die:8,order:['DEX','CON','CHA','WIS','INT','STR'],ac:a=>11+mod(a.DEX),acNote:'leather armor',trained:['DEX','INT'],play:['Strike when an ally creates an opening (Sneak Attack)','Scout ahead, pick locks, talk past guards','Use Cunning Action to dash or hide']},
+  Barbarian:{pitch:'Fight with wild fury and shrug off wounds',blurb:'The toughest hero at the table. Rage, charge, laugh it off.',diff:'Easiest',die:12,order:['STR','CON','DEX','WIS','CHA','INT'],ac:a=>10+mod(a.DEX)+mod(a.CON),acNote:'no armor (Dex + Con)',trained:['STR','CON'],play:['Rage at the start of a fight','Go where the danger is worst','Break things that are in your way']},
+  Paladin:{pitch:'Swear an oath and smite evil in heavy armor',blurb:'Holy knight. Protects, heals a little, hits very hard.',diff:'Easy',die:10,order:['STR','CHA','CON','WIS','DEX','INT'],ac:a=>18,acNote:'chain mail and shield',trained:['WIS','CHA']},
+  Cleric:{pitch:'Heal friends and channel the power of a god',blurb:'The party\'s lifeline. Choose a god and what they stand for.',diff:'Medium',die:8,order:['WIS','CON','STR','CHA','DEX','INT'],ac:a=>16+Math.min(2,mod(a.DEX)),acNote:'scale mail and shield',trained:['WIS','CHA'],play:['Keep an eye on who is hurt','Bless the party before a big fight','Ask what your god would want here']},
+  Bard:{pitch:'Charm, inspire and trick with music and words',blurb:'Talker and helper. Great if you like roleplay most.',diff:'Medium',die:8,order:['CHA','DEX','CON','WIS','INT','STR'],ac:a=>11+mod(a.DEX),acNote:'leather armor',trained:['DEX','CHA'],play:['Give Bardic Inspiration to whoever is about to roll big','Talk first, fight second','Make up a song about what just happened']},
+  Ranger:{pitch:'Track, hunt and fight from a distance',blurb:'Wilderness expert with a bow. Steady and reliable.',diff:'Medium',die:10,order:['DEX','WIS','CON','STR','INT','CHA'],ac:a=>11+mod(a.DEX),acNote:'leather armor',trained:['STR','DEX'],play:['Mark your prey with Hunter\'s Mark','Stay at range and pick targets','Read tracks and terrain before a fight']},
+  Warlock:{pitch:'Make a deal with a powerful being for magic',blurb:'Few spells, strong ones, and a patron with an agenda.',diff:'Medium',die:8,order:['CHA','CON','DEX','WIS','INT','STR'],ac:a=>11+mod(a.DEX),acNote:'leather armor',trained:['WIS','CHA'],play:['Eldritch Blast is your go-to every turn','Ask the DM what your patron wants','Short rests bring your spells back']},
+  Wizard:{pitch:'Learn spells from books and solve problems with magic',blurb:'Most spells of anyone, but fragile. For planners.',diff:'Tricky',die:6,order:['INT','CON','DEX','WIS','CHA','STR'],ac:a=>10+mod(a.DEX),acNote:'no armor',trained:['INT','WIS'],play:['Stay behind your friends','Pick spells that solve problems, not only damage','Cast Shield when something is about to hit you']},
+  Druid:{pitch:'Protect nature and turn into animals',blurb:'Shapeshifter and healer with wild magic.',diff:'Tricky',die:8,order:['WIS','CON','DEX','INT','CHA','STR'],ac:a=>13+mod(a.DEX),acNote:'leather armor and wooden shield',trained:['INT','WIS'],play:['Wild Shape to scout or tank','Use the terrain with Entangle','Talk to animals; they know things']}
+};
+CLASSES.Paladin.play=['Smite when a hit really matters','Stand by your oath, even when it is hard','Lay on Hands to heal someone in trouble'];
+
+const ANCESTRY={
+  Human:{blurb:'Adaptable and ambitious. Good at anything.',perk:'An extra skill and a bonus feat'},
+  Elf:{blurb:'Graceful and long-lived. Sees in the dark.',perk:'Darkvision; can\'t be magically put to sleep'},
+  Dwarf:{blurb:'Tough, stubborn and loyal.',perk:'Darkvision; poison resistance; +1 HP per level',hp:1},
+  Halfling:{blurb:'Small, lucky and braver than they look.',perk:'Reroll any natural 1'},
+  Orc:{blurb:'Strong, relentless and hard to stop.',perk:'Once per long rest, drop to 1 HP instead of 0'},
+  Tiefling:{blurb:'Touched by fiendish blood. Often mistrusted.',perk:'Fire resistance and a few innate spells'},
+  Dragonborn:{blurb:'Descended from dragons. Proud and fierce.',perk:'Breath weapon and damage resistance'},
+  Gnome:{blurb:'Curious, clever, a little chaotic.',perk:'Advantage on mental saves against magic'}
+};
+const PROMPTS={
+  left:['A younger sibling who looks up to me','A mentor I disappointed','A village that thinks I\'m dead','A rival who stole my place'],
+  want:['To clear my family\'s name','To find the one who wronged me','To see every corner of the world','To be remembered in songs'],
+  fear:['Deep water','Being forgotten','Losing control of my power','Owing a debt I can\'t pay']
+};
+const NAMES=['Aldric','Brisa','Corin','Dagny','Esk','Fenna','Garrow','Hollis','Isolde','Jory','Kael','Liesel','Marrek','Nyra','Osk','Perrin','Quill','Rowan','Sable','Tamsin','Ulric','Vey','Wynn','Yara'];
+const STEPS=['Hero type','Ancestry','Story','Abilities','Sheet'];
+
+/* Stakes combat data */
+const EFFECTS={
+  STR:['Knocked down','Staggered','Disarmed','Wounded','Pushed back'],
+  DEX:['Outmaneuvered','Bleeding','Pinned','Disarmed','Lost sight of you'],
+  CON:['Worn down','Held in place','Exhausted'],
+  INT:['Weak spot exposed','Confused','Caught in your plan'],
+  WIS:['Next move read','Exposed','Off balance'],
+  CHA:['Shaken','Doubting their side','Distracted','Intimidated']
+};
+const OPENINGS=['Create an opening (next ally rolls with advantage)','Protect an ally (clear their light condition)'];
+const COSTS=['You take a light condition','Your gear breaks or is lost','An enemy acts right away','You give up your position','The scene gets worse'];
+const PC_HARM=['Winded','Bruised','Bleeding','Shaken','Pinned','Burned'];
+const DM_MOVES=['Separate them','Reveal an unwelcome truth','Put someone in danger','Take away their stuff','Show a new threat arriving','Turn their move back on them'];
+const POS={
+  controlled:{name:'Controlled',d:'You have the upper hand. A setback costs little.',stakes:'If it goes wrong, I lose my footing.'},
+  risky:{name:'Risky',d:'A fair fight. A setback hurts.',stakes:'If it goes wrong, I get hit.'},
+  desperate:{name:'Desperate',d:'In over your head. Success hits twice; a setback is serious.',stakes:'If it goes wrong, I go down with them.'}
+};
+const PC_SLOTS=['Light','Light','Serious','Out'];
+const BAND={crit:['Critical success','res-ok','crit'],success:['Success','res-ok','success'],cost:['Success at a cost','res-cost','cost'],setback:['Setback','res-set','setback']};
+
+/* ---------- sample adventure (original example content) ---------- */
+const SAMPLE_TEXT=`THE DROWNED LANTERN
+A short adventure for three to five characters of 2nd to 4th level.
+
+Adventure Background
+Ten years ago the lighthouse of Saltmere went dark during a storm, and the whole fishing fleet was lost on the rocks. Now a green light burns in the empty tower every new moon, and the drowned walk the beach.
+
+Adventure Hooks
+- Harbor master Odile Varn offers 50 gp to anyone who can explain the green light at the old lighthouse.
+- A drunk fisherman at the Gull & Anchor swears his drowned brother waved at him from the surf.
+- A coded letter is found on a smuggler whose body washed ashore. It names "the Keeper" and a date three days from now.
+
+Part 1: Arrival in Saltmere
+The characters reach Saltmere at dusk. The town is quiet, the shutters are closed early, and nobody looks at the lighthouse. If the characters ask about the fleet, the locals change the subject. If the characters visit the shrine, Mother Grayle offers them a blessing and a warning.
+
+Characters in Saltmere
+Odile Varn, the harbor master, is a stern, tired woman who counts everything twice. She wants the fleet's insurance claim settled before the guild sends an inspector. Secret: she paid the keeper to douse the light so a smuggler ship could land.
+Pell Hask, a nervous young fisherman, talks too fast and fidgets with a fishhook necklace. He wants to know what really happened to his brother. He fears the water and will not set foot on a boat.
+Mother Grayle, an old cheerful priestess of the sea, hums shanties and answers questions with riddles. She fears the Lantern Society and hides their symbol in her shrine.
+
+Part 2: The Smugglers' Cove
+A narrow path leads down the cliffs to a hidden cove where smugglers still unload crates by night. Among the crates the characters find a Scroll of Fog Cloud and a ledger with Odile's signature. If the characters wait until dark, a boat with a green lantern arrives.
+
+Smuggler Lookout
+Medium humanoid, neutral
+Armor Class 12
+Hit Points 11 (2d8 + 2)
+Speed 30 ft.
+Challenge 1/4 (50 XP)
+Shortsword. Melee Weapon Attack: +3 to hit, reach 5 ft., one target. Hit: 4 (1d6 + 1) piercing damage.
+Signal Whistle. The lookout blows a whistle that alerts everyone in the cove.
+
+Part 3: The Old Lighthouse
+The tower door is swollen shut and seaweed hangs from the stairs. The green flame at the top is fed by the Lantern Society, who believe it calls the drowned fleet home. If the characters climb the tower quietly, they can overhear the cultists' plan.
+
+Map: The Old Lighthouse
+L1. Flooded Ground Floor. Water is knee-deep and something moves beneath it.
+L2. Keeper's Quarters. A rotting bed, a logbook, and the keeper's spyglass on a hook.
+L3. Lantern Room. A green flame burns in the great lens. Two cultists keep it lit.
+
+Lantern Cultist
+Medium humanoid, chaotic neutral
+Armor Class 12
+Hit Points 9 (2d8)
+Speed 30 ft.
+Challenge 1/2 (100 XP)
+Sickle. Melee Weapon Attack: +3 to hit, reach 5 ft., one target. Hit: 4 (1d4 + 2) slashing damage.
+Green Flame. The cultist hurls a mote of green fire. Each creature within 10 feet must make a DC 11 Dexterity saving throw.
+
+Drowned Keeper
+Medium undead, neutral evil
+Armor Class 13
+Hit Points 45 (7d8 + 14)
+Speed 30 ft., swim 30 ft.
+Challenge 2 (450 XP)
+Undead Fortitude. If damage reduces the keeper to 0 hit points, it can make a Constitution saving throw to drop to 1 hit point instead.
+Slam. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 9 (2d6 + 2) bludgeoning damage.
+Drag Under. The keeper grabs a creature in water and pulls it beneath the surface.
+
+Treasure
+Keeper's Spyglass (wondrous item, uncommon). While looking through it you can see invisible creatures within 60 feet.
+Potion of Water Breathing (potion, uncommon). For one hour you can breathe underwater.
+A pouch holding 35 gp and a silver locket with a portrait of Pell's brother.
+
+Conclusion
+If the characters put out the green flame, the drowned return to the sea and Saltmere's fleet can be mourned at last. If Odile's secret comes out, the town turns on her, and the Lantern Society marks the characters as enemies.`;
+
+/*PARSER-START*/
+const STAT_RE=/^(armor class|hit points|speed|challenge|saving throws|skills|senses|languages|damage (resistances|immunities|vulnerabilities)|condition immunities|proficiency bonus|(str|dex|con|int|wis|cha)\b)/i;
+const PERSON_RE=/\b(woman|man|keeper|master|priest|priestess|fisherman|fisher|merchant|guard|captain|smuggler|child|boy|girl|sailor|innkeeper|noble|lord|lady|wizard|mage|cultist|elder|widow|hunter|thief|knight|soldier|scholar|sage|healer|blacksmith|bard|farmer|mayor|baron|duke|queen|king|prince|princess|witch|hermit|sheriff|cook|servant|apprentice|monk|druid)\b/i;
+const TRAITS=[
+  ['stern','Short, flat sentences. Never says please.','Taps the table while others talk.'],
+  ['tired','Sighs before answering and repeats questions back.','Rubs their eyes and leans on things.'],
+  ['nervous','Talks too fast and trails off mid-sentence.','Fidgets with something small and avoids eye contact.'],
+  ['cheerful','Warm and sing-song; laughs at their own jokes.','Leans in close and touches people\'s arms.'],
+  ['old','Slow, with long pauses to remember names.','Squints and lowers themself into chairs carefully.'],
+  ['young','Eager; interrupts and asks questions back.','Can\'t stand still.'],
+  ['gruff','Grunts and gives one-word answers until impressed.','Arms crossed, chin up.'],
+  ['greedy','Steers every topic back to money.','Weighs coins in their hand while talking.'],
+  ['suspicious','Answers questions with questions.','Watches the door; keeps a hand near a weapon.'],
+  ['kind','Soft voice; uses the party\'s names.','Offers food or a seat before anything else.'],
+  ['proud','Formal words; corrects other people\'s mistakes.','Straight back; never sits first.'],
+  ['drunk','Slurred, overly honest, wanders off topic.','Sways and spills things.'],
+  ['cruel','Quiet and amused at other people\'s pain.','Smiles at the wrong moments.'],
+  ['riddle','Answers in riddles and half-truths.','Hums between sentences.'],
+  ['fidget','Starts sentences twice.','Plays with whatever is in their hands.'],
+  ['counts','Corrects numbers, even small ones.','Counts things under their breath.']
+];
+const sentences=t=>t.split(/(?<=[.!?])\s+/).filter(Boolean);
+let _uid=0; const uid=p=>p+(Date.now().toString(36))+(_uid++);
+function crNum(s){ if(!s) return 1; if(s.includes('/')){const [a,b]=s.split('/');return +a/+b;} return +s||1; }
+function tierFor(cr){ if(cr<=0.25) return ['Minion',1]; if(cr<=1) return ['Standard',2]; if(cr<=4) return ['Elite',3]; return ['Boss',4]; }
+function isHeading(l){
+  if(!l) return false;
+  if(l.startsWith('# ')) return true;
+  if(STAT_RE.test(l)) return false;
+  if(l.length>60 || /[.;,!?]$/.test(l) || /^[-•*]/.test(l)) return false;
+  if(/^(part|chapter|act)\s+\w+/i.test(l) || /^map\b/i.test(l)) return true;
+  const w=l.split(/\s+/); if(w.length>8) return false;
+  const caps=w.filter(x=>/^[A-Z0-9&'"(]/.test(x)).length;
+  return caps/w.length>=0.6;
+}
+function parseAdventure(raw){
+  const lines=raw.replace(/\r/g,'').split('\n').map(l=>l.trim());
+  const sections=[]; let cur={title:'Opening',paras:[]}; sections.push(cur);
+  let para=null;
+  const flush=()=>{ if(para){cur.paras.push(para); para=null;} };
+  let headings=0;
+  for(const l of lines){
+    if(!l){ flush(); continue; }
+    if(isHeading(l)){ flush(); headings++; cur={title:l.replace(/^#\s*/,''),paras:[]}; sections.push(cur); continue; }
+    const startsNew=/^[-•*]\s|^[A-Z]{0,2}\d{1,2}\.\s/.test(l)||STAT_RE.test(l)||!para||/[.!?:"”)]$/.test(para)||STAT_RE.test(para);
+    if(startsNew){ flush(); para=l; } else para+=' '+l;
+  }
+  flush();
+
+  const out={beats:[],npcs:[],maps:[],enemies:[],items:[],hooks:[],stats:{headings,paras:0,sorted:0}};
+  const seen=new Set();
+  let lastMap=null;
+  const sorted=new Set();
+  for(const sec of sections){
+    const t=sec.title, paras=sec.paras; out.stats.paras+=paras.length;
+    const acIdx=paras.findIndex(p=>/^armor class\s+\d+/i.test(p));
+    if(acIdx>=0){
+      const get=re=>{const p=paras.find(x=>re.test(x)); return p?p.replace(re,'').trim():'';};
+      const type=(paras.find(p=>/^(tiny|small|medium|large|huge|gargantuan)\b/i.test(p))||'').trim();
+      const crRaw=(get(/^challenge\s*/i).match(/[\d/]+/)||[''])[0];
+      const cr=crNum(crRaw); const [tier,slots]=tierFor(cr);
+      const kind=(type.match(/\b(humanoid|undead|beast|construct|fiend|monstrosity|aberration|elemental|fey|giant|dragon|ooze|plant|celestial)\b/i)||['','creature'])[1].toLowerCase();
+      const moves=paras.map(p=>p.match(/^([A-Z][A-Za-z' ]{2,30})\.\s/)).filter(m=>m&&!STAT_RE.test(m[1])).map(m=>m[1]);
+      let breakAt=null, breaking='Fights until destroyed';
+      if(kind==='humanoid'){ if(slots>1){breakAt=slots-1; breaking='Flees or surrenders once hurt';} else breaking='Drops or runs at the first hit'; }
+      else if(kind==='beast'||kind==='monstrosity'){ breakAt=Math.max(1,slots-1); breaking='Flees when badly hurt'; }
+      const goal={humanoid:'Get paid and get out alive',undead:'Drag the living into its domain',beast:'Eat or escape'}[kind]||'Defend its ground';
+      out.enemies.push({id:uid('b'),name:t,type,ac:get(/^armor class\s*/i),hp:get(/^hit points\s*/i),cr:crRaw||'?',tier,slots,breakAt,breaking,goal,moves:moves.length?moves:['Attack'],include:true,why:'stat block: "Armor Class" + "Challenge"'});
+      seen.add(t.toLowerCase()); sorted.add(sec); continue;
+    }
+    if(/hook|rumou?r/i.test(t)){
+      paras.forEach(p=>out.hooks.push({id:uid('h'),text:p.replace(/^[-•*]\s*/,''),include:true,why:'listed under "'+t+'"'}));
+      sorted.add(sec); continue;
+    }
+    if(/^map\b/i.test(t)){ lastMap={id:uid('m'),name:t.replace(/^map:?\s*/i,''),areas:[],include:true,why:'"Map" heading + keyed areas'}; out.maps.push(lastMap); sorted.add(sec); }
+    const isTreasure=/treasure|loot|rewards|items/i.test(t);
+    for(const p of paras){
+      const area=p.match(/^([A-Z]{0,2}\d{1,2})\.\s+([^.]+)\.\s*(.*)$/);
+      if(area){
+        if(!lastMap){lastMap={id:uid('m'),name:t,areas:[],include:true,why:'keyed areas (A1., 2. …)'}; out.maps.push(lastMap);}
+        lastMap.areas.push({key:area[1],name:area[2],desc:area[3]}); continue;
+      }
+      if(isTreasure){
+        const name=p.split(/[(.]/)[0].trim();
+        out.items.push({id:uid('i'),name,desc:p.slice(name.length).replace(/^\s*\([^)]*\)\.?\s*|^\.\s*/,''),rarity:(p.match(/\b(common|uncommon|rare|very rare|legendary)\b/i)||[''])[0],include:true,why:'listed under "'+t+'"'});
+        sorted.add(sec); continue;
+      }
+      for(const m of p.matchAll(/\b(?:[Pp]otions?|[Ss]crolls?|[Rr]ings?|[Ww]ands?|[Cc]loaks?|[Aa]mulets?|[Bb]oots|[Ss]taffs?) of ((?:[A-Z][\w']+\s?)+)/g)){
+        const name=m[0].trim().replace(/^./,c=>c.toUpperCase());
+        if(!out.items.some(i=>i.name.toLowerCase()===name.toLowerCase())) out.items.push({id:uid('i'),name,desc:'Mentioned in "'+t+'"',rarity:'',include:true,why:'"… of <Name>" item pattern'});
+      }
+      const npc=p.match(/^([A-Z][a-z'’]+(?:\s[A-Z][a-z'’]+){0,2}),\s+(?:a|an|the)\s+([^,.]+)/);
+      if(npc && (PERSON_RE.test(npc[2])||/\b(she|he|they)\b/i.test(p)) && !seen.has(npc[1].toLowerCase())){
+        const desc=p, low=desc.toLowerCase(), ss=sentences(desc);
+        const hits=TRAITS.filter(([k])=>new RegExp('\\b'+k).test(low));
+        const secret=(ss.find(s=>/^secret\b/i.test(s))||'').replace(/^secret:?\s*/i,'');
+        out.npcs.push({id:uid('n'),name:npc[1],role:npc[2].trim(),desc,
+          wants:(ss.find(s=>/\b(wants?|seeks?|hopes?)\b/i.test(s))||'').trim(),
+          fears:(ss.find(s=>/\b(fears?|afraid)\b/i.test(s))||'').trim(),
+          secret,
+          voice:hits[0]?hits[0][1]:'Borrow how someone you know talks, and keep it the same each time.',
+          manner:(hits[1]||hits[0])?(hits[1]||hits[0])[2]:'Give them one repeated gesture the players will remember.',
+          pressed:secret?'Lies at first. Gives the secret up if shown proof, threatened, or offered a way out.':'Has nothing to hide, but wants something in return for help.',
+          include:true,why:'"Name, a/the role" pattern'+(hits.length?' + trait words: '+hits.map(h=>h[0]).join(', '):'')});
+        seen.add(npc[1].toLowerCase()); sorted.add(sec);
+      }
+    }
+    if(/^(part|chapter|act)\b/i.test(t)||/^(conclusion|epilogue|finale|introduction)\b/i.test(t)){
+      const body=paras.join(' '); const ss=sentences(body);
+      out.beats.push({id:uid('s'),title:t,summary:ss.filter(s=>!/^if the (characters|party)/i.test(s)).slice(0,2).join(' '),branches:ss.filter(s=>/^if the (characters|party)/i.test(s)),include:true,why:/^(part|chapter|act)/i.test(t)?'"Part / Chapter" heading':'"'+t+'" heading'});
+      sorted.add(sec);
+    }
+  }
+  out.stats.sorted=sorted.size; out.stats.sections=sections.length;
+  return out;
+}
+/*PARSER-END*/
+
+/* ---------- state ---------- */
+const KEY='quillbound-proto-v1';
+let S;
+function samplePCs(){
+  const pc=(name,cls,anc,abil,extra)=>({id:uid('p'),name,cls,anc,level:3,prof:2,abil,trained:CLASSES[cls].trained,hp:0,ac:CLASSES[cls].ac(abil),conds:[null,null,null,null],example:true,...extra});
+  return [
+    pc('Brannoc','Fighter','Human',{STR:16,DEX:12,CON:15,INT:8,WIS:13,CHA:10},{want:'To earn back his father\'s sword'}),
+    pc('Ilsa Thorn','Rogue','Halfling',{STR:8,DEX:17,CON:12,INT:13,WIS:12,CHA:14},{want:'To find the rival who stole her place in the guild'}),
+    pc('Wren','Wizard','Elf',{STR:8,DEX:14,CON:13,INT:17,WIS:12,CHA:10},{want:'To read the keeper\'s logbook'})
+  ];
+}
+function sendToDesk(s,res){
+  let n=0;
+  const add=(arr,item,key='name')=>{ if(item.include===false) return; if(arr.some(x=>(x[key]||'').toLowerCase()===(item[key]||'').toLowerCase())) return; arr.push(item); n++; };
+  res.beats.forEach(b=>add(s.beats,{...b,status:'upcoming'},'title'));
+  const next=s.beats.find(b=>b.status!=='done');
+  if(!s.beats.some(b=>b.status==='active')&&next) next.status='active';
+  res.hooks.forEach(h=>add(s.hooks,{id:h.id,text:h.text,status:'dangling',clock:0,source:'Imported',include:h.include},'text'));
+  res.npcs.forEach(x=>add(s.npcs,{...x,open:false}));
+  res.enemies.forEach(x=>add(s.bestiary,x));
+  res.maps.forEach(x=>add(s.maps,x));
+  res.items.forEach(x=>add(s.items,x));
+  return n;
+}
+function fresh(){
+  const s={tab:'combat',party:samplePCs(),beats:[],hooks:[],npcs:[],bestiary:[],maps:[],items:[],encounters:[],
+    creator:{step:0,cls:null,anc:null,name:'',left:'',want:'',fear:'',abil:null,swap:null},
+    importer:{fileName:'The Drowned Lantern (sample)',pages:null,imagePages:[],result:null,view:'beats',status:'',paste:''},
+    draft:{name:'',where:'',goal:'',foes:[],pick:'',n:1},
+    combat:null,modal:null};
+  s.importer.result=parseAdventure(SAMPLE_TEXT);
+  sendToDesk(s,s.importer.result);
+  s.beats[0].status='done'; s.beats[1].status='active';
+  const by=re=>s.bestiary.find(e=>re.test(e.name));
+  const look=by(/lookout/i), cult=by(/cultist/i), keep=by(/keeper/i);
+  s.encounters.push({id:uid('e'),name:'Ambush at the Cove',where:'Smugglers\' Cove',goal:'Get the crates onto the boat before the tide turns',foes:[{ref:look.id,n:2},{ref:cult.id,n:1}]});
+  s.encounters.push({id:uid('e'),name:'The Lantern Room',where:'L3. Lantern Room',goal:'Keep the green flame burning until the fleet arrives',foes:[{ref:keep.id,n:1},{ref:cult.id,n:2}]});
+  s.hooks.push({id:uid('h'),text:'Ilsa: the rival who stole her guild place was seen in Saltmere',status:'dangling',clock:2,source:'Character'});
+  s.hooks[1].status='taken'; s.hooks[2].clock=1;
+  s.combat=startCombat(s,s.encounters[0]);
+  s.combat.log.unshift({kind:'success',text:'Brannoc · Force · Risky: "I shoulder-charge the first lookout off the jetty." Success (d20 14 +3 +2 = 19). Smuggler Lookout 1: Knocked down.'});
+  const f1=s.combat.foes[0]; f1.marks.push('Knocked down'); f1.status='down'; s.combat.acted[s.party[0].id]=true;
+  s.combat.log.unshift({kind:'break',text:'Smuggler Lookout 1 is out of the fight.'});
+  return s;
+}
+function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
+function load(){ try{const t=localStorage.getItem(KEY); if(t){const s=JSON.parse(t); if(s&&s.party) return s;}}catch(e){} return null; }
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pc=id=>S.party.find(p=>p.id===id);
+const foe=id=>S.combat&&S.combat.foes.find(f=>f.id===id);
+const d20=()=>1+Math.floor(Math.random()*20);
+function toast(msg){ const t=$('#toast'); t.innerHTML='<div class="toast" role="status">'+esc(msg)+'</div>'; clearTimeout(toast.t); toast.t=setTimeout(()=>t.innerHTML='',2600); }
+function setPath(path,val){ const k=path.split('.'); let o=S; for(let i=0;i<k.length-1;i++){o=o[k[i]]; if(o==null) return;} o[k[k.length-1]]=val; }
+function recommended(cls){ const o=CLASSES[cls].order, arr=[15,14,13,12,10,8], a={}; o.forEach((k,i)=>a[k]=arr[i]); a[o[0]]+=2; a[o[1]]+=1; return a; }
+function hpFor(cls,anc,abil,level=1){ const c=CLASSES[cls]; const per=Math.floor(c.die/2)+1; return c.die+mod(abil.CON)+(level-1)*(per+mod(abil.CON))+((ANCESTRY[anc]||{}).hp||0)*level; }
+function bandFor(die,total){ if(die===20) return 'crit'; if(die===1) return 'setback'; return total>=15?'success':total>=8?'cost':'setback'; }
+
+/* ---------- views: creator ---------- */
+function vCreate(){
+  const c=S.creator;
+  if(c.cls&&!c.abil) c.abil=recommended(c.cls);
+  const can=[true,!!c.cls,!!c.anc,!!c.anc,!!(c.anc&&c.name.trim())];
+  const stepper=`<div class="stepper" role="list">${STEPS.map((s,i)=>`<button role="listitem" data-act="cr-step" data-v="${i}" ${i===c.step?'aria-current="step"':''} class="${i<c.step?'done':''}" ${can[i]?'':'disabled'}>${s}</button>`).join('')}</div>`;
+  let body='', next=true;
+  if(c.step===0){
+    body=`<div class="choices">${Object.entries(CLASSES).map(([k,v])=>`<button class="choice" data-act="cr-class" data-v="${k}" aria-pressed="${c.cls===k}">
+      <div class="meta"><span class="eyebrow">${k}</span><span class="chip ${v.diff.startsWith('Eas')?'ok':v.diff==='Medium'?'warn':'bad'}">${v.diff}</span></div>
+      <div class="pitch">${v.pitch}</div><div class="desc">${v.blurb}</div></button>`).join('')}</div>`;
+    next=!!c.cls;
+  } else if(c.step===1){
+    body=`<div class="choices">${Object.entries(ANCESTRY).map(([k,v])=>`<button class="choice" data-act="cr-anc" data-v="${k}" aria-pressed="${c.anc===k}">
+      <div class="cls">${k}</div><div class="desc">${v.blurb}</div><div class="small"><span class="muted">You get:</span> ${v.perk}</div></button>`).join('')}</div>`;
+    next=!!c.anc;
+  } else if(c.step===2){
+    const q=(k,label,help)=>`<label class="f" for="cr-${k}">${label}<textarea id="cr-${k}" data-bind="creator.${k}" rows="2" placeholder="${help}">${esc(c[k])}</textarea></label>
+      <div class="pickrow">${PROMPTS[k].map(p=>`<button class="chip" data-act="cr-chip" data-k="${k}" data-v="${esc(p)}">${esc(p)}</button>`).join('')}</div>`;
+    body=`<div class="prompts card">
+      <div><label class="f" for="cr-name">Name</label><div class="row" style="flex-wrap:nowrap"><input id="cr-name" data-bind="creator.name" value="${esc(c.name)}" placeholder="What do people call you?"><button class="btn sm" data-act="cr-randname">Suggest</button></div></div>
+      ${q('left','Who did you leave behind?','Someone who matters, and who might show up later')}
+      ${q('want','What do you want more than anything?','A goal the DM can put in your way')}
+      ${q('fear','What are you afraid of?','The DM will use this. Gently.')}
+      <p class="small muted">Not sure? Tap a suggestion. Your answers become personal story hooks on the DM desk.</p>
+    </div>`;
+    next=!!c.name.trim();
+  } else if(c.step===3){
+    if(!c.abil) c.abil=recommended(c.cls);
+    const top=CLASSES[c.cls].order.slice(0,2);
+    body=`<p class="muted" style="max-width:68ch;margin-bottom:12px">We placed your best scores where a ${c.cls} needs them, including the +2/+1 bonus (from your background in the 2024 rules). <b>Click two abilities to swap them.</b> In Stakes combat each ability is an <b>approach</b>: how you act decides what you roll.</p>
+    <div class="abil-table">${ABIL.map(k=>{const v=c.abil[k];return `<button class="abil" data-act="cr-abil" data-v="${k}" aria-pressed="${c.swap===k}">
+      <span class="score">${v}</span><span class="mod">${fmt(mod(v))}</span>
+      <span class="what"><b>${APPROACH[k].name} <span class="muted small">(${k})</span>${top.includes(k)?' <span class="chip acc">Key for '+c.cls+'</span>':''}</b><span>${APPROACH[k].plain}</span></span>
+      <span class="bar"><i style="width:${Math.round((v-6)/12*100)}%"></i></span></button>`;}).join('')}</div>
+    <div class="row" style="margin-top:10px"><button class="btn sm" data-act="cr-recommend">Reset to recommended</button></div>`;
+  } else {
+    const cl=CLASSES[c.cls], a=c.abil, hp=hpFor(c.cls,c.anc,a), best=[...ABIL].sort((x,y)=>a[y]-a[x]).slice(0,2);
+    body=`<div class="sheet">
+      <div class="card">
+        <div class="eyebrow">Level 1 ${c.anc} ${c.cls}</div>
+        <h2>${esc(c.name)}</h2>
+        <div class="stats">
+          <div class="stat"><b>${hp}</b><span>Hit points</span></div>
+          <div class="stat"><b>${cl.ac(a)}</b><span>Armor</span></div>
+          <div class="stat"><b>+2</b><span>Proficiency</span></div>
+          <div class="stat"><b>30</b><span>Speed (ft)</span></div>
+        </div>
+        <div class="abils6">${ABIL.map(k=>`<div><small>${k}</small><b>${a[k]}</b><small>${fmt(mod(a[k]))} ${APPROACH[k].name}</small></div>`).join('')}</div>
+        <p class="small muted" style="margin-top:8px">Armor: ${cl.acNote}. ${ANCESTRY[c.anc].perk}.</p>
+      </div>
+      <div class="card stack">
+        <div><h4>Your best approaches</h4><p>${best.map(k=>`<b>${APPROACH[k].name}</b> ${fmt(mod(a[k]))}`).join(' and ')}. Describe actions that use these and you'll succeed more often.</p></div>
+        <div><h4>On your turn, try</h4><ul class="list">${(cl.play||[]).map(p=>`<li>${p}</li>`).join('')}</ul></div>
+        <div class="anchor"><h4>Roleplay anchors</h4>
+          <dl class="kv" style="margin-top:6px"><dt>Left behind</dt><dd>${esc(c.left)||'<span class="muted">Not answered</span>'}</dd><dt>Wants</dt><dd>${esc(c.want)||'<span class="muted">Not answered</span>'}</dd><dt>Fears</dt><dd>${esc(c.fear)||'<span class="muted">Not answered</span>'}</dd></dl></div>
+      </div></div>`;
+  }
+  const foot=`<div class="cr-foot">
+    <button class="btn" data-act="cr-back" ${c.step===0?'disabled':''}>Back</button>
+    ${c.step<4?`<button class="btn primary" data-act="cr-next" ${next?'':'disabled'}>Next: ${STEPS[c.step+1]}</button>`:
+      `<div class="row"><button class="btn discord" data-act="discord" data-v="sheet">Share to Discord</button><button class="btn" data-act="cr-new">Start another</button><button class="btn primary" data-act="cr-add">Add to party</button></div>`}
+  </div>`;
+  const head={0:['What kind of hero do you picture?','Pick the description that sounds most fun. You can\'t pick wrong, and the class name is underneath.'],
+    1:['Where do you come from?','Your ancestry gives a small bonus. Pick the one you like the look of.'],
+    2:['Who are you?','Three questions that give your hero a past. The DM will use them.'],
+    3:['What are you good at?','Six abilities. Higher is better. We\'ve set them up already.'],
+    4:['Your hero is ready','Everything you need for your first session on one page.']}[c.step];
+  return `<div class="pagehead"><div><div class="eyebrow">Character creator · for new players</div><h2>${head[0]}</h2><p>${head[1]}</p></div></div>${stepper}${body}${foot}`;
+}
+
+/* ---------- views: importer ---------- */
+function vImport(){
+  const I=S.importer, R=I.result;
+  const kinds=[['beats','Story beats',R?R.beats.length+R.hooks.length:0],['npcs','NPCs',R?R.npcs.length:0],['maps','Maps',R?R.maps.length:0],['enemies','Enemies',R?R.enemies.length:0],['items','Items',R?R.items.length:0]];
+  const sel=R?['beats','hooks','npcs','maps','enemies','items'].reduce((n,k)=>n+R[k].filter(x=>x.include!==false).length,0):0;
+  const inc=(k,i,x)=>`<label><input type="checkbox" data-bind="importer.result.${k}.${i}.include" data-rerender ${x.include!==false?'checked':''}> ${esc(x.name||x.title)}</label>`;
+  const card=(k,i,x,inner,sub='')=>`<div class="card res ${x.include===false?'out':''}"><div class="res-top">${inc(k,i,x)}${sub}</div>${inner}<div class="why">found by: ${esc(x.why)}</div></div>`;
+  let list='';
+  if(!R) list=`<div class="empty">Load a PDF, paste text, or load the sample to see what the reader finds.</div>`;
+  else if(I.view==='beats'){
+    list=`<h4 style="margin-bottom:8px">Beats, in order</h4><div class="results">${R.beats.map((b,i)=>card('beats',i,b,`<p class="small">${esc(b.summary)}</p>${b.branches.length?`<div class="small"><span class="eyebrow">Branches</span><ul class="list">${b.branches.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}`)).join('')||'<div class="empty">No beats found.</div>'}</div>
+    <h4 style="margin:18px 0 8px">Hooks</h4><div class="results">${R.hooks.map((h,i)=>`<div class="card res ${h.include===false?'out':''}"><label class="row" style="align-items:baseline;flex-wrap:nowrap"><input type="checkbox" data-bind="importer.result.hooks.${i}.include" data-rerender ${h.include!==false?'checked':''}><span>${esc(h.text)}</span></label><div class="why">found by: ${esc(h.why)}</div></div>`).join('')||'<div class="empty">No hooks found.</div>'}</div>`;
+  } else if(I.view==='npcs'){
+    list=`<div class="results">${R.npcs.map((n,i)=>card('npcs',i,n,`<p class="small muted">${esc(n.role)}</p><dl class="kv">
+      ${n.wants?`<dt>Wants</dt><dd>${esc(n.wants)}</dd>`:''}${n.fears?`<dt>Fears</dt><dd>${esc(n.fears)}</dd>`:''}${n.secret?`<dt>Secret</dt><dd>${esc(n.secret)}</dd>`:''}
+      <dt>Voice</dt><dd>${esc(n.voice)}</dd><dt>Gesture</dt><dd>${esc(n.manner)}</dd><dt>If pressed</dt><dd>${esc(n.pressed)}</dd></dl>`)).join('')||'<div class="empty">No NPCs found.</div>'}</div>`;
+  } else if(I.view==='maps'){
+    list=`<div class="results">${R.maps.map((m,i)=>card('maps',i,m,m.areas.length?`<dl class="kv">${m.areas.map(a=>`<dt class="mono">${esc(a.key)}</dt><dd><b>${esc(a.name)}</b>. ${esc(a.desc)}</dd>`).join('')}</dl>`:`<p class="small muted">${esc(m.note||'')}</p>`)).join('')||'<div class="empty">No maps found.</div>'}</div>
+    <p class="small muted" style="margin-top:10px">Maps are only ever taken from the PDF itself: keyed room lists and pages with images. Nothing is drawn or generated.</p>`;
+  } else if(I.view==='enemies'){
+    list=`<div class="results">${R.enemies.map((e,i)=>card('enemies',i,e,`<p class="small muted">${esc(e.type)}</p><dl class="kv">
+      <dt>5e</dt><dd class="mono">AC ${esc(e.ac)} · HP ${esc(e.hp.split(' ')[0])} · CR ${esc(e.cr)}</dd>
+      <dt>Stakes</dt><dd><b>${e.tier}</b>: ${e.slots} condition slot${e.slots>1?'s':''}</dd>
+      <dt>Breaks</dt><dd>${esc(e.breaking)}</dd><dt>Moves</dt><dd>${e.moves.map(esc).join(', ')}</dd></dl>`)).join('')||'<div class="empty">No stat blocks found.</div>'}</div>`;
+  } else {
+    list=`<div class="results">${R.items.map((x,i)=>card('items',i,x,`<p class="small">${esc(x.desc)}</p>`,x.rarity?`<span class="chip gold">${esc(x.rarity)}</span>`:'')).join('')||'<div class="empty">No items found.</div>'}</div>`;
+  }
+  return `<div class="pagehead"><div><div class="eyebrow">PDF importer · for DMs</div><h2>Turn an adventure PDF into a prepared session</h2><p>The reader sorts the book into story beats, NPCs with roleplay notes, maps, enemies and items. Untick anything it got wrong before sending it to your desk.</p></div></div>
+  <div class="imp">
+    <div class="card stack">
+      <label class="drop" for="imp-file" id="drop"><b>Drop a PDF here</b><span class="small muted">or click to choose a file</span><input type="file" id="imp-file" accept=".pdf,application/pdf" hidden></label>
+      <div class="row"><button class="btn sm" data-act="imp-sample">Load the sample adventure</button></div>
+      <details><summary class="small" style="cursor:pointer">Paste text instead</summary>
+        <div class="stack" style="margin-top:8px"><textarea id="imp-paste" data-bind="importer.paste" rows="6" placeholder="Paste adventure text, homebrew notes…">${esc(I.paste)}</textarea><button class="btn sm" data-act="imp-paste">Read this text</button></div></details>
+      <div class="mode"><div class="eyebrow">How to read it</div>
+        <label><input type="radio" name="mode" checked> <b>Offline reader</b><span>Free, no account, works forever. Uses headings, stat-block patterns and keywords. Best on books laid out like official adventures.</span></label>
+        <label class="off"><input type="radio" name="mode" disabled> <b>AI assist (optional)</b><span>Bring your own API key, or a model running on your computer, to sort messy homebrew better. Text only. Not built in this prototype.</span></label>
+      </div>
+      <div class="readout">
+        <div>Source: <b>${esc(I.fileName)}</b></div>
+        ${I.pages?`<div>Pages: <b>${I.pages}</b>${I.imagePages.length?` · images on p. ${I.imagePages.slice(0,8).join(', ')}${I.imagePages.length>8?'…':''}`:''}</div>`:''}
+        ${R?`<div>Sections: <b>${R.stats.sections}</b> · sorted <b>${R.stats.sorted}</b> · headings <b>${R.stats.headings}</b></div>`:''}
+        ${I.status?`<div style="color:var(--warn)">${esc(I.status)}</div>`:''}
+      </div>
+    </div>
+    <div style="min-width:0">
+      <div class="rtabs" role="tablist">${kinds.map(([k,l,n])=>`<button class="rtab" role="tab" data-act="imp-view" data-v="${k}" aria-selected="${I.view===k}">${l} <span class="n">${n}</span></button>`).join('')}</div>
+      ${list}
+      ${R?`<div class="send"><span class="small"><b>${sel}</b> entries selected</span><button class="btn primary" data-act="imp-send" ${sel?'':'disabled'}>Send ${sel} to the DM desk</button></div>`:''}
+    </div>
+  </div>`;
+}
+
+/* ---------- views: DM desk ---------- */
+function vDesk(){
+  const dangling=S.hooks.filter(h=>h.status==='dangling').length, active=S.beats.find(b=>b.status==='active');
+  const beats=S.beats.map(b=>`<div class="beat ${b.status}"><button class="dot" data-act="beat" data-id="${b.id}" aria-label="Mark ${esc(b.title)}: now ${b.status}" title="Click: upcoming → active → done"></button>
+    <h4>${esc(b.title)}</h4><p>${esc(b.summary)}</p>${b.branches&&b.branches.length?`<div class="branches">${b.branches.map(x=>`<span>↳ ${esc(x)}</span>`).join('')}</div>`:''}</div>`).join('')||'<div class="empty">Import an adventure to fill the story.</div>';
+  const st={dangling:'warn',taken:'acc',ignored:'bad',resolved:'ok'};
+  const hooks=S.hooks.map(h=>`<div class="hook"><div>${esc(h.text)}</div>
+    <div class="row" style="justify-content:space-between"><div class="row">
+      <select aria-label="Hook status" data-act-change="hook-status" data-id="${h.id}">${['dangling','taken','ignored','resolved'].map(s=>`<option ${h.status===s?'selected':''}>${s}</option>`).join('')}</select>
+      <span class="chip ${st[h.status]}">${h.source}</span></div>
+      ${h.status==='dangling'||h.status==='ignored'?`<button class="clock ${h.clock>=4?'full':''}" data-act="hook-clock" data-id="${h.id}" title="Pressure: tick when the party ignores it">${[0,1,2,3].map(i=>`<i class="${i<h.clock?'on':''}"></i>`).join('')}<span class="small" style="margin-left:5px;color:var(--${h.clock>=4?'bad':'muted'})">${h.clock>=4?'The world acts':'pressure'}</span></button>`:''}
+    </div></div>`).join('')||'<div class="empty">No hooks yet.</div>';
+  const npcs=S.npcs.map(n=>`<div class="npc"><button class="nm" data-act="npc" data-id="${n.id}" aria-expanded="${!!n.open}"><span><b>${esc(n.name)}</b> <span class="muted small">${esc(n.role)}</span></span><span class="muted">${n.open?'−':'+'}</span></button>
+    ${n.open?`<dl class="rp">${n.wants?`<div><dt>Wants</dt><dd>${esc(n.wants)}</dd></div>`:''}${n.fears?`<div><dt>Fears</dt><dd>${esc(n.fears)}</dd></div>`:''}${n.secret?`<div><dt>Secret</dt><dd>${esc(n.secret)}</dd></div>`:''}<div><dt>Voice</dt><dd>${esc(n.voice)}</dd></div><div><dt>Gesture</dt><dd>${esc(n.manner)}</dd></div><div><dt>Pressed</dt><dd>${esc(n.pressed)}</dd></div></dl>`:''}</div>`).join('')||'<div class="empty">No NPCs yet.</div>';
+  const encs=S.encounters.map(e=>`<div class="enc"><div class="row" style="justify-content:space-between"><b>${esc(e.name)}</b><span class="small muted">${esc(e.where)}</span></div>
+    <div class="small"><span class="muted">Their goal:</span> ${esc(e.goal)}</div>
+    <div class="pickrow">${e.foes.map(f=>{const b=S.bestiary.find(x=>x.id===f.ref);return b?`<span class="chip">${f.n}× ${esc(b.name)} · ${b.tier}</span>`:'';}).join('')}</div>
+    <div class="row"><button class="btn sm primary" data-act="enc-run" data-id="${e.id}">Run in Stakes</button><button class="btn sm ghost" data-act="enc-del" data-id="${e.id}">Remove</button></div></div>`).join('');
+  const D=S.draft;
+  const builder=`<div class="builder"><h4>Build an encounter</h4>
+    <div class="g"><label class="f" for="en-name">Name<input id="en-name" data-bind="draft.name" value="${esc(D.name)}" placeholder="Showdown on the pier"></label>
+    <label class="f" for="en-where">Where<input id="en-where" data-bind="draft.where" list="areas" value="${esc(D.where)}" placeholder="Pick a map area or type one"></label></div>
+    <datalist id="areas">${S.maps.flatMap(m=>m.areas.map(a=>`<option value="${esc(a.key+'. '+a.name)}">`)).join('')}</datalist>
+    <label class="f" for="en-goal">What do the enemies want? (not just "kill the party")<input id="en-goal" data-bind="draft.goal" value="${esc(D.goal)}" placeholder="Escape with the ledger"></label>
+    <div class="foe-add"><label class="f" for="en-pick">Add enemies<select id="en-pick" data-bind="draft.pick">${S.bestiary.map(b=>`<option value="${b.id}" ${D.pick===b.id?'selected':''}>${esc(b.name)} (${b.tier})</option>`).join('')}</select></label>
+      <label class="f" for="en-n">How many<input id="en-n" type="number" min="1" max="12" data-bind="draft.n" value="${D.n}"></label><button class="btn" data-act="enc-addfoe">Add</button></div>
+    ${D.foes.length?`<div class="pickrow">${D.foes.map((f,i)=>{const b=S.bestiary.find(x=>x.id===f.ref);return `<button class="chip" data-act="enc-rmfoe" data-i="${i}" title="Remove">${f.n}× ${esc(b?b.name:'?')} ✕</button>`;}).join('')}</div>`:''}
+    <div><button class="btn primary" data-act="enc-save" ${D.foes.length&&D.name.trim()?'':'disabled'}>Save encounter</button></div></div>`;
+  return `<div class="pagehead"><div><div class="eyebrow">DM desk</div><h2>${active?esc(active.title):'Your campaign'}</h2>
+    <p>${dangling} hook${dangling===1?'':'s'} dangling · ${S.npcs.length} NPCs · ${S.encounters.length} encounters ready · party of ${S.party.length}</p></div>
+    <button class="btn discord" data-act="discord" data-v="recap">Post session recap to Discord</button></div>
+  <div class="desk-grid">
+    <div class="card"><div class="col-h"><h3>Story beats</h3><span class="small muted">click a dot to advance</span></div>${beats}</div>
+    <div class="card"><div class="col-h"><h3>Hooks</h3><span class="small muted">ignored hooks build pressure</span></div>${hooks}
+      <div class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="hook-new" placeholder="New hook or rumor" aria-label="New hook"><button class="btn sm" data-act="hook-add">Add</button></div></div>
+    <div class="card"><div class="col-h"><h3>Cast</h3><span class="small muted">roleplay notes</span></div>${npcs}</div>
+  </div>
+  <div class="desk-grid two">
+    <div class="card"><div class="col-h"><h3>Encounters</h3></div><div class="encs">${encs||'<div class="empty">No encounters yet.</div>'}</div>${builder}</div>
+    <div class="card stack"><div><div class="col-h"><h3>Maps</h3></div>${S.maps.map(m=>`<div style="margin-bottom:8px"><b>${esc(m.name)}</b><div class="small muted">${m.areas.map(a=>esc(a.key+' '+a.name)).join(' · ')||esc(m.note||'')}</div></div>`).join('')||'<div class="empty">No maps.</div>'}</div>
+      <div><div class="col-h"><h3>Loot</h3></div>${S.items.map(x=>`<div style="margin-bottom:6px"><b>${esc(x.name)}</b> ${x.rarity?`<span class="chip gold">${esc(x.rarity)}</span>`:''}<div class="small muted">${esc(x.desc)}</div></div>`).join('')||'<div class="empty">No items.</div>'}</div>
+      <div><div class="col-h"><h3>Party</h3></div><div class="pickrow">${S.party.map(p=>`<span class="chip">${esc(p.name)} · ${p.cls}${p.example?' · example':''}</span>`).join('')}</div></div>
+    </div>
+  </div>`;
+}
+
+/* ---------- combat engine ---------- */
+function startCombat(s,enc){
+  const foes=[];
+  enc.foes.forEach(f=>{const b=s.bestiary.find(x=>x.id===f.ref); if(!b) return; for(let i=0;i<f.n;i++) foes.push({id:uid('f'),name:b.name+(f.n>1?' '+(i+1):''),tier:b.tier,slots:b.slots,breakAt:b.breakAt,breaking:b.breaking,goal:b.goal,moves:b.moves,marks:[],status:'fighting'});});
+  const first=foes.find(f=>f.status==='fighting');
+  return {enc:enc.id,name:enc.name,where:enc.where,goal:enc.goal,foes,acted:{},round:1,
+    log:[{kind:'scene',text:`The scene turns to violence: ${enc.name}. No initiative roll. Whoever moves first, acts.`}],
+    pending:null,draft:{actor:s.party[0]&&s.party[0].id,target:first?first.id:'',approach:'STR',trained:true,pos:'risky',intent:'',stakes:'',die:''}};
+}
+function harmPc(p,sev,text){
+  const order=sev==='light'?[0,1,2,3]:[2,3];
+  for(const i of order){ if(!p.conds[i]){ p.conds[i]=text; return i; } }
+  return -1;
+}
+function markFoe(f,text){
+  if(f.marks.length>=f.slots) return;
+  f.marks.push(text);
+  if(f.marks.length>=f.slots){ f.status='down'; S.combat.log.unshift({kind:'break',text:`${f.name} is out of the fight.`}); }
+  else if(f.breakAt&&f.marks.length>=f.breakAt&&f.status==='fighting'){ f.status='breaking'; S.combat.log.unshift({kind:'break',text:`${f.name} reaches their breaking point. ${f.breaking}. What do they do?`}); }
+}
+const live=()=>S.combat.foes.filter(f=>f.status==='fighting'||f.status==='breaking');
+
+/* ---------- views: combat ---------- */
+function slotsHtml(f){
+  return `<div class="slots">${Array.from({length:f.slots},(_,i)=>{const m=f.marks[i];return `<span class="slot ${m?'full':''} ${f.breakAt&&i===f.breakAt?'brk':''}" ${m?`data-act="rm-mark" data-id="${f.id}" data-i="${i}" title="Click to remove" role="button" tabindex="0"`:''}>${m?esc(m):''}</span>`;}).join('')}</div>`;
+}
+function vCombat(){
+  const C=S.combat;
+  if(!C) return `<div class="pagehead"><div><div class="eyebrow">Stakes combat</div><h2>No fight running</h2><p>Start one from an encounter on the DM desk.</p></div></div><button class="btn primary" data-act="tab" data-v="desk">Go to the DM desk</button>`;
+  const waiting=S.party.filter(p=>!C.acted[p.id]&&p.conds[3]==null).map(p=>p.name);
+  const statusChip={fighting:'',breaking:'<span class="chip gold">Breaking</span>',down:'<span class="chip bad">Out</span>',fled:'<span class="chip warn">Fled</span>',surrendered:'<span class="chip ok">Surrendered</span>',bargained:'<span class="chip acc">Bargained</span>'};
+  const party=S.party.map(p=>`<div class="actor ${p.conds[3]?'down':''}"><div class="actor-top"><b><span class="spot ${C.acted[p.id]?'used':''}" title="${C.acted[p.id]?'Has acted this round':'Has not acted yet'}"></span>${esc(p.name)}</b><span class="small muted">${p.cls}</span></div>
+    <div class="slots">${PC_SLOTS.map((l,i)=>`<span class="slot ${p.conds[i]?'full':''}" ${p.conds[i]?`data-act="pc-heal" data-id="${p.id}" data-i="${i}" role="button" tabindex="0" title="Click to clear"`:''}>${p.conds[i]?esc(p.conds[i]):l}</span>`).join('')}</div></div>`).join('');
+  const foes=C.foes.map(f=>`<div class="actor ${['down','fled','surrendered','bargained'].includes(f.status)?'down':''}">
+    <div class="actor-top"><b>${esc(f.name)}</b><span class="row" style="gap:4px">${statusChip[f.status]||''}<span class="chip">${f.tier}</span></span></div>
+    <div class="goal">Wants: ${esc(f.goal)}</div>${slotsHtml(f)}
+    ${f.status==='breaking'?`<div class="breaking"><b>Breaking point.</b> ${esc(f.breaking)}.<div class="pickrow">${[['fled','Flees'],['surrendered','Surrenders'],['bargained','Bargains'],['fighting','Fights on']].map(([v,l])=>`<button class="chip" data-act="foe-break" data-id="${f.id}" data-v="${v}">${l}</button>`).join('')}</div></div>`:''}
+    ${f.status==='fighting'||f.status==='breaking'?`<div><button class="btn sm" data-act="foe-move" data-id="${f.id}">Make a move</button></div>`:''}</div>`).join('');
+  const center=C.pending?(C.pending.kind==='pc'?vOutcome():vFoeMove()):vComposer();
+  return `<div class="cb-head"><div><div class="eyebrow">Stakes combat · round ${C.round} · ${esc(C.where)}</div><h2>${esc(C.name)}</h2>
+    <p class="goal"><span class="muted">The opposition wants:</span> ${esc(C.goal)}</p></div>
+    <div class="row"><button class="btn" data-act="c-round">New round</button><button class="btn primary" data-act="c-end">End the scene</button></div></div>
+  <details class="rules card"><summary>How Stakes works (60 seconds)</summary><div class="in">
+    <div><b>1. Say what you do</b>Describe the action and what you want from it. The DM sets the position: Controlled, Risky or Desperate.</div>
+    <div><b>2. Say what's at risk</b>"If it goes wrong…" Everyone hears the stakes before the dice hit the table.</div>
+    <div><b>3. Roll one d20</b>Add your ability modifier, plus proficiency if trained. No armor class to beat.<div class="bands" style="margin-top:6px"><span class="b-set">1–7 Setback</span><span class="b-cost">8–14 Cost</span><span class="b-ok">15+ Success</span></div></div>
+    <div><b>4. Conditions, not hit points</b>Success marks a condition on the enemy, like Disarmed or Shaken. Enemies have 1–4 slots. At their breaking point they flee, surrender or bargain.</div>
+    <div><b>5. Setbacks are the DM's turn</b>An enemy makes a move, or you take a condition. There's no separate enemy turn order.</div>
+    <div><b>Your 5e character still works</b>Spells and features keep their effects. A damaging spell that lands marks a condition on each target it hits.</div>
+  </div></details>
+  <div class="cb-grid">
+    <div class="roster"><div class="eyebrow">Party${waiting.length?` · waiting: ${waiting.map(esc).join(', ')}`:' · everyone has acted'}</div>${party}<div class="eyebrow" style="margin-top:8px">Opposition · gold line = breaking point</div>${foes}</div>
+    <div style="min-width:0">${center}</div>
+    <div class="card cb-log"><div class="col-h"><h3>Scene log</h3><button class="btn sm discord" data-act="discord" data-v="log">Post to Discord</button></div>
+      <div class="log">${C.log.map(e=>`<div class="entry"><span class="tag t-${e.kind}">${{success:'Success',crit:'Critical',cost:'Success at a cost',setback:'Setback',scene:'Scene',foe:'Enemy move',break:'Turning point'}[e.kind]||e.kind}</span><span>${esc(e.text)}</span></div>`).join('')}</div></div>
+  </div>`;
+}
+function vComposer(){
+  const C=S.combat, d=C.draft, p=pc(d.actor)||S.party[0];
+  if(!p) return '<div class="empty">Add characters to the party first.</div>';
+  d.actor=p.id;
+  if(d.target&&!live().some(f=>f.id===d.target)){ const n=live()[0]; d.target=n?n.id:''; }
+  const m=k=>mod(p.abil[k]);
+  return `<div class="card stack">
+    <div><div class="eyebrow">The spotlight</div><h3>What do you do?</h3></div>
+    <div class="row" style="flex-wrap:nowrap;align-items:end">
+      <label class="f" for="c-actor" style="flex:1">Who acts<select id="c-actor" data-bind="combat.draft.actor" data-rerender>${S.party.map(x=>`<option value="${x.id}" ${x.id===p.id?'selected':''}>${esc(x.name)}${C.acted[x.id]?' (acted)':''}</option>`).join('')}</select></label>
+      <label class="f" for="c-target" style="flex:1">Against<select id="c-target" data-bind="combat.draft.target">${live().map(f=>`<option value="${f.id}" ${f.id===d.target?'selected':''}>${esc(f.name)}</option>`).join('')}<option value="" ${!d.target?'selected':''}>The scene / no one</option></select></label>
+    </div>
+    <div><div class="eyebrow" style="margin-bottom:6px">Approach: how you do it</div>
+      <div class="seg six">${ABIL.map(k=>`<button class="opt" data-act="c-approach" data-v="${k}" aria-pressed="${d.approach===k}"><b>${APPROACH[k].name} <span class="mono">${fmt(m(k))}</span></b><small>${k}${p.trained.includes(k)?' · trained':''}</small></button>`).join('')}</div>
+      <label class="row small" style="margin-top:6px"><input type="checkbox" id="c-trained" data-bind="combat.draft.trained" ${d.trained?'checked':''}> Trained for this (a proficient skill, save or weapon): +${p.prof}</label></div>
+    <div><div class="eyebrow" style="margin-bottom:6px">Position: the DM decides</div>
+      <div class="seg">${Object.entries(POS).map(([k,v])=>`<button class="opt" data-act="c-pos" data-v="${k}" aria-pressed="${d.pos===k}"><b>${v.name}</b><small>${v.d}</small></button>`).join('')}</div></div>
+    <label class="f" for="c-intent">Intent: what you do and what you want<textarea id="c-intent" data-bind="combat.draft.intent" rows="2" placeholder="I kick the lantern into the oil barrels so they can't reach the boat">${esc(d.intent)}</textarea></label>
+    <label class="f" for="c-stakes">Stakes: if it goes wrong…<input id="c-stakes" data-bind="combat.draft.stakes" value="${esc(d.stakes)}" placeholder="${esc(POS[d.pos].stakes)}"></label>
+    <div class="rollrow"><button class="btn primary" data-act="c-roll">Roll d20 for me</button><span class="small muted or" style="text-align:center">or rolled at the table:</span>
+      <span class="row" style="flex-wrap:nowrap"><input id="c-die" type="number" min="1" max="20" inputmode="numeric" data-bind="combat.draft.die" value="${esc(d.die)}" aria-label="Die result"><button class="btn" data-act="c-table">Use</button></span></div>
+    <div class="bands"><span class="b-set">1–7 Setback</span><span class="b-cost">8–14 Success at a cost</span><span class="b-ok">15+ Success</span></div>
+  </div>`;
+}
+function vOutcome(){
+  const P=S.combat.pending, p=pc(P.actor), f=foe(P.target), [label,cls]=BAND[P.band];
+  const max=(P.pos==='desperate'?2:1)+(P.band==='crit'?1:0);
+  let body='';
+  if(P.band!=='setback'){
+    const opts=(f?EFFECTS[P.approach]:[]).concat(OPENINGS);
+    body+=`<div><div class="eyebrow" style="margin-bottom:6px">Pick ${max} effect${max>1?'s':''}${f?` on ${esc(f.name)}`:''}</div>
+      <div class="pickrow">${opts.map(o=>`<button class="chip" data-act="c-pick" data-v="${esc(o)}" aria-pressed="${P.picks.includes(o)}">${esc(o)}</button>`).join('')}</div></div>`;
+    if(P.band==='cost') body+=`<div><div class="eyebrow" style="margin-bottom:6px">…and the DM picks the cost</div><div class="pickrow">${COSTS.map((c,i)=>`<button class="chip" data-act="c-cost" data-i="${i}" aria-pressed="${P.cost===i}">${c}</button>`).join('')}</div></div>`;
+  } else {
+    const moves=f?f.moves.concat(DM_MOVES.slice(0,3)):DM_MOVES;
+    const harm={controlled:'No harm: you lose ground instead (your next roll is Risky).',risky:'You take a light condition.',desperate:'You take a serious condition.'}[P.pos];
+    body+=`<div><div class="eyebrow" style="margin-bottom:6px">The DM makes a move${f?` with ${esc(f.name)}`:''}</div><div class="pickrow">${moves.map(o=>`<button class="chip" data-act="c-move" data-v="${esc(o)}" aria-pressed="${P.move===o}">${esc(o)}</button>`).join('')}</div></div>
+      <div><div class="eyebrow" style="margin-bottom:6px">Harm (${POS[P.pos].name})</div><p class="small">${harm}</p>
+      ${P.pos!=='controlled'?`<div class="pickrow" style="margin-top:6px">${PC_HARM.map(h=>`<button class="chip" data-act="c-harm" data-v="${h}" aria-pressed="${P.harm===h}">${h}</button>`).join('')}</div>`:''}</div>`;
+  }
+  return `<div class="card outcome stack">
+    <div class="result ${cls}"><span class="big">${label}</span><span class="math">d20 ${P.die} ${fmt(P.m)} ${APPROACH[P.approach].name}${P.tb?` +${P.tb} trained`:''} = ${P.total}</span></div>
+    <p class="quote">${esc(p.name)}: “${esc(P.intent||'acts')}”${P.stakes?` If it goes wrong: ${esc(P.stakes)}`:''}</p>
+    ${body}
+    <div class="row"><button class="btn primary" data-act="c-apply">Write it into the scene</button><button class="btn ghost" data-act="c-cancel">Undo roll</button></div></div>`;
+}
+function vFoeMove(){
+  const P=S.combat.pending, f=foe(P.foe);
+  const t=pc(P.target)||S.party[0];
+  const res=P.band?BAND[P.band]:null;
+  return `<div class="card stack">
+    <div><div class="eyebrow">Enemy move</div><h3>${esc(f.name)} acts</h3><p class="small muted">Wants: ${esc(f.goal)}</p></div>
+    <div><div class="eyebrow" style="margin-bottom:6px">Move</div><div class="pickrow">${f.moves.concat(['Go for their goal instead']).map(o=>`<button class="chip" data-act="f-pick" data-v="${esc(o)}" aria-pressed="${P.move===o}">${esc(o)}</button>`).join('')}</div></div>
+    <div class="row" style="flex-wrap:nowrap;align-items:end">
+      <label class="f" for="f-target" style="flex:1">Against<select id="f-target" data-bind="combat.pending.target">${S.party.map(x=>`<option value="${x.id}" ${x.id===t.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
+      <label class="f" for="f-appr" style="flex:1">They brace with<select id="f-appr" data-bind="combat.pending.approach">${ABIL.map(k=>`<option value="${k}" ${P.approach===k?'selected':''}>${APPROACH[k].name} (${fmt(mod(t.abil[k]))})</option>`).join('')}</select></label></div>
+    ${res?`<div class="result outcome ${res[1]}" style="padding:10px 12px;border-radius:5px"><span class="big" style="font-size:1.4rem">${{crit:'Avoided completely',success:'Avoided',cost:'Grazed: light condition',setback:'Hit: serious condition'}[P.band]}</span> <span class="math">d20 ${P.die} ${fmt(P.m)} = ${P.total}</span></div>
+      ${P.band==='cost'||P.band==='setback'?`<div class="pickrow">${PC_HARM.map(h=>`<button class="chip" data-act="f-harm" data-v="${h}" aria-pressed="${P.harm===h}">${h}</button>`).join('')}</div>`:''}
+      <div class="row"><button class="btn primary" data-act="f-apply" ${P.move?'':'disabled'}>Write it into the scene</button><button class="btn ghost" data-act="c-cancel">Cancel</button></div>`
+    :`<div class="rollrow"><button class="btn primary" data-act="f-roll">Roll brace for them</button><span class="small muted or" style="text-align:center">or at the table:</span>
+      <span class="row" style="flex-wrap:nowrap"><input id="f-die" type="number" min="1" max="20" data-bind="combat.pending.die" value="${esc(P.die||'')}" aria-label="Brace die result"><button class="btn" data-act="f-table">Use</button></span></div>
+      <div class="row"><button class="btn ghost" data-act="c-cancel">Cancel</button></div>`}
+  </div>`;
+}
+
+/* ---------- modal ---------- */
+function discordText(what){
+  if(what==='sheet'){ const c=S.creator, a=c.abil||{}; return {ch:'#characters',title:`New hero: ${c.name}`,body:`Level 1 ${c.anc} ${c.cls}\nHP ${hpFor(c.cls,c.anc,a)} · AC ${CLASSES[c.cls].ac(a)}\n${ABIL.map(k=>`${APPROACH[k].name} ${fmt(mod(a[k]))}`).join(' · ')}\nWants: ${c.want||'?'}`}; }
+  if(what==='recap'){ const done=S.beats.filter(b=>b.status==='done').map(b=>b.title), act=S.beats.find(b=>b.status==='active'); return {ch:'#session-recaps',title:'Last time…',body:`${done.length?'Done: '+done.join(', ')+'\n':''}${act?'Now: '+act.title+'\n':''}Open threads:\n${S.hooks.filter(h=>h.status==='dangling'||h.status==='taken').slice(0,4).map(h=>'• '+h.text).join('\n')}`}; }
+  const C=S.combat; return {ch:'#the-table',title:C?C.name:'Scene',body:C?C.log.slice(0,4).reverse().map(e=>'• '+e.text).join('\n'):''};
+}
+function vModal(){
+  const M=S.modal;
+  if(M.kind==='discord'){ const d=discordText(M.what); return `<div class="overlay" data-act="close-modal"><div class="modal" role="dialog" aria-modal="true" aria-label="Discord preview" data-stop>
+    <div class="modal-h"><div><div class="eyebrow">Discord preview</div><h3>What the bot would post</h3></div><button class="btn sm ghost" data-act="close-modal">Close</button></div>
+    <div class="dc"><div class="dc-ch">${d.ch}</div><div class="dc-bot"><span class="dc-av">Q</span><b>Quillbound</b><span class="chip">BOT</span></div><div class="dc-embed"><b>${esc(d.title)}</b>${esc(d.body)}</div></div>
+    <p class="small muted">The Discord bot isn't connected in this prototype, so nothing was sent. In the full version players can also roll from Discord: <span class="mono">/stakes force risky</span></p></div></div>`; }
+  if(M.kind==='end'){ const C=S.combat; return `<div class="overlay" data-act="close-modal"><div class="modal" role="dialog" aria-modal="true" aria-label="End the scene" data-stop>
+    <div class="modal-h"><div><div class="eyebrow">Back to roleplay</div><h3>How did ${esc(C.name)} end?</h3></div><button class="btn sm ghost" data-act="close-modal">Close</button></div>
+    <div class="stack small">${M.hooks.length?`<div><div class="eyebrow" style="margin-bottom:6px">New hooks from this fight</div>${M.hooks.map((h,i)=>`<label class="row" style="flex-wrap:nowrap;align-items:baseline;margin-bottom:4px"><input type="checkbox" data-bind="modal.hooks.${i}.on" ${h.on?'checked':''}> ${esc(h.text)}</label>`).join('')}</div>`:'<p class="muted">Nobody escaped, surrendered or made a deal, so there are no loose ends.</p>'}
+    <div><div class="eyebrow" style="margin-bottom:4px">Conditions</div><p>Light conditions clear now. Serious conditions stay until a long rest.</p></div></div>
+    <div class="row"><button class="btn primary" data-act="end-confirm">Back to roleplay</button></div></div></div>`; }
+  return '';
+}
+
+/* ---------- actions ---------- */
+const ACT={
+  tab:d=>{S.tab=d.v; window.scrollTo(0,0);},
+  reset:()=>{S=fresh(); toast('Demo data reset');},
+  'close-modal':()=>{S.modal=null;},
+  discord:d=>{S.modal={kind:'discord',what:d.v};},
+  'cr-step':d=>{S.creator.step=+d.v;},
+  'cr-class':d=>{const c=S.creator; if(c.cls!==d.v){c.cls=d.v;c.abil=null;}},
+  'cr-anc':d=>{S.creator.anc=d.v;},
+  'cr-next':()=>{S.creator.step=Math.min(4,S.creator.step+1); window.scrollTo(0,0);},
+  'cr-back':()=>{S.creator.step=Math.max(0,S.creator.step-1);},
+  'cr-chip':d=>{S.creator[d.k]=d.v;},
+  'cr-randname':()=>{S.creator.name=NAMES[Math.floor(Math.random()*NAMES.length)];},
+  'cr-recommend':()=>{S.creator.abil=recommended(S.creator.cls); S.creator.swap=null;},
+  'cr-abil':d=>{const c=S.creator; if(!c.swap){c.swap=d.v;return;} if(c.swap!==d.v){const t=c.abil[c.swap]; c.abil[c.swap]=c.abil[d.v]; c.abil[d.v]=t;} c.swap=null;},
+  'cr-new':()=>{S.creator={step:0,cls:null,anc:null,name:'',left:'',want:'',fear:'',abil:null,swap:null};},
+  'cr-add':()=>{const c=S.creator; const p={id:uid('p'),name:c.name.trim(),cls:c.cls,anc:c.anc,level:1,prof:2,abil:{...c.abil},trained:CLASSES[c.cls].trained,hp:hpFor(c.cls,c.anc,c.abil),ac:CLASSES[c.cls].ac(c.abil),conds:[null,null,null,null],want:c.want};
+    S.party.push(p);
+    [['want','wants'],['left','left behind'],['fear','fears']].forEach(([k,l])=>{ if(c[k].trim()) S.hooks.push({id:uid('h'),text:`${p.name} ${l}: ${c[k].trim()}`,status:'dangling',clock:0,source:'Character'}); });
+    toast(`${p.name} joined the party. Their story hooks are on the DM desk.`); ACT['cr-new']();},
+  'imp-view':d=>{S.importer.view=d.v;},
+  'imp-sample':()=>{Object.assign(S.importer,{fileName:'The Drowned Lantern (sample)',pages:null,imagePages:[],status:'',result:parseAdventure(SAMPLE_TEXT)});},
+  'imp-paste':()=>{const t=S.importer.paste.trim(); if(!t){toast('Paste some text first');return;} Object.assign(S.importer,{fileName:'Pasted text',pages:null,imagePages:[],status:'',result:parseAdventure(t)});},
+  'imp-send':()=>{const n=sendToDesk(S,S.importer.result); toast(n?`Sent ${n} new entries to the DM desk`:'Everything selected is already on the desk'); S.tab='desk';},
+  beat:d=>{const b=S.beats.find(x=>x.id===d.id); b.status={upcoming:'active',active:'done',done:'upcoming'}[b.status];},
+  'hook-clock':d=>{const h=S.hooks.find(x=>x.id===d.id); h.clock=(h.clock+1)%5;},
+  'hook-add':()=>{const i=$('#hook-new'); const v=i.value.trim(); if(!v) return; S.hooks.unshift({id:uid('h'),text:v,status:'dangling',clock:0,source:'DM'});},
+  npc:d=>{const n=S.npcs.find(x=>x.id===d.id); n.open=!n.open;},
+  'enc-addfoe':()=>{const D=S.draft; const ref=D.pick||(S.bestiary[0]&&S.bestiary[0].id); if(!ref) return; const n=Math.max(1,Math.min(12,parseInt(D.n)||1)); const ex=D.foes.find(f=>f.ref===ref); if(ex) ex.n+=n; else D.foes.push({ref,n});},
+  'enc-rmfoe':d=>{S.draft.foes.splice(+d.i,1);},
+  'enc-save':()=>{const D=S.draft; S.encounters.push({id:uid('e'),name:D.name.trim(),where:D.where.trim()||'Somewhere',goal:D.goal.trim()||'Defend their ground',foes:D.foes}); S.draft={name:'',where:'',goal:'',foes:[],pick:D.pick,n:1}; toast('Encounter saved');},
+  'enc-del':d=>{S.encounters=S.encounters.filter(e=>e.id!==d.id);},
+  'enc-run':d=>{S.combat=startCombat(S,S.encounters.find(e=>e.id===d.id)); S.tab='combat'; window.scrollTo(0,0);},
+  'c-approach':d=>{const D=S.combat.draft; D.approach=d.v; const p=pc(D.actor); D.trained=!!(p&&p.trained.includes(d.v));},
+  'c-pos':d=>{S.combat.draft.pos=d.v;},
+  'c-roll':()=>roll(d20()),
+  'c-table':()=>{const v=parseInt(S.combat.draft.die); if(!(v>=1&&v<=20)){toast('Enter the d20 result, 1 to 20');return;} roll(v);},
+  'c-pick':d=>{const P=S.combat.pending; const max=(P.pos==='desperate'?2:1)+(P.band==='crit'?1:0); const i=P.picks.indexOf(d.v); if(i>=0) P.picks.splice(i,1); else { P.picks.push(d.v); if(P.picks.length>max) P.picks.shift(); }},
+  'c-cost':d=>{S.combat.pending.cost=+d.i;},
+  'c-move':d=>{S.combat.pending.move=d.v;},
+  'c-harm':d=>{S.combat.pending.harm=d.v;},
+  'c-cancel':()=>{S.combat.pending=null;},
+  'c-apply':()=>applyRoll(),
+  'c-round':()=>{S.combat.acted={}; S.combat.round++; S.combat.log.unshift({kind:'scene',text:`Round ${S.combat.round}. Everyone gets the spotlight again.`});},
+  'rm-mark':d=>{const f=foe(d.id); f.marks.splice(+d.i,1); if(f.status==='down'||f.status==='breaking') f.status='fighting';},
+  'pc-heal':d=>{pc(d.id).conds[+d.i]=null;},
+  'foe-break':d=>{const f=foe(d.id); f.status=d.v; if(d.v==='fighting'){f.breakAt=null; S.combat.log.unshift({kind:'break',text:`${f.name} refuses to break and fights on.`});} else S.combat.log.unshift({kind:'break',text:`${f.name} ${{fled:'flees the fight',surrendered:'surrenders',bargained:'offers a deal'}[d.v]}.`});},
+  'foe-move':d=>{if(!S.party.length){toast('Add characters to the party first');return;} S.combat.pending={kind:'foe',foe:d.id,move:null,target:S.party[0].id,approach:'DEX',die:''};},
+  'f-pick':d=>{S.combat.pending.move=d.v;},
+  'f-roll':()=>brace(d20()),
+  'f-table':()=>{const v=parseInt(S.combat.pending.die); if(!(v>=1&&v<=20)){toast('Enter the d20 result, 1 to 20');return;} brace(v);},
+  'f-harm':d=>{S.combat.pending.harm=d.v;},
+  'f-apply':()=>{const P=S.combat.pending, f=foe(P.foe), t=pc(P.target); let txt=`${f.name}: ${P.move} against ${t.name}. ${t.name} braces with ${APPROACH[P.approach].name} (d20 ${P.die} ${fmt(P.m)} = ${P.total}): `;
+    if(P.band==='success'||P.band==='crit') txt+='avoided.';
+    else { const sev=P.band==='cost'?'light':'serious', h=P.harm||(sev==='light'?'Winded':'Bleeding'), i=harmPc(t,sev,h); txt+=`${sev} condition: ${h}.${i===3?` ${t.name} is down. Death saves as normal.`:''}`; }
+    S.combat.log.unshift({kind:'foe',text:txt}); S.combat.pending=null;},
+  'c-end':()=>{const C=S.combat, hooks=[];
+    C.foes.forEach(f=>{ if(f.status==='fled') hooks.push({text:`${f.name.replace(/ \d+$/,'')} escaped from ${C.name} and knows the party's faces`,on:true});
+      if(f.status==='surrendered') hooks.push({text:`A captured ${f.name.replace(/ \d+$/,'')} can be questioned about ${C.where}`,on:true});
+      if(f.status==='bargained') hooks.push({text:`The party owes, or is owed, a deal made with ${f.name.replace(/ \d+$/,'')}`,on:true}); });
+    S.modal={kind:'end',hooks};},
+  'end-confirm':()=>{S.modal.hooks.filter(h=>h.on).forEach(h=>S.hooks.unshift({id:uid('h'),text:h.text,status:'dangling',clock:0,source:'Combat'}));
+    S.party.forEach(p=>{p.conds[0]=null;p.conds[1]=null;});
+    toast('Scene closed. New hooks are on the DM desk.'); S.combat=null; S.modal=null; S.tab='desk';}
+};
+function roll(die){
+  const C=S.combat, d=C.draft, p=pc(d.actor); if(!p) return;
+  const m=mod(p.abil[d.approach]), tb=d.trained?p.prof:0, total=die+m+tb;
+  C.pending={kind:'pc',actor:p.id,target:d.target,approach:d.approach,pos:d.pos,intent:d.intent.trim(),stakes:(d.stakes||'').trim(),die,m,tb,total,band:bandFor(die,total),picks:[],cost:null,move:null,harm:null};
+}
+function brace(die){
+  const P=S.combat.pending, t=pc(P.target); P.die=die; P.m=mod(t.abil[P.approach]); P.total=die+P.m; P.band=bandFor(die,P.total);
+}
+function applyRoll(){
+  const C=S.combat, P=C.pending, p=pc(P.actor), f=foe(P.target);
+  let txt=`${p.name} · ${APPROACH[P.approach].name} · ${POS[P.pos].name}: “${P.intent||'acts'}” ${BAND[P.band][0]} (d20 ${P.die} ${fmt(P.m)}${P.tb?' +'+P.tb:''} = ${P.total}).`;
+  if(P.band!=='setback'){
+    const conds=P.picks.filter(x=>!OPENINGS.includes(x)), other=P.picks.filter(x=>OPENINGS.includes(x));
+    if(f&&conds.length){ txt+=` ${f.name}: ${conds.join(', ')}.`; conds.forEach(x=>markFoe(f,x)); }
+    if(other.length) txt+=' '+other.map(x=>x.split(' (')[0]).join('; ')+'.';
+    if(P.band==='cost'&&P.cost!=null){ txt+=` Cost: ${COSTS[P.cost].toLowerCase()}.`; if(P.cost===0){ harmPc(p,'light','Winded'); } }
+  } else {
+    if(P.move) txt+=` ${f?f.name+': ':''}${P.move}.`;
+    if(P.pos==='controlled') txt+=' No harm, but the next roll is Risky.';
+    else { const sev=P.pos==='desperate'?'serious':'light', h=P.harm||(sev==='light'?'Winded':'Bleeding'), i=harmPc(p,sev,h); txt+=` ${p.name} takes a ${sev} condition: ${h}.${i===3?' Down. Death saves as normal.':''}`; }
+  }
+  C.log.unshift({kind:P.band,text:txt});
+  C.acted[p.id]=true;
+  Object.assign(C.draft,{intent:'',stakes:'',die:''});
+  if(f&&!live().includes(f)){ const n=live()[0]; C.draft.target=n?n.id:''; }
+  C.pending=null;
+}
+
+/* ---------- PDF reading (pdf.js, loaded on demand) ---------- */
+const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+const PDFW='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const loadScript=src=>new Promise((ok,bad)=>{const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>bad(new Error('Could not load '+src)); document.head.appendChild(s);});
+async function ensurePdf(){ if(!window.pdfjsLib) await loadScript(PDFJS); if(!window.pdfjsWorker) await loadScript(PDFW); pdfjsLib.GlobalWorkerOptions.workerSrc=PDFW; }
+async function pdfToText(file){
+  await ensurePdf();
+  const doc=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+  const lines=[], imagePages=[];
+  for(let n=1;n<=doc.numPages;n++){
+    const page=await doc.getPage(n), tc=await page.getTextContent(), rows=[];
+    for(const it of tc.items){ if(!it.str||!it.str.trim()) continue; const y=it.transform[5], size=Math.abs(it.transform[3])||it.height||10;
+      let r=rows.find(r=>Math.abs(r.y-y)<=2); if(!r){r={y,size,parts:[]}; rows.push(r);} r.parts.push({x:it.transform[4],s:it.str}); r.size=Math.max(r.size,size); }
+    rows.sort((a,b)=>b.y-a.y); let prev=null;
+    for(const r of rows){ const text=r.parts.sort((a,b)=>a.x-b.x).map(p=>p.s).join(' ').replace(/\s+/g,' ').trim(); if(prev&&prev.y-r.y>r.size*1.8) lines.push({text:'',size:0}); lines.push({text,size:r.size}); prev=r; }
+    lines.push({text:'',size:0});
+    try{ const ops=await page.getOperatorList(), O=pdfjsLib.OPS; if(ops.fnArray.some(f=>f===O.paintImageXObject||f===O.paintJpegXObject)) imagePages.push(n); }catch(e){}
+    S.importer.status=`Reading page ${n} of ${doc.numPages}…`; if(n%5===0) render();
+  }
+  const sizes=lines.filter(l=>l.text).map(l=>l.size).sort((a,b)=>a-b), med=sizes[Math.floor(sizes.length/2)]||10;
+  return {text:lines.map(l=>l.text&&l.size>=med*1.2&&l.text.length<70?'# '+l.text:l.text).join('\n'),pages:doc.numPages,imagePages};
+}
+async function importFile(file){
+  if(!file) return;
+  if(!/pdf$/i.test(file.type)&&!/\.pdf$/i.test(file.name)){ toast('That file is not a PDF'); return; }
+  Object.assign(S.importer,{fileName:file.name,status:'Loading the PDF reader…',result:null,pages:null,imagePages:[]}); render();
+  try{
+    const r=await pdfToText(file); const res=parseAdventure(r.text);
+    r.imagePages.forEach(p=>res.maps.push({id:uid('m'),name:`Image on page ${p}`,areas:[],note:'This page has a picture. Check whether it is a map.',include:false,why:'image found on page'}));
+    Object.assign(S.importer,{result:res,pages:r.pages,imagePages:r.imagePages,status:r.text.replace(/\s/g,'').length<200?'Almost no text found. This PDF may be scanned images, which the offline reader can\'t read yet.':''});
+  }catch(e){ S.importer.status='Could not read this PDF ('+e.message+'). Try pasting the text instead.'; }
+  render();
+}
+
+/* ---------- wiring ---------- */
+function render(){
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.v===S.tab));
+  $('#view').innerHTML={create:vCreate,import:vImport,desk:vDesk,combat:vCombat}[S.tab]();
+  $('#modal').innerHTML=S.modal?vModal():'';
+  save();
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-stop]')&&!e.target.closest('[data-act]')) return;
+  const el=e.target.closest('[data-act]'); if(!el||el.disabled) return;
+  if(el.classList.contains('overlay')&&e.target!==el) return;
+  const fn=ACT[el.dataset.act]; if(!fn) return;
+  e.preventDefault(); fn(el.dataset,el); render();
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&S.modal){S.modal=null;render();return;}
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches('span[data-act]')){e.preventDefault();e.target.click();}
+  if(e.key==='Enter'&&e.target.id==='hook-new'){ACT['hook-add']();render();}
+});
+document.addEventListener('input',e=>{
+  const t=e.target, b=t.dataset.bind; if(!b) return;
+  setPath(b,t.type==='checkbox'?t.checked:t.value);
+  if(b==='combat.draft.actor'){const D=S.combat.draft,p=pc(D.actor); D.trained=!!(p&&p.trained.includes(D.approach));}
+  if(t.dataset.rerender!==undefined||t.tagName==='SELECT'&&b.startsWith('combat.pending')) render(); else save();
+  if(b.startsWith('creator.')&&S.creator.step===2){const nb=document.querySelector('.cr-foot .btn.primary'); if(nb) nb.disabled=!S.creator.name.trim(); const st=document.querySelectorAll('.stepper button')[4]; if(st) st.disabled=!S.creator.name.trim();}
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.actChange==='hook-status'){ const h=S.hooks.find(x=>x.id===t.dataset.id); h.status=t.value; render(); }
+  if(t.id==='imp-file') importFile(t.files[0]);
+});
+document.addEventListener('dragover',e=>{const d=e.target.closest&&e.target.closest('#drop'); if(d){e.preventDefault(); d.classList.add('over');}});
+document.addEventListener('dragleave',e=>{const d=e.target.closest&&e.target.closest('#drop'); if(d) d.classList.remove('over');});
+document.addEventListener('drop',e=>{const d=e.target.closest&&e.target.closest('#drop'); if(d){e.preventDefault(); importFile(e.dataTransfer.files[0]);}});
+
+S=load()||fresh();
+S.modal=null;
+render();
+</script>

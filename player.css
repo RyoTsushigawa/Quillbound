@@ -1,0 +1,36 @@
+/* Player screen: the app's theme (theme.css) at TV distance. Larger type, one column of sections, cards in a grid. */
+body{font-size:18px;line-height:1.55}
+header{position:sticky;top:0;z-index:5;display:flex;gap:12px 20px;align-items:center;justify-content:space-between;flex-wrap:wrap;
+  padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--surface);border-bottom:1px solid var(--line)}
+header strong{font-family:var(--display);font-size:1.6rem;font-weight:700;display:flex;align-items:baseline;gap:10px}
+header strong small{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid currentColor;border-radius:3px;padding:1px 6px;font-weight:600}
+header div{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+#connection{font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+button{font:inherit;font-weight:600;font-size:.9rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:5px;padding:7px 13px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+main{max-width:1320px;margin:0 auto;padding-block:24px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+section{margin-bottom:28px}
+section>h2{font-size:2rem;margin-bottom:12px}
+h3{font-size:1.4rem;margin-bottom:6px}
+p{white-space:pre-wrap;margin:6px 0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:14px}
+article,.spotlight,.waiting{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.spotlight{border-color:var(--accent)}
+.spotlight>h2{font-size:2.2rem}
+.spotlight p{font-size:1.3rem;max-width:70ch}
+.spotlight img{display:block;max-width:100%;max-height:78vh;object-fit:contain;margin:0 auto;border-radius:4px;background:var(--surface-2)}
+.waiting{text-align:center;padding:12vh 16px}
+.waiting h2{font-size:2.4rem}
+.waiting p{color:var(--muted)}
+details{margin-top:6px;font-size:.95rem}
+details summary{cursor:pointer;color:var(--accent);font-weight:600}
+.public-roll{display:flex;gap:18px;align-items:center;padding:12px 18px;margin:10px 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.public-roll b{font-family:var(--mono);font-size:2.6rem;font-weight:600;min-width:2ch;text-align:center;font-variant-numeric:tabular-nums}
+.public-roll span{color:var(--muted)}
+.public-roll.critical{border-color:var(--gold);background:var(--gold-soft)}
+.public-roll.critical b,.public-roll.critical span{color:var(--gold)}
+.public-roll.disaster{border-color:var(--bad);background:var(--bad-soft)}
+.public-roll.disaster b,.public-roll.disaster span{color:var(--bad)}
+.public-moment{border:1px solid var(--gold);background:var(--gold-soft);border-radius:var(--r);padding:14px 18px}
+.public-moment h3{color:var(--gold);letter-spacing:.05em}
+@media (max-width:600px){ body{font-size:16px} section>h2{font-size:1.6rem} .public-roll b{font-size:2rem} }

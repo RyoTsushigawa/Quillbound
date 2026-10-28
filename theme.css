@@ -1,0 +1,40 @@
+/* Quillbound design tokens and base type, shared by the DM app (index.html) and the player screen (player.html).
+   Light values on :root; dark values for dark systems unless light was chosen, and again for an explicit dark choice. */
+:root{
+  --paper:#e8edf0; --grid:rgba(29,107,102,.075); --surface:#fbfcfc; --surface-2:#f1f4f5;
+  --ink:#17212b; --muted:#566573; --line:#cdd6dc;
+  --accent:#1d6b66; --accent-ink:#ffffff; --accent-soft:#d5e8e5;
+  --gold:#946a0c; --gold-soft:#f3e6c2;
+  --ok:#2a7347; --ok-soft:#dbeee1; --warn:#9a5e0b; --warn-soft:#f5e6c9; --bad:#a53727; --bad-soft:#f5dbd6;
+  --display:"Grenze", Georgia, "Times New Roman", serif;
+  --body:"Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0e1419; --grid:rgba(91,184,173,.055); --surface:#151e25; --surface-2:#1b262f;
+  --ink:#e3e9ed; --muted:#91a1ad; --line:#2a3742;
+  --accent:#5bb8ad; --accent-ink:#081613; --accent-soft:#17332f;
+  --gold:#e2b84f; --gold-soft:#372c12;
+  --ok:#6cc58e; --ok-soft:#163023; --warn:#e3a94a; --warn-soft:#372811; --bad:#ec8473; --bad-soft:#3b1c17;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0e1419; --grid:rgba(91,184,173,.055); --surface:#151e25; --surface-2:#1b262f;
+  --ink:#e3e9ed; --muted:#91a1ad; --line:#2a3742;
+  --accent:#5bb8ad; --accent-ink:#081613; --accent-soft:#17332f;
+  --gold:#e2b84f; --gold-soft:#372c12;
+  --ok:#6cc58e; --ok-soft:#163023; --warn:#e3a94a; --warn-soft:#372811; --bad:#ec8473; --bad-soft:#3b1c17;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background-color:var(--paper);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:28px 28px;color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;min-height:100vh}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+.wrap{max-width:1320px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4{font-family:var(--display);font-weight:600;text-wrap:balance;margin:0;line-height:1.1}
+h2{font-size:1.75rem} h3{font-size:1.25rem} h4{font-size:1.05rem}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+.eyebrow{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}

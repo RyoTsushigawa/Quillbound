@@ -1,0 +1,20 @@
+{
+  "name": "quillbound",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "node tools/serve.js",
+    "scan": "node tools/scan.js",
+    "read": "node tools/read.js",
+    "regress": "node tools/regress.js",
+    "test": "node tools/combat-check.cjs && node tools/player-check.cjs && node tools/clarity-check.cjs && node tools/library-check.cjs && node tools/hp-check.cjs && node tools/hero-check.cjs && node tools/homebrew-check.cjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "pdfjs-dist": "^3.11.174"
+  }
+}

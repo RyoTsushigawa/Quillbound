@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "quillbound",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["tools/serve.js"],
+      "env": { "QB_TEST_FILES": "C:\\Users\\Ryo\\Desktop\\Dnd" },
+      "port": 5173
+    }
+  ]
+}
