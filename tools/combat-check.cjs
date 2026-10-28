@@ -103,3 +103,19 @@ l=R.init(s);assert.equal(l.version,3);assert.equal(s.party[0].hpNow,6);assert.eq
 const lookouts=s.combat.foes.filter(f=>f.group==='mob');assert.equal(lookouts.length,4);assert.deepEqual([...lookouts.map(f=>f.hpNow)],[0,11,11,11]);assert(lookouts.every(f=>l.conditions[f.id].includes('Distracted')&&l.positions[f.id]==='center'));
 assert.equal(s.combat.foes.find(f=>f.id==='k').hpNow,39);assert.equal(l.draft.enemyEffect,'damage');assert(s.combat.log[0].text.includes('converted'));
 console.log('PASS: wound-rule fights convert by share (heroes, enemies, mobs into members with stat-block HP); stamina starts full; Undo history starts fresh.');
+
+
+/* Strike-back balance: once per Attack action, not once per failed attack roll. */
+s=state([knight({hpMax:100,hpNow:100})]);s.party[0]=hero('p1','Extra Attacker',{level:5,prof:3,hp:90,hpNow:90});l=R.init(s);
+R.prepare(s,draft(s),[7,1]);assert.equal(R.attackResponseIndex(s,l.pending),0);
+const firstCounter=l.pending.rolls[0].strike.damage;
+R.damage(s,0,8);R.apply(s);assert.equal(me(s).hpNow,90-firstCounter,'second miss/natural 1 cannot retaliate again');
+assert.equal((s.combat.log[0].text.match(/strikes back/g)||[]).length,1);
+assert(R.undo(s));assert.equal(me(s).hpNow,90,'Undo restores strike-back HP');
+s=state([knight({hpMax:100,hpNow:100})]);s.party[0]=hero('p1','Extra Attacker',{level:5,prof:3,hp:90,hpNow:90});l=R.init(s);
+R.prepare(s,draft(s),[15,1]);R.damage(s,0,8);assert.equal(R.attackResponseIndex(s,l.pending),1);
+R.apply(s);assert.equal((s.combat.log[0].text.match(/strikes back/g)||[]).length,1,'natural 1 can be first eligible counter');
+s=state([knight({hpMax:5,hpNow:5})]);s.party[0]=hero('p1','Extra Attacker',{level:5,prof:3,hp:90,hpNow:90});l=R.init(s);
+R.prepare(s,draft(s),[15,1]);R.damage(s,0,8);assert.equal(R.attackResponseIndex(s,l.pending),-1,'defeated enemies cannot respond');
+R.apply(s);assert.equal(me(s).hpNow,90);
+console.log('PASS: one strike-back per Attack action, natural 1, fallen targets and Undo.');
