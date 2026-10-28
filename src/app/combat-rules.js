@@ -239,11 +239,12 @@
     } else if (d.action === 'attack') {
       const atk = A().heroAttack(a), back = enemyAttacks(t)[0];
       p.rolls = kept.map(k => { const total = k.die + atk.bonus, band = attackBand(k.die, total, t.acNum);
-        return { ...k, bonus: atk.bonus, total, band, against: t.acNum, attack: atk.name, expr: atk.damage, damage: null, push: null,
+        return { ...k, bonus: atk.bonus, total, band, against: t.acNum, attack: atk.name, expr: atk.damage, damage: LANDS.includes(band) ? rollDamage(atk.damage, band === 'crit') : null, push: null,
           strike: { by: t.id, name: back?.name || 'Attack', damage: back ? rollDamage(back.damage, band === 'disaster') : 0, reach: true } }; });
     } else {
       const b = bonus(roller, d.ability, d.trained), k = kept[0], total = k.die + b, band = grade(k.die, total);
-      p.rolls = [{ ...k, bonus: b, total, band, push: null, expr: d.action === 'improvise' && d.effect === 'damage' ? A().heroAttack(a).damage : null, damage: null }];
+      const expr = d.action === 'improvise' && d.effect === 'damage' ? A().heroAttack(a).damage : null;
+      p.rolls = [{ ...k, bonus: b, total, band, push: null, expr, damage: expr && LANDS.includes(band) ? rollDamage(expr) : null }];
     }
     sync(p);
     // Player dice are public the moment they are rolled; Undo never removes them.
@@ -276,11 +277,13 @@
     if (info.pay === 'stamina') p.cost.stamina++; else p.cost.hd++;
     r.push = { d4, pay: info.pay }; r.total += d4;
     r.band = p.action === 'attack' ? attackBand(r.die, r.total, t.acNum) : grade(r.die, r.total);
+    // A Push turning a miss into a graze/hit needs damage; upgrading a graze keeps its rolled damage.
+    if (r.expr && LANDS.includes(r.band) && (r.damage === null || r.damage === undefined)) r.damage = rollDamage(r.expr, r.band === 'crit');
     sync(p); return r;
   }
 
   /* ---- damage ---- */
-  // A landed hit needs its damage: entered from the table's dice, or rolled fairly here. Grazes deal half at confirm.
+  // Landed damage is rolled automatically; a table-dice result or reroll may replace it. Grazes deal half at confirm.
   function damage(s, i, n) {
     const l = init(s), r = l.pending?.rolls?.[i]; if (!r || !r.expr) throw Error('This roll has no damage to set.');
     if (n === undefined || n === '') n = rollDamage(r.expr, r.band === 'crit');
@@ -288,6 +291,21 @@
     r.damage = n; return n;
   }
   const dealt = r => r.band === 'mixed' && r.attack !== undefined && r.against !== undefined && r.strike ? Math.floor(r.damage / 2) : r.damage;
+  // One response per hero Attack action: find the first failed roll while the target can still respond.
+  // Consider damage in attack order so a target dropped by a graze cannot retaliate.
+  // Called by both the result preview and confirmation, including after stamina Push.
+  function attackResponseIndex(s, p) {
+    if (!p || p.mode === 'enemy' || p.action !== 'attack') return -1;
+    const t = actor(s, p.target);
+    if (!active(s, t)) return -1;
+    let hp = Number.isFinite(t.hpNow) ? t.hpNow : Infinity;
+    for (let i = 0; i < p.rolls.length; i++) {
+      const r = p.rolls[i];
+      if (LANDS.includes(r.band) && hp > 0) hp = Math.max(0, hp - (Number(dealt(r)) || 0));
+      if (FAILS.includes(r.band) && hp > 0) return i;
+    }
+    return -1;
+  }
   function hurt(s, id, n) {
     const a = actor(s, id); if (!a || !(n > 0)) return a ? `${a.name} takes no damage.` : '';
     if (hero(s, id)) {
@@ -387,7 +405,8 @@
     const strikesNeeded = p.mode !== 'enemy' && p.action !== 'attack' && FAILS.includes(p.band);
     if (strikesNeeded && p.consequence === 'goal' && !p.consequenceText.trim()) throw Error('Describe what changes in the scene.');
     if (strikesNeeded && p.consequence === 'strike' && !active(s, actor(s, p.striker))) throw Error('Choose which enemy strikes.');
-    if (p.action === 'attack' && p.mode !== 'enemy' && p.rolls.some(r => FAILS.includes(r.band) && !r.strike.reach) && p.consequence === 'goal' && !p.consequenceText.trim()) throw Error('Describe what changes in the scene.');
+    const responseIndex = attackResponseIndex(s, p);
+    if (responseIndex >= 0 && !p.rolls[responseIndex].strike.reach && p.consequence === 'goal' && !p.consequenceText.trim()) throw Error('Describe what changes in the scene.');
     remember(s);
     const lines = [];
     // The second die spends one edge: on defense the Defend cover first, otherwise the Help opening.
@@ -403,12 +422,11 @@
         lines.push(p.enemyOutcome);
       });
     } else if (p.action === 'attack') {
-      let missed = false;
-      p.rolls.forEach(r => {
+      p.rolls.forEach((r, i) => {
         if (LANDS.includes(r.band) && active(s, t)) lines.push((r.band === 'mixed' ? 'Graze: ' : r.band === 'crit' ? 'Critical hit: ' : '') + hurt(s, t.id, dealt(r)));
-        if (!FAILS.includes(r.band)) return;
-        if (r.strike.reach && active(s, t)) lines.push(`${t.name} strikes back${r.band === 'disaster' ? ' (critical)' : ''}: ` + hurt(s, a.id, r.strike.damage));
-        else if (!r.strike.reach && !missed) { missed = true; fallback(r.band); }
+        if (i !== responseIndex || !active(s, t)) return;
+        if (r.strike.reach) lines.push(`${t.name} strikes back${r.band === 'disaster' ? ' (critical)' : ''}: ` + hurt(s, a.id, r.strike.damage));
+        else fallback(r.band);
       });
     } else if (LANDS.includes(p.band)) {
       if (p.action === 'defend') { l.protected[t.id] = true; lines.push(`${t.name} is covered: an opening on their next defense roll.`); }
@@ -472,5 +490,5 @@
   }
 
   root.Stakes = { contextEvents, contextPreview, actions, zones, init, actor, hero, active, needs, setStats, remember, undo, grade, attackBand, defenseBand, bonus, targets, configure,
-    rollsNeeded, rollFor, prepare, pushInfo, push, damage, rollDamage, apply, nextRound, move, adjust, hurt, heal, deathSave, shortRest, longRest, condition, describe, log, d20, die, secret, resolveBreak, setStatus, groups, staminaMax };
+    rollsNeeded, rollFor, prepare, pushInfo, push, damage, rollDamage, attackResponseIndex, apply, nextRound, move, adjust, hurt, heal, deathSave, shortRest, longRest, condition, describe, log, d20, die, secret, resolveBreak, setStatus, groups, staminaMax };
 })(globalThis);
