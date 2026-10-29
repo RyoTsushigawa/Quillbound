@@ -213,17 +213,19 @@
       + (has(b, 'fighter-two-extra-attacks') ? 1 : 0) + (has(b, 'fighter-three-extra-attacks') ? 1 : 0);
     const sneak = specific(b, 'sneak_attack'), martial = specific(b, 'martial_arts_die');
     const attacks = [];
+    // Sneak Attack is its own line beside the plain one: it needs Advantage or an ally next to the target, once per turn, so the table picks it.
+    const withSneak = a => { attacks.push(a); if (a.sneakable && sneak) attacks.push({ ...a, name: a.name + ' + Sneak Attack', damage: a.damage + `+${sneak.dice_count}d${sneak.dice_value}`, note: [a.note, 'Advantage or an ally next to the target; once per turn'].filter(Boolean).join('; '), sneak: true }); delete a.sneakable; };
     for (const id of eq.weapons) {
       const w = item(id); if (!w || w.kind !== 'weapon') continue;
       const monkWeapon = martial && (w.group === 'simple' && !w.ranged || w.group === 'martial' && w.props.includes('light'));
       const ab = w.ranged ? 'DEX' : (w.props.includes('finesse') || monkWeapon) && m.DEX > m.STR ? 'DEX' : 'STR';
       const proficient = proficientWith(b, id), dice = monkWeapon && Number(w.dice.split('d')[1] || 0) < martial ? '1d' + martial : w.dice;
       const bonus = m[ab] + (proficient ? prof : 0) + (w.ranged && hasFeat('archery') ? 2 : 0);
-      attacks.push({ name: w.name, bonus, damage: dice + (m[ab] ? fmt(m[ab]) : '') + (sneak && (w.ranged || w.props.includes('finesse')) ? `+${sneak.dice_count}d${sneak.dice_value}` : ''), count, type: w.type, mastery: w.mastery, note: proficient ? '' : 'not proficient', kind: 'weapon' });
+      withSneak({ name: w.name, bonus, damage: dice + (m[ab] ? fmt(m[ab]) : ''), sneakable: w.ranged || w.props.includes('finesse'), count, type: w.type, mastery: w.mastery, note: proficient ? '' : 'not proficient', kind: 'weapon' });
     }
     // natural weapons from a (homebrew) species: always proficient; finesse ones may use Dexterity
     for (const n of sp?.effects?.natural || []) { const ab = n.finesse && m.DEX > m.STR ? 'DEX' : 'STR';
-      attacks.push({ name: n.name, bonus: m[ab] + prof, damage: n.dice + (m[ab] ? fmt(m[ab]) : '') + (sneak && n.finesse ? `+${sneak.dice_count}d${sneak.dice_value}` : ''), count, type: n.type, kind: 'natural' }); }
+      withSneak({ name: n.name, bonus: m[ab] + prof, damage: n.dice + (m[ab] ? fmt(m[ab]) : ''), sneakable: n.finesse, count, type: n.type, kind: 'natural' }); }
     // attacks a (homebrew) class grants, such as an Armorer's Lightning Launcher: the chosen ability plus proficiency
     for (const a of c?.attacksFrom || []) if (a.level <= level) attacks.push({ name: a.name, bonus: m[a.ability] + prof, damage: a.dice + (a.addMod !== false && m[a.ability] ? fmt(m[a.ability]) : ''), count, type: a.type, kind: 'class' });
     if (martial) attacks.push({ name: 'Unarmed Strike', bonus: Math.max(m.STR, m.DEX) + prof, damage: '1d' + martial + fmt(Math.max(m.STR, m.DEX)), count, kind: 'unarmed' });
@@ -239,7 +241,9 @@
 
     // strongest first (average damage per action, then attack bonus): the Combat tab uses the first one
     const avg = e => String(e).split('+').reduce((n, t) => { const d = t.match(/^(\d+)d(\d+)$/); return n + (d ? d[1] * (+d[2] + 1) / 2 : Number(t) || 0); }, 0);
-    attacks.sort((x, y) => avg(y.damage) * y.count - avg(x.damage) * x.count || y.bonus - x.bonus);
+    // best first, ranked without Sneak Attack, so each Sneak Attack line stays right after its weapon (the sort is stable)
+    const plainDmg = x => avg(x.sneak ? x.damage.replace(/\+\d+d\d+$/, '') : x.damage) * x.count;
+    attacks.sort((x, y) => plainDmg(y) - plainDmg(x) || y.bonus - x.bonus);
 
     // features
     const features = [];

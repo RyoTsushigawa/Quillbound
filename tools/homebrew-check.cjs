@@ -57,7 +57,7 @@ R.setHomebrew(B.forCreator({species:[{...vampire,approved:true}]},{}));
 const quinnV=plain(R.derive({name:'Quinn',species:vampire.id,cls:'rogue',level:5,abilities:{method:'set',base:{STR:14,DEX:15,CON:13,INT:13,WIS:12,CHA:8}},background:'criminal',boost:{DEX:1,CON:1,INT:1},asi:{4:{feat:'ability-score-improvement',plus:{DEX:2}}},
   skills:['investigation','perception','acrobatics','insight'],expertise:['sleight-of-hand','investigation'],mastery:['shortsword','shortbow'],gear:{cls:0,bg:1,extra:[{id:'studded-leather-armor',count:1,how:'buy'}]},hp:{method:'average'}}));
 const claw=quinnV.attacks.find(a=>a.name==='Claws'),bite=quinnV.attacks.find(a=>a.name==='Bite');
-assert.equal(`${claw.bonus} ${claw.damage}`,'7 1d6+4+3d6','Claws +7, 1d6+4 with Sneak Attack, as on Quinn’s sheet');assert.equal(`${bite.bonus} ${bite.damage}`,'5 1d6+2','Bite +5, 1d6+2, as on Quinn’s sheet');
+assert.equal(`${claw.bonus} ${claw.damage}`,'7 1d6+4','Claws +7, 1d6+4, as on Quinn’s sheet');assert.equal(quinnV.attacks.find(a=>a.name==='Claws + Sneak Attack').damage,'1d6+4+3d6','Sneak Attack as its own line');assert(!quinnV.attacks.some(a=>a.name==='Bite + Sneak Attack'),'not on the bite (not finesse)');assert.equal(`${bite.bonus} ${bite.damage}`,'5 1d6+2','Bite +5, 1d6+2, as on Quinn’s sheet');
 assert.equal(quinnV.ac,16);assert.equal(quinnV.hp.max,38);assert(quinnV.senses.includes('Darkvision (120 ft.)'));assert(quinnV.features.some(f=>f.name==='Sunlight'));assert.deepEqual(quinnV.open,[]);
 R.setHomebrew(null);
 const both=plain(B.parseImport(B.exportJson({backgrounds:[keeper],species:[vampire]}),{backgrounds:[],species:[]}));assert.deepEqual(both.items.map(x=>x.kind),['background','species']);assert.equal(B.speciesScore(both.items[1]),8,'species survive export and import');

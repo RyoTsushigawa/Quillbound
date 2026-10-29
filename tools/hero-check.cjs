@@ -52,9 +52,9 @@ console.log('PASS: Dwarf Barbarian 3: HP 35 with Dwarven Toughness, AC 13 from U
 s=sheet({name:'Ilsa',species:'halfling',cls:'rogue',level:5,abilities:{method:'pointbuy',base:{DEX:15,CON:14,WIS:13,INT:12,CHA:10,STR:8}},background:'criminal',boost:{DEX:2,CON:1},
   skills:['acrobatics','perception','deception','insight'],expertise:['stealth','perception'],asi:{4:{feat:'ability-score-improvement',plus:{DEX:2}}},mastery:['shortsword','shortbow'],gear:{cls:0,bg:0},hp:{method:'average'}});
 assert.equal(s.scores.DEX,19);assert.equal(s.hp.max,38,'8+2, 4 × (5+2)');assert.equal(s.ac,15,'leather 11 + DEX 4');
-const ss=s.attacks.find(a=>a.name==='Shortsword');assert.equal(`${ss.bonus} ${ss.damage}`,'7 1d6+4+3d6');assert.equal(s.skills.stealth.bonus,10,'expertise: DEX 4 + 2 × 3');assert.equal(s.passive,17);
+const ss=s.attacks.find(a=>a.name==='Shortsword'),sa=s.attacks.find(a=>a.name==='Shortsword + Sneak Attack');assert.equal(`${ss.bonus} ${ss.damage}`,'7 1d6+4');assert.equal(`${sa.bonus} ${sa.damage}`,'7 1d6+4+3d6','Sneak Attack is its own line, right after the weapon');assert(sa.sneak&&/once per turn/.test(sa.note));assert.equal(s.attacks.indexOf(sa),s.attacks.indexOf(ss)+1);assert.equal(s.skills.stealth.bonus,10,'expertise: DEX 4 + 2 × 3');assert.equal(s.passive,17);
 assert.deepEqual(plain(R.abilityChecks({abilities:{method:'pointbuy',base:{STR:15,DEX:15,CON:15,INT:15,WIS:8,CHA:8}}})),['Point buy: 36 of 27 points spent.']);
-console.log('PASS: Halfling Rogue 5: point buy, DEX 19, HP 38, AC 15, Shortsword +7 for 1d6+4 plus 3d6 Sneak Attack, Stealth +10 with expertise; point buy over 27 is flagged.');
+console.log('PASS: Halfling Rogue 5: point buy, DEX 19, HP 38, AC 15, Shortsword +7 for 1d6+4 and a separate Shortsword + Sneak Attack line (1d6+4+3d6), Stealth +10 with expertise; point buy over 27 is flagged.');
 
 /* 5: attacks per action, Monk, hit points by roll, set values */
 const f11=sheet({...fighter,level:11}),f20=sheet({...fighter,level:20});assert.equal(f11.attacks[0].count,3);assert.equal(f20.attacks[0].count,4);
