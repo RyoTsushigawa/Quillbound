@@ -2,6 +2,8 @@
 // - playtest: Cultist, Gladiator and Pilgrim from the 2022 public playtest (via the 5.5 fan wiki). They named two abilities;
 //   Quillbound adds a fitting third so +1/+1/+1 works as for every 2024 background.
 // - classic: well-known backgrounds from the 2014 era that the 2024 rules dropped, converted by Quillbound with 2024 parts.
+// - adventure: the three backgrounds of the Night Shift adventure "Die Sammlersache" (Quinn, Camilla, Toxik). Their ids stay
+//   as they were when they were homebrew, so heroes already made with them keep working.
 // Descriptions are Quillbound's own.
 (function (root) {
   const D = root.QBHERO; if (!D) return;
@@ -16,7 +18,7 @@
     return { id, name, abilities, feat: { id: feat, name: D.feats.find(f => f.id === feat)?.name || feat, note: note || '' }, skills, tools: choice ? [] : [tool], toolChoice: choice, source, desc,
       equipment: { desc: `Choose A or B: (A) ${kitText}; or (B) 50 GP`, choices: [{ items: items.map(([i, n]) => item(i, n || 1)), gp, other }, { items: [], gp: 50, other: [] }] } };
   };
-  const P = 'playtest', C = 'classic';
+  const P = 'playtest', C = 'classic', A = 'adventure';
   const BACKGROUNDS = [
     // 2022 playtest (third ability added by Quillbound: Cultist WIS, Gladiator CON, Pilgrim CHA)
     bg(P, 'cultist', 'Cultist', ['INT', 'CHA', 'WIS'], ['magic-initiate', 'Warlock'], ['arcana', 'religion'], 'Disguise Kit', [['dagger'], ['disguise-kit'], ['bell'], ['lamp'], ['robe']], 19, ['Common Clothes'], 'Raised in the service of an otherworldly being, now hiding among unbelievers.'),
@@ -33,7 +35,11 @@
     bg(C, 'courtier', 'Courtier', ['INT', 'WIS', 'CHA'], ['skilled'], ['insight', 'persuasion'], "Calligrapher's Supplies", [['calligraphers-supplies'], ['clothes-fine'], ['parchment', 10]], 24, [], 'You know the halls of power, their etiquette and their whispers.'),
     bg(C, 'investigator', 'Investigator', ['DEX', 'INT', 'WIS'], ['alert'], ['insight', 'investigation'], 'Disguise Kit', [['disguise-kit'], ['book']], 0, [], 'You follow evidence where others see only coincidence.'),
     bg(C, 'archaeologist', 'Archaeologist', ['STR', 'INT', 'WIS'], ['tough'], ['history', 'survival'], "Cartographer's Tools", [['cartographer-tools'], ['case-map-or-scroll'], ['lantern-bullseye'], ['shovel'], ['tent'], ['clothes-travelers']], 15, [], 'You dig up the past and know how ruins fall apart.'),
-    bg(C, 'smuggler', 'Smuggler', ['DEX', 'CON', 'CHA'], ['tavern-brawler'], ['athletics', 'deception'], "Navigator's Tools", [['navigators-tools'], ['dagger'], ['rope'], ['clothes-travelers']], 18, [], 'Hidden holds, quiet coves and bribed harbor masters were your trade.')
+    bg(C, 'smuggler', 'Smuggler', ['DEX', 'CON', 'CHA'], ['tavern-brawler'], ['athletics', 'deception'], "Navigator's Tools", [['navigators-tools'], ['dagger'], ['rope'], ['clothes-travelers']], 18, [], 'Hidden holds, quiet coves and bribed harbor masters were your trade.'),
+    // Die Sammlersache
+    bg(A, 'hb-bg-sammler-quinn', 'Nachtbastlerin', ['DEX', 'CON', 'INT'], ['alert'], ['sleight-of-hand', 'stealth'], "Thieves' Tools", [['thieves-tools'], ['crowbar'], ['lantern-hooded'], ['grappling-hook'], ['clothes-travelers'], ['pouch']], 10, [], 'You fix, open and quietly borrow things after closing time, when nobody is watching the locks.'),
+    bg(A, 'hb-bg-sammler-camilla', 'Hüterin der Zugabe', ['CHA', 'DEX', 'INT'], ['alert'], ['insight', 'persuasion'], 'Flute', [['flute'], ['costume'], ['clothes-fine'], ['perfume'], ['bell'], ['pouch']], 20, [], 'You kept the music going after the house lights went down, and you remember everyone who stayed for the encore.'),
+    bg(A, 'hb-bg-sammler-toxic', 'Nachtingenieur', ['INT', 'DEX', 'CON'], ['alert'], ['stealth', 'animal-handling'], "Tinker's Tools", [['tinkers-tools'], ['pouch']], 0, [], 'You keep strange machines running through the night, and they tend to trust you more than people do.')
   ];
   for (const b of BACKGROUNDS) if (!D.backgrounds.some(x => x.id === b.id)) D.backgrounds.push(b);
 })(globalThis);
