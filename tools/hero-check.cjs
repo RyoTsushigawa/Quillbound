@@ -103,3 +103,9 @@ assert.equal(s.hp.max-s0.hp.max,16+8,'Tough +2 per level, and Resilient’s +1 C
 assert(R2.proficientWith(b,'scale-mail')&&!R2.proficientWith({...b,asi:{}},'scale-mail'),'Moderately Armored: medium armor');
 assert.deepEqual(plain(R2.featBlockers({...b,abilities:{method:'set',base:{...b.abilities.base,DEX:10}}},by('sharpshooter'),4)),['needs Dexterity 13']);assert.deepEqual(plain(R2.featBlockers({...b,cls:'fighter'},by('war-caster'),4)),['needs the Spellcasting feature']);}
 console.log('PASS: 2024 feats: all 75 outside the playtest, general ones at level 4; Tough, Boon of Fortitude, Resilient and the training feats change the sheet; prerequisites are enforced.');
+
+/* the hero record's attack list: the contract combat reads (name, bonus, damage, count, plus type, save and kind) */
+{const bard=plain(R.toHero(R.quickBuild('bard','Camilla',5),R.derive(R.quickBuild('bard','Camilla',5)),{id:'pb'}));
+assert(bard.attacks.length>1&&bard.attacks.every(a=>typeof a.name==='string'&&Number.isFinite(a.bonus)&&typeof a.damage==='string'&&a.damage&&Number.isInteger(a.count)&&a.count>=1),'every attack keeps name, bonus, damage and count');
+const vm2=bard.attacks.find(a=>a.name==='Vicious Mockery');assert(vm2&&vm2.save==='WIS'&&vm2.kind==='cantrip'&&vm2.type==='Psychic','a saving-throw cantrip says so');}
+console.log('PASS: hero records keep the full attack list for combat (name, bonus, damage, count; type, save and kind too).');
