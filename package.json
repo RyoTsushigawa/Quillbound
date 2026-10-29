@@ -7,7 +7,7 @@
     "scan": "node tools/scan.js",
     "read": "node tools/read.js",
     "regress": "node tools/regress.js",
-    "test": "node tools/combat-check.cjs && node tools/mixed-attack-check.cjs && node tools/rider-check.cjs && node tools/player-check.cjs && node tools/clarity-check.cjs && node tools/library-check.cjs && node tools/hp-check.cjs && node tools/hero-check.cjs && node tools/homebrew-check.cjs"
+    "test": "node tools/combat-check.cjs && node tools/mixed-attack-check.cjs && node tools/rider-check.cjs && node tools/encounter-foundation-check.cjs && node tools/player-check.cjs && node tools/clarity-check.cjs && node tools/library-check.cjs && node tools/hp-check.cjs && node tools/hero-check.cjs && node tools/homebrew-check.cjs"
   },
   "keywords": [],
   "author": "",
