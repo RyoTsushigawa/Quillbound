@@ -33,7 +33,7 @@ function vPlayerHome() {
 function vHeroes() {
   const list = S.myHeroes || [];
   return `<div class="pagehead"><div><div class="eyebrow">My heroes</div><h2>Your heroes</h2><p>Saved in this browser. <b>Send to DM</b> downloads a hero file: attach it in Discord or an email to your DM. <b>Copy as text</b> works for chats that don’t take files.</p></div>
-      <div class="row"><button class="btn primary" data-act="cm-newhero">Create a hero</button><label class="btn">Open a hero file…<input type="file" id="cm-my-file" accept=".json,application/json" hidden></label></div></div>
+      <div class="row"><button class="btn primary" data-act="cm-newhero">Create a hero</button><label class="btn">Open a hero file…<input type="file" id="cm-my-file" accept=".json,application/json" hidden></label><button class="btn" data-act="hi-open" data-v="mine">Import from a sheet…</button></div></div>
     <div class="results">${list.map(h => { const s = cmSheet(h.build); return `<article class="card stack"><h3>${esc(h.build.name || 'Hero')}</h3><p>${cmHeroLine(h.build, s)}</p>
       ${s ? `<p class="small muted">AC ${s.ac} · HP ${s.hp.max} · ${esc((s.attacks || []).slice(0, 2).map(a => `${a.name} ${a.save ? 'save ' + a.save : (a.bonus >= 0 ? '+' : '') + a.bonus}, ${a.damage}`).join(' · '))}</p>` : '<p class="cl-error">This hero can’t be read in this browser.</p>'}
       <div class="row"><button class="btn primary" data-act="cm-send" data-id="${esc(h.id)}">Send to DM</button><button class="btn" data-act="cm-copy" data-id="${esc(h.id)}">Copy as text</button>
@@ -53,7 +53,7 @@ function vCampaigns() {
       ${(S.party || []).map(p => `<div class="row hb-item"><span><b>${esc(p.name)}</b> · ${esc(p.cls)} ${p.level || 1}${p.fromPlayer ? ' <span class="chip">from a player</span>' : ''}${p.example ? ' <span class="chip">example</span>' : ''}</span>
         <span class="row">${p.build ? `<button class="btn sm" data-act="sheet-print" data-id="${esc(p.id)}">Sheet</button>` : ''}<button class="btn sm ghost" data-act="cm-delmember" data-id="${esc(p.id)}">Remove</button></span></div>`).join('') || '<p class="muted">No heroes yet.</p>'}
       <h4>Add heroes your players sent</h4>
-      <div class="row"><label class="btn primary">Add hero files…<input type="file" id="cm-hero-file" accept=".json,application/json" multiple hidden></label></div>
+      <div class="row"><label class="btn primary">Add hero files…<input type="file" id="cm-hero-file" accept=".json,application/json" multiple hidden></label><button class="btn" data-act="hi-open" data-v="party">Import from a sheet (PDF, D&amp;D Beyond, Foundry)…</button></div>
       <label class="f">…or paste a hero a player copied as text<textarea id="cm-paste" rows="3" placeholder='{"format":"quillbound-hero", …}'></textarea></label><div class="row"><button class="btn" data-act="cm-paste">Add pasted hero</button></div>
       <p class="small muted">A hero sent again replaces the earlier version and keeps its current hit points. Homebrew the hero uses comes with it.</p></section>
     <section class="card stack"><h3>Your campaigns</h3>
@@ -99,6 +99,7 @@ function cmUnlockDialog() {
 const cmHero = id => (S.myHeroes || []).find(h => h.id === id);
 function campaignActions() { return {
   'cm-unlock': () => cmUnlockDialog(),
+  'hi-open': d => hiDialog(d.v === 'party' && isDm() ? 'party' : 'mine'), // src/ui/hero-import.js
   'cm-lock': () => { S.role = 'player'; S.tab = 'home'; toast('DM mode is locked.'); },
   'cm-newhero': () => { S.creator = crNew(); S.tab = 'create'; },
   'cm-edit': d => { const h = cmHero(d.id); if (!h) return; S.creator = { ...crNew(), build: JSON.parse(JSON.stringify(h.build)), story: { ...crNew().story, ...h.story }, heroId: h.id, step: 'review' }; S.tab = 'create'; window.scrollTo(0, 0); },
