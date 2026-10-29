@@ -14,7 +14,7 @@ The Night Shift's homebrew (the Vampire species and the Artificer class) is buil
 - Read `AGENTS.md` and `PROJECT-RULES.md` first.
 - `RULES.md` describes how the app behaves now; keep it in step with the code.
 - `npm test` runs every check (run `npm install` once first).
-- Plain HTML, CSS and JavaScript: `index.html` holds the interface, `src/app/` the rules, `tools/` the checks.
+- Plain HTML, CSS and JavaScript: `index.html` holds the shared shell and the combat, desk and importer screens, `src/ui/` the hero creator and Homebrew screens, `src/app/` the rules, `tools/` the checks.
 
 ## Not in this repository
 
