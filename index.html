@@ -865,7 +865,8 @@ function hbSpeciesEditor(){
 }
 // The class editor: a base, a progression, calculated features (the sheet and combat use them) and written ones.
 function hbClassEditor(){
-  const e=S.hbEdit, D=QBHERO, checks=QBHomebrew.checkClass(e); crSpells();
+  const e=S.hbEdit, D=QBHERO; e.tools??=[]; e.subclass.tools??=[]; e.cantripsAt??='4,10'; const checks=QBHomebrew.checkClass(e); crSpells();
+  const TOOLS=[...QBHomebrew.tools(),'One type of Artisan’s Tools'];
   let power; try{ power=QBHomebrew.classPowerCheck(e); }catch(err){ power={ok:false,label:'Within the SRD range',detail:'Finish the base first ('+err.message+').',rows:[]}; }
   const all=[...checks,power], ok=all.every(x=>x.ok);
   const chk=(path,v,on,label,max)=>`<label class="cr-check ${on?'on':''}"><input type="checkbox" data-act="hb-ctoggle" data-p="${path}" data-v="${esc(v)}" data-max="${max||99}" ${on?'checked':''}> ${label}</label>`;
@@ -882,9 +883,10 @@ function hbClassEditor(){
       <p class="small"><b>Saving throws</b> (two)</p><div class="cr-checks">${ABIL.map(k=>chk('saves',k,e.saves.includes(k),k,2)).join('')}</div>
       ${sel('skills.choose',[[2,'Players choose 2 skills'],[3,'3 skills'],[4,'4 skills (like the Rogue)']],e.skills.choose,'Skills')}
       <div class="cr-checks">${D.skills.map(k=>chk('skills.from',k.id,e.skills.from.includes(k.id),esc(k.name))).join('')}</div></section>
-    <section class="card stack"><h3>Training</h3><div class="cr-checks">${[['light','Light armor'],['medium','Medium armor'],['heavy','Heavy armor'],['shields','Shields']].map(([k,l])=>chk('armor',k,e.armor.includes(k),l)).join('')}${[['simple','Simple weapons'],['martial','Martial weapons']].map(([k,l])=>chk('weapons',k,e.weapons.includes(k),l)).join('')}</div></section>
+    <section class="card stack"><h3>Training</h3><div class="cr-checks">${[['light','Light armor'],['medium','Medium armor'],['heavy','Heavy armor'],['shields','Shields']].map(([k,l])=>chk('armor',k,e.armor.includes(k),l)).join('')}${[['simple','Simple weapons'],['martial','Martial weapons']].map(([k,l])=>chk('weapons',k,e.weapons.includes(k),l)).join('')}</div>
+      <details><summary class="small"><b>Tools</b> (${e.tools.length?esc(e.tools.join(', ')):'none'})</summary><div class="cr-checks">${TOOLS.map(n=>chk('tools',n,e.tools.includes(n),esc(n))).join('')}</div></details></section>
     <section class="card stack"><h3>Spellcasting</h3>${sel('caster',[['none','No spellcasting'],['half','Half caster (slots like a Paladin)'],['full','Full caster (slots like a Wizard)'],['pact','Pact magic (slots like a Warlock)']],e.caster,'Progression')}
-      ${e.caster!=='none'?`<div class="row">${sel('spellAbility',[['','Choose…'],...ABIL.filter(k=>['INT','WIS','CHA'].includes(k)).map(k=>[k,APPROACH[k].name+' ('+k+')'])],e.spellAbility,'Casting ability')}${sel('spellList',[['','Choose…'],...SPELL_LISTS],e.spellList,'Spell list')}${sel('cantrips',[0,1,2,3,4].map(n=>[n,n+' cantrips at level 1']),e.cantrips,'Cantrips (+1 at levels 4 and 10)')}</div>`:''}</section>
+      ${e.caster!=='none'?`<div class="row">${sel('spellAbility',[['','Choose…'],...ABIL.filter(k=>['INT','WIS','CHA'].includes(k)).map(k=>[k,APPROACH[k].name+' ('+k+')'])],e.spellAbility,'Casting ability')}${sel('spellList',[['','Choose…'],...SPELL_LISTS],e.spellList,'Spell list')}${sel('cantrips',[0,1,2,3,4].map(n=>[n,n+' cantrips at level 1']),e.cantrips,'Cantrips')}${sel('cantripsAt',[['4,10','+1 at levels 4 and 10 (Cleric, Wizard…)'],['10,14','+1 at levels 10 and 14 (Artificer)']],e.cantripsAt,'More cantrips')}</div>`:''}</section>
     <section class="card stack"><h3>Calculated features</h3><p class="small muted">These change the sheet and combat. Everything else goes under written features.</p>
       <label><input type="checkbox" data-act="hb-cflag" data-p="extraAttack" ${e.extraAttack?'checked':''}> Extra Attack at level 5</label>
       <div class="row">${sel('fightingStyle',[[0,'No Fighting Style'],[1,'Fighting Style at level 1'],[2,'Fighting Style at level 2']],e.fightingStyle,'Fighting Style')}${sel('mastery',[[0,'No Weapon Mastery'],[2,'2 weapons'],[3,'3 weapons'],[9,'Fighter’s count (3 → 6)']],e.mastery,'Weapon Mastery')}</div>
@@ -894,6 +896,7 @@ function hbClassEditor(){
     <section class="card stack"><h3>Written features</h3><p class="small muted">Shown on the sheet as text; not calculated.</p>${list('features',(x,i)=>`${lvl(`features.${i}.level`,x.level)}${txt(`features.${i}.name`,x.name,'Name')}<textarea data-bind="hbEdit.features.${i}.desc" rows="2" maxlength="2000" placeholder="What it does">${esc(x.desc||'')}</textarea>`,'Add a feature')}</section>
     <section class="card stack"><h3>Subclass (level 3)</h3><label class="f">Name${txt('subclass.name',e.subclass.name,'Armorer, Path of …')}</label><label class="f">In one line${txt('subclass.summary',e.subclass.summary,'Wear arcane armor that becomes your weapon.',500)}</label>
       <div class="cr-checks">${[['heavy','Heavy armor training at level 3'],['martial','Martial weapon training at level 3']].map(([k,l])=>chk('subclass.training',k,e.subclass.training.includes(k),l)).join('')}</div>
+      <details><summary class="small"><b>Tools at level 3</b> (${e.subclass.tools.length?esc(e.subclass.tools.join(', ')):'none'})</summary><div class="cr-checks">${TOOLS.map(n=>chk('subclass.tools',n,e.subclass.tools.includes(n),esc(n))).join('')}</div></details>
       ${(e.subclass.features||[]).map((x,i)=>`<div class="row hb-item">${lvl(`subclass.features.${i}.level`,x.level)}${txt(`subclass.features.${i}.name`,x.name,'Name')}<textarea data-bind="hbEdit.subclass.features.${i}.desc" rows="2" maxlength="2000">${esc(x.desc||'')}</textarea><button class="btn sm ghost" data-act="hb-crow-del" data-k="subclass.features" data-v="${i}" aria-label="Remove">×</button></div>`).join('')}<button class="btn sm" data-act="hb-crow-add" data-k="subclass.features">Add a subclass feature</button></section>
     <section class="card stack"><h3>Starting kit</h3><p class="small muted">Players take this kit or its value in gold. SRD class kits are worth ${QBHomebrew.CLASS_KIT.min}–${QBHomebrew.CLASS_KIT.max} GP.</p>
       ${e.kit.items.map((it,i)=>`<div class="row hb-item"><span>${esc(D.equipment[it.id]?.name||it.id)} <span class="small muted">${esc(D.equipment[it.id]?.cost||'')}</span></span><input type="number" min="1" max="99" step="1" data-bind="hbEdit.kit.items.${i}.count" value="${esc(it.count)}" aria-label="How many"><button class="btn sm ghost" data-act="hb-delitem" data-v="${i}" aria-label="Remove">×</button></div>`).join('')}
@@ -1735,8 +1738,11 @@ ACT['rd-asset']=async d=>{
 
 S=load()||fresh();
 // This table's homebrew ships with the app (src/app/table-homebrew.js): add it once per browser, approved, skipping names this browser already has.
+// A newer shipped version of an item (its "version") replaces the copy this browser got earlier; approval stays as the DM left it.
 (function(){ const T=globalThis.QB_TABLE_HOMEBREW; if(!T) return; const hb=hbState(); hb.seeded??=[]; if(hb.seeded.includes(T.id)) return;
-  for(const k of ['backgrounds','species','classes']) for(const x of T[k]||[]) if(!hb[k].some(y=>String(y.name).trim().toLowerCase()===x.name.toLowerCase())) hb[k].push({...JSON.parse(JSON.stringify(x)),updated:Date.now()});
+  for(const k of ['backgrounds','species','classes']) for(const x of T[k]||[]){ const copy={...JSON.parse(JSON.stringify(x)),updated:Date.now()}, i=hb[k].findIndex(y=>y.id===x.id);
+    if(i>=0){ if((hb[k][i].version||1)<(x.version||1)) hb[k][i]={...copy,approved:hb[k][i].approved}; }
+    else if(!hb[k].some(y=>String(y.name).trim().toLowerCase()===x.name.toLowerCase())) hb[k].push(copy); }
   hb.seeded.push(T.id); save(); })();
 delete S.modal; // older saves kept the previous popup here
 // file handles don't survive a reload: keep read results, but the library has to be dropped again

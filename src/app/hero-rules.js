@@ -249,7 +249,7 @@
 
     const gear = inventory(b);
     if (gear.gp < 0) warn.push(`The extra gear costs ${gear.spent} GP, but the kits give ${gear.startGp} GP: ${-gear.gp} GP short. Choose the gold option of a kit, buy less, or ask the DM to grant it.`);
-    const tools = [...new Set([...(c?.profs || []).filter(p => /^tool:|kit$|supplies$|tools$/i.test(p)).map(p => p.replace(/^Tool:\s*/i, '')), ...(bg?.tools || []), ...(b.toolChoice ? [b.toolChoice] : [])])];
+    const tools = [...new Set([...classProfs(b).filter(p => /^tool:|kit$|supplies$|tools$/i.test(p)).map(p => p.replace(/^Tool:\s*/i, '')), ...(bg?.tools || []), ...(b.toolChoice ? [b.toolChoice] : [])])];
     if ((b.training || []).length) features.push({ name: 'Training granted by the DM', level: 1, source: 'House rule', desc: (b.training || []).map(g => TRAINING[g] || item(g)?.name || g).join(', ') + '. Not part of the class; your DM allowed it.' });
     return { tools, name: b.name || '', level, prof, species: sp?.name || '', sub: sub?.name || '', cls: c?.name || '', subclass: level >= 3 ? c?.subclass?.name || '' : '', background: bg?.name || '',
       size: sp?.size || b.size || '', scores: s, mods: m, saves, skills, passive: 10 + skills.perception.bonus, initiative: m.DEX + (hasFeat('alert') ? prof : 0), speed,

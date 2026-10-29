@@ -112,8 +112,8 @@
   const MASTERY = [3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6]; // the Fighter's count, for a full count
   const CLASS_KIT = { min: 50, max: 155 }; // SRD class kits are worth 50–155 GP
   function newClass() { return { id: uid('hb-cl'), kind: 'class', name: '', desc: '', hitDie: 8, primary: [], saves: [], skills: { choose: 2, from: [] }, armor: [], weapons: ['simple'],
-    caster: 'none', spellAbility: '', spellList: '', cantrips: 0, extraAttack: false, fightingStyle: 0, mastery: 0, sneakFrom: 0, martialArtsFrom: 0, unarmored: '', expertise: [],
-    attacks: [], features: [], subclass: { name: '', summary: '', training: [], features: [] }, kit: { items: [], gp: 50 }, approved: false, updated: Date.now() }; }
+    caster: 'none', spellAbility: '', spellList: '', cantrips: 0, cantripsAt: '4,10', tools: [], extraAttack: false, fightingStyle: 0, mastery: 0, sneakFrom: 0, martialArtsFrom: 0, unarmored: '', expertise: [],
+    attacks: [], features: [], subclass: { name: '', summary: '', training: [], tools: [], features: [] }, kit: { items: [], gp: 50 }, approved: false, updated: Date.now() }; }
   const ARMOR_NAME = { light: 'Light Armor', medium: 'Medium Armor', heavy: 'Heavy Armor', shields: 'Shields' };
   function checkClass(hc) {
     const d = H(), r = [], add = (ok, label, detail = '') => r.push({ ok, label, detail: ok ? '' : detail });
@@ -131,6 +131,8 @@
     const v = kitValue(hc.kit); add(v >= CLASS_KIT.min && v <= CLASS_KIT.max, `A kit worth ${CLASS_KIT.min}–${CLASS_KIT.max} GP`, `This kit is worth ${v} GP (SRD class kits: 50–155 GP).`);
     return r;
   }
+  // The levels where a class gains a cantrip: "4,10" like the Cleric or Wizard, "10,14" like the 2025 Artificer.
+  const cantripUps = hc => String(hc.cantripsAt || '4,10').split(',').map(Number).filter(n => n >= 2 && n <= 20);
   // The shape the rules read (the same as an SRD class), plus a feature dictionary for its own features.
   function classToSrd(hc) {
     hc = { ...hc, sneakFrom: Number(hc.sneakFrom) || 0, martialArtsFrom: Number(hc.martialArtsFrom) || 0, fightingStyle: Number(hc.fightingStyle) || 0, mastery: Number(hc.mastery) || 0, cantrips: Number(hc.cantrips) || 0 }; // form fields arrive as text
@@ -149,13 +151,13 @@
       if (Number(hc.mastery) > 0) specific.weapon_mastery = Number(hc.mastery) === 9 ? MASTERY[i] : Number(hc.mastery);
       const exp = (hc.expertise || []).filter(e => Number(e.level) === level).reduce((n, e) => n + (Number(e.count) || 0), 0); if (exp) specific.expertise_gain = exp;
       const out = { level, prof: 2 + Math.floor(i / 4), features: f }; if (Object.keys(specific).length) out.specific = specific;
-      if (tmpl) { const t = tmpl.levels[i].spell; out.spell = { cantrips: Number(hc.cantrips) ? Number(hc.cantrips) + (level >= 4) + (level >= 10) : 0, prepared: t.prepared, slots: t.slots.slice() }; }
+      if (tmpl) { const t = tmpl.levels[i].spell; out.spell = { cantrips: Number(hc.cantrips) ? Number(hc.cantrips) + cantripUps(hc).filter(l => level >= l).length : 0, prepared: t.prepared, slots: t.slots.slice() }; }
       return out; });
     for (const lv of [4, 8, 12, 16]) features[`${id}-ability-score-improvement`] = { name: 'Ability Score Improvement', cls: id, level: lv, desc: 'You gain the Ability Score Improvement feat or another feat of your choice for which you qualify.' };
-    const profs = [...(hc.armor || []).map(a => ARMOR_NAME[a]), ...(hc.weapons || []).map(w => w === 'martial' ? 'Martial Weapons' : 'Simple Weapons')];
+    const profs = [...(hc.armor || []).map(a => ARMOR_NAME[a]), ...(hc.weapons || []).map(w => w === 'martial' ? 'Martial Weapons' : 'Simple Weapons'), ...(hc.tools || [])];
     const items = (hc.kit?.items || []).filter(it => H().equipment[it.id]).map(it => ({ id: it.id, name: H().equipment[it.id].name, count: Number(it.count) || 1 }));
     return { id, name: hc.name.trim() || 'Unnamed class', hitDie: Number(hc.hitDie) || 8, primary: hc.primary || [], primaryDesc: (hc.primary || []).join(' and '), saves: hc.saves || [], profs,
-      profsAt: (hc.subclass?.training || []).map(a => ({ level: 3, prof: ARMOR_NAME[a] || (a === 'martial' ? 'Martial Weapons' : a) })),
+      profsAt: [...(hc.subclass?.training || []).map(a => ({ level: 3, prof: ARMOR_NAME[a] || (a === 'martial' ? 'Martial Weapons' : a) })), ...(hc.subclass?.tools || []).map(t => ({ level: 3, prof: t }))],
       skillChoice: { choose: Number(hc.skills?.choose) || 2, from: hc.skills?.from || [] }, spellAbility: hc.caster === 'none' ? '' : hc.spellAbility, spellList: hc.spellList || '',
       equipment: { desc: '', choices: [{ items, gp: Number(hc.kit?.gp) || 0, other: [] }, { items: [], gp: Math.round(kitValue(hc.kit)), other: [] }] },
       subclass: { id: id + '-sub', name: hc.subclass?.name || '', summary: hc.subclass?.summary || '', desc: hc.subclass?.summary || '', features: (hc.subclass?.features || []).map(f => ({ level: Number(f.level), name: f.name, desc: f.desc || '' })) },
@@ -243,10 +245,10 @@
   const cleanClass = c => { const n = newClass(); return { ...n, id: str(c.id, 60) || n.id, name: str(c.name, 80), desc: str(c.desc, 2000), hitDie: Number(c.hitDie) || 8,
     primary: (c.primary || []).filter(k => ABIL.includes(k)), saves: (c.saves || []).filter(k => ABIL.includes(k)), skills: { choose: Number(c.skills?.choose) || 2, from: (c.skills?.from || []).map(String) },
     armor: (c.armor || []).filter(a => ARMOR_NAME[a]), weapons: (c.weapons || []).filter(w => ['simple', 'martial'].includes(w)), caster: CASTER[c.caster] !== undefined ? c.caster : 'none',
-    spellAbility: ABIL.includes(c.spellAbility) ? c.spellAbility : '', spellList: str(c.spellList, 30), cantrips: Number(c.cantrips) || 0, extraAttack: !!c.extraAttack, fightingStyle: Number(c.fightingStyle) || 0,
+    spellAbility: ABIL.includes(c.spellAbility) ? c.spellAbility : '', spellList: str(c.spellList, 30), cantrips: Number(c.cantrips) || 0, cantripsAt: ['4,10', '10,14'].includes(c.cantripsAt) ? c.cantripsAt : '4,10', tools: (c.tools || []).map(x => str(x, 60)).filter(Boolean), extraAttack: !!c.extraAttack, fightingStyle: Number(c.fightingStyle) || 0,
     mastery: Number(c.mastery) || 0, sneakFrom: Number(c.sneakFrom) || 0, martialArtsFrom: Number(c.martialArtsFrom) || 0, unarmored: ABIL.includes(c.unarmored) ? c.unarmored : '',
     expertise: textList(c.expertise, ['level', 'count']), attacks: textList(c.attacks, ['level', 'name', 'dice', 'ability', 'type', 'ranged']), features: textList(c.features, ['level', 'name', 'desc']),
-    subclass: { name: str(c.subclass?.name, 80), summary: str(c.subclass?.summary, 500), training: (c.subclass?.training || []).filter(a => ARMOR_NAME[a] || a === 'martial'), features: textList(c.subclass?.features, ['level', 'name', 'desc']) },
+    subclass: { name: str(c.subclass?.name, 80), summary: str(c.subclass?.summary, 500), training: (c.subclass?.training || []).filter(a => ARMOR_NAME[a] || a === 'martial'), tools: (c.subclass?.tools || []).map(x => str(x, 60)).filter(Boolean), features: textList(c.subclass?.features, ['level', 'name', 'desc']) },
     kit: { items: (c.kit?.items || []).map(i => ({ id: String(i.id), count: Number(i.count) || 1 })), gp: Number(c.kit?.gp) || 0 }, kind: 'class', approved: false }; };
   // Read a file: returns what it contains and anything that needs a decision. Nothing is changed here.
   function parseImport(text, hb) {

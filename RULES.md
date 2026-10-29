@@ -56,7 +56,7 @@ The **Create a hero** tab builds 2024 (SRD 5.2) heroes from level 1 to 20.
 
 The **Homebrew** tab (DM only) builds your own backgrounds, species and classes.
 
-**Built-in table homebrew:** The Night Shift's Vampire species and Artificer class ship with the app (`src/app/table-homebrew.js`). The first time a browser opens Quillbound they are added, approved, unless that browser already has homebrew with the same name. After that they behave like your own: you can edit, unapprove or delete them, and they don't come back.
+**Built-in table homebrew:** The Night Shift's Vampire species and Artificer class ship with the app (`src/app/table-homebrew.js`). The first time a browser opens Quillbound they are added, approved, unless that browser already has homebrew with the same name. After that they behave like your own: you can edit, unapprove or delete them, and they don't come back. When the app ships a newer version of one (the Artificer was updated to the 2025 rules), it replaces the earlier shipped copy and keeps its approval; homebrew of your own is never replaced.
 
 **Species** have a base (Small or Medium, speed 25–35 ft, creature type) and traits from building blocks. Each block has a weight:
 
@@ -72,8 +72,8 @@ The **Homebrew** tab (DM only) builds your own backgrounds, species and classes.
 - **Fixed skills** count as trained. "A skill of the player's choice" and "an origin feat" work like the Human's Skillful and Versatile.
 
 **Classes** are built from parts the rules already know:
-- **Base:** a hit die (d6–d12), one or two primary abilities, two saving throws, 2–4 skill choices from a list, armor and weapon training, and a kit worth 50–155 GP (the range of the SRD class kits).
-- **Spellcasting:** none, or half, full or pact casting. Slots and prepared spells follow the Paladin, Wizard or Warlock table. You choose the casting ability, which SRD class's spell list it uses, and how many cantrips it starts with (+1 at levels 4 and 10).
+- **Base:** a hit die (d6–d12), one or two primary abilities, two saving throws, 2–4 skill choices from a list, armor, weapon and tool training, and a kit worth 50–155 GP (the range of the SRD class kits).
+- **Spellcasting:** none, or half, full or pact casting. Slots and prepared spells follow the Paladin, Wizard or Warlock table. You choose the casting ability, which SRD class's spell list it uses, and how many cantrips it starts with, gaining one more at levels 4 and 10 (like the Cleric or Wizard) or at 10 and 14 (like the 2025 Artificer).
 - **Progression:**
   - Extra Attack at level 5
   - Fighting Style, Weapon Mastery, Sneak Attack (1d6 per two levels from the level you choose) and a Martial Arts die
@@ -81,7 +81,7 @@ The **Homebrew** tab (DM only) builds your own backgrounds, species and classes.
   - Expertise at chosen levels
   - Class attacks from a level, such as a launcher that uses INT (bonus = ability + proficiency, damage = dice + ability)
 - **Fixed parts:** every class gets Ability Score Improvements at 4, 8, 12 and 16 and an Epic Boon at 19. You add its own features by level.
-- **Subclass:** chosen at level 3, with a name, a summary, its own features, and training it grants at level 3 (for example heavy armor).
+- **Subclass:** chosen at level 3, with a name, a summary, its own features, and training and tools it grants at level 3 (for example heavy armor and Smith's Tools).
 - **The SRD range:** the screen derives a Quick build hero of the class at levels 1, 5, 11 and 17 and compares its HP, AC and average damage per action with all 12 SRD classes. A class is "within the SRD range" unless its HP or damage is more than 10% above the strongest SRD class, or its AC is above the highest SRD AC, at any of those levels.
 - **Test in fights…** runs 150 Stakes fights at level 5 for parties of four identical heroes (yours, Fighter, Rogue, Wizard) against a pack of CR level/4 monsters, a pair of CR level/2 and one tough enemy of CR level. It reports rounds, how often a hero drops, and how often the party is wiped. Healing, stamina and breaking points are left out, so it compares classes rather than tactics.
 

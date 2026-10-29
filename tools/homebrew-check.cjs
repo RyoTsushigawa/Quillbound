@@ -92,6 +92,13 @@ console.log('PASS: homebrew classes: structure checks; measured against the 12 S
 vm.runInContext(fs.readFileSync(path.join(root,'src/app/table-homebrew.js'),'utf8'),ctx);const T=plain(ctx.QB_TABLE_HOMEBREW);
 assert.deepEqual([T.species.map(s=>s.name),T.classes.map(c=>c.name)],[['Vampire'],['Artificer']],'Vampire is a species, Artificer a class');
 assert(T.species.every(s=>B.speciesFits(s)&&B.speciesScore(s)===8)&&T.classes.every(c=>B.classFits(c)),'shipped homebrew passes its own checks');
+{const A=T.classes[0];R.setHomebrew({classes:[plain(B.classToSrd(A))]});const at=lv=>plain(R.derive({...R.quickBuild(A.id,'Toxic',lv),species:'human'}));
+assert.deepEqual([1,5,9,10,13,14].map(lv=>at(lv).spellcasting.cantrips),[2,2,2,3,3,4],'2025 Artificer: cantrips 2, 3 at level 10, 4 at level 14');
+assert.deepEqual(at(5).spellcasting.slots.filter(Boolean),[4,2],'half-caster slots as in the 2025 table');
+assert(["Thieves' Tools","Tinker's Tools","Smith's Tools"].every(n=>at(3).tools.includes(n))&&!at(2).tools.includes("Smith's Tools"),'class tools, and Smith’s Tools from the Armorer at level 3');
+assert.equal(B.kitValue(A.kit),150,'the kit is worth the 150 GP the alternative offers');assert.equal(A.expertise.length,0,'no Expertise in the 2025 Artificer');
+R.setHomebrew(null);}
+console.log('PASS: the shipped Artificer follows the 2025 class: cantrips at 10 and 14, half-caster slots, class and Armorer tools, a 150 GP kit, no Expertise.');
 console.log('PASS: the shipped Night Shift homebrew (Vampire species, Artificer class) passes the same checks as homebrew made on the screen.');
 
 /* the screen, end to end */
