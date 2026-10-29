@@ -91,3 +91,15 @@ assert.match(R.boostCheck({background:'sage',boost:{STR:2,INT:1}}),/can only rai
 const hero=plain(R.toHero(fighter,undefined,{id:'p1',hpNow:5}));
 assert.deepEqual([hero.hp,hero.hpNow,hero.ac,hero.prof,hero.hitDice.die,hero.stamina,hero.attacks[0].name],[12,5,17,2,10,2,'Greatsword']);assert.equal(hero.build.cls,'fighter');
 console.log('PASS: background increases follow the 2024 rule (+2/+1 or +1/+1/+1 from its three abilities); a hero record keeps current HP and gets the sheet’s numbers.');
+
+/* the 2024 Player's Handbook feats (summaries): the full list, prerequisites, and the ones that change numbers */
+{const c2=vm.createContext({crypto:require('crypto').webcrypto});for(const f of ['srd-heroes','phb-feats','hero-rules'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),c2);
+const F=c2.QBHERO.feats,R2=c2.QBHeroRules,count=t=>F.filter(f=>f.type===t).length,by=id=>F.find(f=>f.id===id);
+assert.deepEqual([count('origin'),count('fighting-style'),count('general'),count('epic-boon')],[10,10,43,12],'every 2024 feat outside the playtest');
+assert(F.filter(f=>f.type==='general').every(f=>f.minLevel===4),'every general feat is Level 4+');assert.equal(new Set(F.map(f=>f.id)).size,F.length,'no feat twice');
+const b={name:'T',species:'human',speciesFeat:'tough',cls:'wizard',level:8,abilities:{method:'set',base:{STR:8,DEX:12,CON:14,INT:15,WIS:12,CHA:10}},background:'sage',boost:{INT:2,CON:1},asi:{4:{feat:'resilient',plus:{CON:1}},8:{feat:'moderately-armored',plus:{DEX:1}}},hp:{method:'average'}};
+const s=plain(R2.derive(b)),s0=plain(R2.derive({...b,speciesFeat:'skilled',asi:{}}));
+assert.equal(s.hp.max-s0.hp.max,16+8,'Tough +2 per level, and Resilient’s +1 Constitution');assert(s.saves.CON.prof&&!s0.saves.CON.prof,'Resilient: Constitution saves');
+assert(R2.proficientWith(b,'scale-mail')&&!R2.proficientWith({...b,asi:{}},'scale-mail'),'Moderately Armored: medium armor');
+assert.deepEqual(plain(R2.featBlockers({...b,abilities:{method:'set',base:{...b.abilities.base,DEX:10}}},by('sharpshooter'),4)),['needs Dexterity 13']);assert.deepEqual(plain(R2.featBlockers({...b,cls:'fighter'},by('war-caster'),4)),['needs the Spellcasting feature']);}
+console.log('PASS: 2024 feats: all 75 outside the playtest, general ones at level 4; Tough, Boon of Fortitude, Resilient and the training feats change the sheet; prerequisites are enforced.');

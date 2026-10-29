@@ -22,4 +22,4 @@ Paid adventure content (`samples/`, `out/`, `prototypes/stakes-v2/library-raw.js
 
 ## Credits
 
-Game rules from the System Reference Document 5.1 and 5.2 by Wizards of the Coast LLC, under CC-BY 4.0 (see Help → Credits in the app). PDF reading uses pdf.js (Apache 2.0) in `vendor/`.
+Game rules from the System Reference Document 5.1 and 5.2 by Wizards of the Coast LLC, under CC-BY 4.0 (see Help → Credits in the app). PDF reading uses pdf.js (Apache 2.0) in `vendor/`. `src/app/phb-feats.js` lists the 2024 Player's Handbook feats by name with summaries written for Quillbound, not the book's text; Dungeons & Dragons is a trademark of Wizards of the Coast.

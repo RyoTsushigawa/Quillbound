@@ -128,8 +128,11 @@
   // Proficiency with a weapon or armor, from the class's list ("Simple Weapons", "Martial Weapons that have the Finesse or Light property", …).
   // b.training: extra training the DM granted (a house rule), as item ids ('longbow') or kinds ('martial-weapons', 'light-armor', 'shields').
   const TRAINING = { 'martial-weapons': 'Martial Weapons', 'simple-weapons': 'Simple Weapons', 'light-armor': 'Light Armor', 'medium-armor': 'Medium Armor', 'heavy-armor': 'Heavy Armor', shields: 'Shields' };
+  // The feats a build has taken (background, species, Fighting Style, improvements), as feat objects; their effects change the sheet.
+  const featsOf = b => [byId(H().backgrounds, b.background)?.feat?.id, b.speciesFeat, b.fightingStyle, ...Object.values(b.asi || {}).map(x => x?.feat)].map(id => id && byId(H().feats, id)).filter(Boolean);
+  const featTraining = b => featsOf(b).flatMap(f => f.effects?.training || []);
   function proficientWith(b, id) {
-    const it = item(id), granted = b.training || [];
+    const it = item(id), granted = [...(b.training || []), ...featTraining(b)];
     const profs = [...classProfs(b), ...granted.map(g => TRAINING[g] || (item(g) ? item(g).name + 's' : ''))].map(p => p.toLowerCase()); if (!it) return false;
     if (it.kind === 'weapon') return profs.some(p => p === `${it.group} weapons` || (p.startsWith(`${it.group} weapons that have`) && it.props.some(x => p.includes(x.replace(/-/g, ' ')))) || p === it.name.toLowerCase() + 's');
     if (it.kind === 'shield') return profs.includes('shields');
@@ -153,6 +156,7 @@
     }
     let hpMax = perLevel.reduce((a, x) => a + x, 0);
     if (sp?.traits.some(t => t.id === 'dwarven-toughness')) hpMax += level;
+    for (const f of featsOf(b)) hpMax += (f.effects?.hpPerLevel || 0) * level + (f.effects?.hpFlat || 0); // Tough, Boon of Fortitude
     if (b.cls === 'sorcerer' && level >= 3 && c?.subclass?.id === 'draconic-sorcery') hpMax += level; // Draconic Resilience: +3 at 3, +1 per level after
 
     // armor class: the best of what applies
@@ -182,6 +186,7 @@
     const saveProf = new Set(c?.saves || []);
     if (has(b, 'monk-disciplined-survivor')) ABIL.forEach(k => saveProf.add(k));
     if (has(b, 'rogue-slippery-mind')) { saveProf.add('WIS'); saveProf.add('CHA'); }
+    for (const pick of Object.values(b.asi || {})) if (byId(H().feats, pick?.feat)?.effects?.saveFromPlus) Object.keys(pick.plus || {}).forEach(k => saveProf.add(k)); // Resilient
     const saves = Object.fromEntries(ABIL.map(k => [k, { bonus: m[k] + (saveProf.has(k) ? prof : 0), prof: saveProf.has(k) }]));
     const lore = b.cls === 'bard' && level >= 3 && c?.subclass?.id === 'college-of-lore'; // Bonus Proficiencies: three skills of your choice
     const skillProf = new Set([...(bg?.skills || []), ...(b.skills || []), ...(sp?.effects?.skills || []), ...(b.speciesSkill ? [b.speciesSkill] : []), ...(b.keenSense ? [b.keenSense] : []), ...(b.featPicks?.skilled || []).filter(x => data.skills.some(k => k.id === x)), ...(lore ? (b.featPicks?.lore || []).slice(0, 3) : [])]);
