@@ -13,10 +13,10 @@
   // SRD data plus the homebrew the creator may offer right now (set by the app with setHomebrew).
   let extra = null, merged = null, mergedFrom = null;
   const H = () => {
-    const d = root.QBHERO; if (!extra?.backgrounds?.length && !extra?.species?.length && !extra?.classes?.length) return d;
+    const d = root.QBHERO; if (!extra?.backgrounds?.length && !extra?.species?.length && !extra?.classes?.length && !extra?.feats?.length) return d;
     if (merged && mergedFrom === d) return merged;
     const add = (base, more) => [...base, ...(more || []).filter(b => !base.some(x => x.id === b.id))];
-    mergedFrom = d; merged = { ...d, backgrounds: add(d.backgrounds, extra.backgrounds), species: add(d.species, extra.species), classes: add(d.classes, extra.classes),
+    mergedFrom = d; merged = { ...d, backgrounds: add(d.backgrounds, extra.backgrounds), species: add(d.species, extra.species), classes: add(d.classes, extra.classes), feats: add(d.feats, extra.feats),
       features: Object.assign({}, d.features, ...(extra.classes || []).map(c => c.features || {})) };
     return merged;
   };
@@ -80,9 +80,23 @@
     const s = baseScores(b);
     for (const [k, v] of Object.entries(b.boost || {})) if (s[k] !== undefined) s[k] = Math.min(20, s[k] + (Number(v) || 0));
     for (const lv of asiLevels(b)) { const pick = b.asi?.[lv]; if (!pick?.plus) continue;
-      for (const [k, v] of Object.entries(pick.plus)) if (s[k] !== undefined) s[k] = Math.min(pick.feat?.startsWith('boon-') ? 30 : 20, s[k] + (Number(v) || 0)); }
+      const boon = pick.feat?.startsWith('boon-') || byId(H().feats, pick.feat)?.type === 'epic-boon';
+      for (const [k, v] of Object.entries(pick.plus)) if (s[k] !== undefined) s[k] = Math.min(boon ? 30 : 20, s[k] + (Number(v) || 0)); }
     return s;
   }
+
+  // A feat's prerequisites at the level it would be taken: scores and feats from before that level, the class, spellcasting.
+  // SRD feats carry no prereq object here (their level is minLevel), so they're always allowed.
+  // What stops this hero from taking a feat at a level, in plain words (empty: allowed). Used to list future feats too.
+  function featBlockers(b, f, lv) { const out = [], p = f?.prereq || {}, N = { STR: 'Strength', DEX: 'Dexterity', CON: 'Constitution', INT: 'Intelligence', WIS: 'Wisdom', CHA: 'Charisma' };
+    if ((Number(f?.minLevel) || 1) > lv) out.push(`from level ${f.minLevel}`);
+    const earlier = { ...b, asi: Object.fromEntries(Object.entries(b.asi || {}).filter(([l]) => +l < lv)) }, s = scores(earlier);
+    if ((p.abilities || []).length && !p.abilities.some(k => s[k] >= (Number(p.score) || 13))) out.push(`needs ${p.abilities.map(k => N[k]).join(' or ')} ${Number(p.score) || 13}`);
+    if (p.spellcasting && !cls(b)?.spellAbility) out.push('needs the Spellcasting feature');
+    if (p.cls && b.cls !== p.cls) out.push(`needs the ${byId(H().classes, p.cls)?.name || p.cls} class`);
+    if (p.feat) { const bg = byId(H().backgrounds, b.background); if (![bg?.feat?.id, b.speciesFeat, b.fightingStyle, ...Object.values(earlier.asi).map(x => x?.feat)].includes(p.feat)) out.push(`needs the ${byId(H().feats, p.feat)?.name || p.feat} feat first`); }
+    return out; }
+  const featAllowed = (b, f, lv) => !featBlockers(b, f, lv).length;
 
   /* ---- gear ---- */
   const item = id => H().equipment[id];
@@ -324,5 +338,5 @@
     return b;
   }
 
-  root.QBHeroRules = { getHomebrew, spellList, classProfs, TRAINING, priceOf, setHomebrew, data: () => H(), ABIL, ARRAY, POINT_COST, POINTS, mod, profFor, die, rollAbilities, rollTotal, rollHp, derive, toHero, quickBuild, fillDefaults, inventory, equipped, proficientWith, asiLevels, expertiseCount, abilityChecks, boostCheck };
+  root.QBHeroRules = { featAllowed, featBlockers, getHomebrew, spellList, classProfs, TRAINING, priceOf, setHomebrew, data: () => H(), ABIL, ARRAY, POINT_COST, POINTS, mod, profFor, die, rollAbilities, rollTotal, rollHp, derive, toHero, quickBuild, fillDefaults, inventory, equipped, proficientWith, asiLevels, expertiseCount, abilityChecks, boostCheck };
 })(globalThis);

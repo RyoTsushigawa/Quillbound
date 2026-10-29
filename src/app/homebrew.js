@@ -44,7 +44,7 @@
   // What the creator offers: approved homebrew, plus copies the hero being built already uses (so a choice never vanishes).
   function forCreator(hb, build) {
     const pick = (kind, conv) => { const approved = (hb?.[kind] || []).filter(b => b.approved).map(conv); return [...approved, ...(build?.hbData?.[kind] || []).filter(b => !approved.some(a => a.id === b.id))]; };
-    return { backgrounds: pick('backgrounds', backgroundToSrd), species: pick('species', speciesToSrd), classes: pick('classes', classToSrd) };
+    return { backgrounds: pick('backgrounds', backgroundToSrd), species: pick('species', speciesToSrd), classes: pick('classes', classToSrd), feats: pick('feats', featToSrd) };
   }
 
   /* ---- species: a base plus traits from building blocks, each with a weight ---- */
@@ -230,10 +230,57 @@
   }
 
   /* ---- export and import ---- */
+  /* ---- feats: a name, a kind, a level, an optional +1 and the text; the DM approves what it does ---- */
+  const FEAT_TYPES = { origin: { label: 'Origin feat (from a background or the Human)', minLevel: 1 }, general: { label: 'General feat (level 4 and up)', minLevel: 4 },
+    'fighting-style': { label: 'Fighting Style feat', minLevel: 1 }, 'epic-boon': { label: 'Epic Boon (level 19)', minLevel: 19 } };
+  const ABIL_NAME = { STR: 'Strength', DEX: 'Dexterity', CON: 'Constitution', INT: 'Intelligence', WIS: 'Wisdom', CHA: 'Charisma' };
+  function newFeat() { return { id: uid('hb-ft'), kind: 'feat', name: '', desc: '', type: 'general', minLevel: 4, abilities: [], repeatable: false, prereq: newPrereq(), approved: false, updated: Date.now() }; }
+  // Prerequisites the creator enforces (an ability score, spellcasting, another feat, a class) plus free text it only shows.
+  function newPrereq() { return { abilities: [], score: 13, spellcasting: false, feat: '', cls: '', text: '' }; }
+  // How many feats a feat needs in a row (itself included): the guide keeps chains to three at most.
+  function chainLength(f, others) { let n = 1, cur = f; const seen = new Set([f.id]);
+    while (cur?.prereq?.feat && n < 10) { const next = [...others, ...H().feats].find(x => x.id === cur.prereq.feat); if (!next || seen.has(next.id)) break; seen.add(next.id); n++; cur = next; } return n; }
+  function checkFeat(f, others = []) {
+    const r = [], add = (ok, label, detail) => r.push({ ok: !!ok, label, detail: ok ? '' : detail }), T = FEAT_TYPES[f.type];
+    add(String(f.name || '').trim(), 'A name', 'Give the feat a name.');
+    add(!H().feats.some(x => x.id !== f.id && x.name.toLowerCase() === String(f.name || '').trim().toLowerCase()), 'A name of its own', 'Another feat already has this name.');
+    add(T, 'A kind of feat', 'Choose origin, general, Fighting Style or Epic Boon.');
+    if (T) add(Number(f.minLevel) >= T.minLevel && Number(f.minLevel) <= 20, `From level ${T.minLevel} or later`, `${T.label.split(' (')[0]}s start at level ${T.minLevel}.`);
+    const needsPlus = f.type === 'general' || f.type === 'epic-boon', n = (f.abilities || []).length;
+    add(needsPlus ? n >= 1 : n === 0, needsPlus ? 'A +1 to an ability' : 'No ability increase', needsPlus ? 'In the 2024 rules every general feat and Epic Boon also raises an ability by 1: choose which abilities it may raise.' : 'Origin and Fighting Style feats don’t raise abilities in the 2024 rules.');
+    add(String(f.desc || '').trim().length >= 20, 'What it does', 'Describe what the feat does in your own words (at least a sentence).');
+    const p = f.prereq || {};
+    if ((p.abilities || []).length) add(Number(p.score) >= 13 && Number(p.score) <= 17, 'An ability prerequisite of 13–17', 'Use 13 (a +1 modifier); go up to 17 only for a stricter feat.');
+    if (p.feat) add(p.feat !== f.id && [...others, ...H().feats].some(x => x.id === p.feat), 'The required feat exists', 'The feat it requires was deleted; choose another.');
+    if (p.feat) add(chainLength(f, others) <= 3, 'A feat chain of three at most', 'Feats that need feats that need feats: keep a chain to three.');
+    return r;
+  }
+  const featFits = (f, others) => checkFeat(f, others).every(x => x.ok);
+  // Advice from the D&D Wiki feat design guides: never blocks approval, shown while the DM writes.
+  function featAdvice(f) { const a = [], p = f.prereq || {}, d = String(f.desc || '');
+    a.push('Name test: does "I am a ' + (String(f.name || '').trim() || '…') + '" sound right? Feats are named for what the hero is (Grappler, not Improved Grappling).');
+    if ((p.abilities || []).some(k => (f.abilities || []).includes(k))) a.push('It raises and requires the same ability: the prerequisite is probably not needed.');
+    if (/\+\s*[1-9]\b/.test(d) && !/\b(when|while|if|once|after|before)\b/i.test(d)) a.push('A flat bonus? Conditional benefits (when…, while…, once per…) are more interesting and easier to balance.');
+    if (p.feat || p.cls || p.text) a.push('A stricter feat: it should still be worth about a +2 ability increase, no more.');
+    if ((f.abilities || []).length === 1 && f.type === 'general') a.push('Only one ability for its +1: offering two (Intelligence or Wisdom) lets more heroes use it.');
+    a.push('Does it give a new option rather than a static number, and will it come up often, but not every turn?');
+    return a; }
+  // The shape the rules read: an SRD feat. A +1 is written the way SRD feats write it, so the creator offers the same pick.
+  function featToSrd(f) {
+    const ab = (f.abilities || []).filter(k => ABIL.includes(k)), names = ab.map(k => ABIL_NAME[k]), max = f.type === 'epic-boon' ? 30 : 20;
+    const plus = !ab.length ? '' : `**Ability Score Increase.** ${ab.length === 6 ? 'Increase one ability score of your choice' : 'Increase your ' + (names.length > 1 ? names.slice(0, -1).join(', ') + ' or ' + names.at(-1) : names[0]) + ' score'} by 1, to a maximum of ${max}.
+`;
+    const p = f.prereq || {}, parts = [(p.abilities || []).length ? p.abilities.map(k => ABIL_NAME[k]).join(' or ') + ' ' + (Number(p.score) || 13) + '+' : '', p.spellcasting ? 'the Spellcasting or Pact Magic feature' : '',
+      p.feat ? 'the ' + ([...H().feats].find(x => x.id === p.feat)?.name || p.feat) + ' feat' : '', p.cls ? 'levels in ' + (H().classes.find(c => c.id === p.cls)?.name || p.cls) : '', p.text || ''].filter(Boolean);
+    const pre = parts.length ? `**Prerequisite:** ${parts.join('; ')}.\n` : '';
+    return { id: f.id, name: String(f.name || '').trim() || 'Unnamed feat', type: FEAT_TYPES[f.type] ? f.type : 'general', minLevel: Number(f.minLevel) || 1, repeatable: !!f.repeatable,
+      prereq: { abilities: (p.abilities || []).filter(k => ABIL.includes(k)), score: Number(p.score) || 13, spellcasting: !!p.spellcasting, feat: p.feat || '', cls: p.cls || '' }, desc: pre + plus + (f.desc || ''), homebrew: true };
+  }
+
   const FORMAT = 'quillbound-homebrew';
   function exportJson(hb, ids) {
     const pick = list => (list || []).filter(x => !ids || ids.includes(x.id)).map(x => ({ ...x, approved: false }));
-    return JSON.stringify({ format: FORMAT, version: 3, exported: new Date().toISOString(), backgrounds: pick(hb?.backgrounds), species: pick(hb?.species), classes: pick(hb?.classes) }, null, 2);
+    return JSON.stringify({ format: FORMAT, version: 3, exported: new Date().toISOString(), backgrounds: pick(hb?.backgrounds), species: pick(hb?.species), classes: pick(hb?.classes), feats: pick(hb?.feats) }, null, 2);
   }
   const str = (v, n) => String(v ?? '').slice(0, n);
   const cleanBackground = b => ({ ...newBackground(), ...b, kind: 'background', approved: false, name: str(b.name, 80), desc: str(b.desc, 2000),
@@ -250,29 +297,32 @@
     expertise: textList(c.expertise, ['level', 'count']), attacks: textList(c.attacks, ['level', 'name', 'dice', 'ability', 'type', 'ranged']), features: textList(c.features, ['level', 'name', 'desc']),
     subclass: { name: str(c.subclass?.name, 80), summary: str(c.subclass?.summary, 500), training: (c.subclass?.training || []).filter(a => ARMOR_NAME[a] || a === 'martial'), tools: (c.subclass?.tools || []).map(x => str(x, 60)).filter(Boolean), features: textList(c.subclass?.features, ['level', 'name', 'desc']) },
     kit: { items: (c.kit?.items || []).map(i => ({ id: String(i.id), count: Number(i.count) || 1 })), gp: Number(c.kit?.gp) || 0 }, kind: 'class', approved: false }; };
+  const cleanFeat = f => ({ ...newFeat(), id: str(f.id, 60) || uid('hb-ft'), name: str(f.name, 80), desc: str(f.desc, 3000), type: FEAT_TYPES[f.type] ? f.type : 'general', minLevel: Number(f.minLevel) || 4,
+    abilities: (f.abilities || []).filter(k => ABIL.includes(k)), repeatable: !!f.repeatable, kind: 'feat', approved: false,
+    prereq: { abilities: (f.prereq?.abilities || []).filter(k => ABIL.includes(k)), score: Number(f.prereq?.score) || 13, spellcasting: !!f.prereq?.spellcasting, feat: str(f.prereq?.feat, 60), cls: str(f.prereq?.cls, 60), text: str(f.prereq?.text, 300) } });
   // Read a file: returns what it contains and anything that needs a decision. Nothing is changed here.
   function parseImport(text, hb) {
     let data; try { data = JSON.parse(text); } catch { return { error: 'This file is not readable homebrew (not JSON).' }; }
     if (data?.format !== FORMAT) return { error: 'This file is not a Quillbound homebrew export.' };
     const ok = x => x && typeof x === 'object' && typeof x.name === 'string';
-    const items = [...(data.backgrounds || []).filter(ok).map(cleanBackground), ...(data.species || []).filter(ok).map(cleanSpecies), ...(data.classes || []).filter(ok).map(cleanClass)];
-    const listOf = it => it.kind === 'species' ? hb?.species : it.kind === 'class' ? hb?.classes : hb?.backgrounds;
+    const items = [...(data.backgrounds || []).filter(ok).map(cleanBackground), ...(data.species || []).filter(ok).map(cleanSpecies), ...(data.classes || []).filter(ok).map(cleanClass), ...(data.feats || []).filter(ok).map(cleanFeat)];
+    const listOf = it => it.kind === 'species' ? hb?.species : it.kind === 'class' ? hb?.classes : it.kind === 'feat' ? hb?.feats : hb?.backgrounds;
     const clashes = items.filter(b => (listOf(b) || []).some(x => x.id === b.id || x.name.toLowerCase() === b.name.toLowerCase())).map(b => b.id);
     return { items, clashes };
   }
   // Apply an import. decisions[id] = 'replace' | 'copy' | 'skip' for clashes; everything else is added. Imported homebrew starts unapproved.
   function applyImport(hb, parsed, decisions = {}) {
-    const out = { ...hb, backgrounds: [...(hb.backgrounds || [])], species: [...(hb.species || [])], classes: [...(hb.classes || [])] }, done = { added: 0, replaced: 0, skipped: 0 };
+    const out = { ...hb, backgrounds: [...(hb.backgrounds || [])], species: [...(hb.species || [])], classes: [...(hb.classes || [])], feats: [...(hb.feats || [])] }, done = { added: 0, replaced: 0, skipped: 0 };
     for (const b of parsed.items) {
-      const list = b.kind === 'species' ? out.species : b.kind === 'class' ? out.classes : out.backgrounds;
+      const list = b.kind === 'species' ? out.species : b.kind === 'class' ? out.classes : b.kind === 'feat' ? out.feats : out.backgrounds;
       if (!parsed.clashes.includes(b.id)) { list.push(b); done.added++; continue; }
       const how = decisions[b.id] || 'skip';
       if (how === 'skip') { done.skipped++; continue; }
-      if (how === 'copy') { list.push({ ...b, id: uid(b.kind === 'species' ? 'hb-sp' : b.kind === 'class' ? 'hb-cl' : 'hb-bg'), name: b.name + ' (imported)' }); done.added++; continue; }
+      if (how === 'copy') { list.push({ ...b, id: uid(b.kind === 'species' ? 'hb-sp' : b.kind === 'class' ? 'hb-cl' : b.kind === 'feat' ? 'hb-ft' : 'hb-bg'), name: b.name + ' (imported)' }); done.added++; continue; }
       const i = list.findIndex(x => x.id === b.id || x.name.toLowerCase() === b.name.toLowerCase()); list[i] = { ...b, id: list[i].id }; done.replaced++;
     }
     return { hb: out, done };
   }
 
-  root.QBHomebrew = { CASTER, CLASS_KIT, newClass, checkClass, classToSrd, compareClass, classPowerCheck, classFits, srdClassTable, fightTest, encountersFor, ABIL, KIT_MIN, KIT_MAX, BAND, BLOCKS, newBackground, kitValue, tools, checkBackground, fits, backgroundToSrd, newSpecies, speciesScore, traitWeight, checkSpecies, speciesFits, speciesToSrd, srdSpeciesScores, forCreator, exportJson, parseImport, applyImport };
+  root.QBHomebrew = { FEAT_TYPES, newFeat, newPrereq, checkFeat, featFits, featAdvice, featToSrd, CASTER, CLASS_KIT, newClass, checkClass, classToSrd, compareClass, classPowerCheck, classFits, srdClassTable, fightTest, encountersFor, ABIL, KIT_MIN, KIT_MAX, BAND, BLOCKS, newBackground, kitValue, tools, checkBackground, fits, backgroundToSrd, newSpecies, speciesScore, traitWeight, checkSpecies, speciesFits, speciesToSrd, srdSpeciesScores, forCreator, exportJson, parseImport, applyImport };
 })(globalThis);

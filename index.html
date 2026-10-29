@@ -592,6 +592,8 @@ function crState(){ if(S.creator?.v!==2) S.creator=crNew(); return S.creator; }
 // Ability priority for a class: its primary abilities, its spellcasting ability, then Constitution and Dexterity.
 function crPriority(clsId){ const c=crData().classes.find(x=>x.id===clsId); return [...new Set([...(c?.primary||[]),...(c?.spellAbility?[c.spellAbility]:[]),'CON','DEX','WIS','STR','CHA','INT'])].slice(0,6); }
 function crRecommended(clsId){ return Object.fromEntries(crPriority(clsId).map((k,i)=>[k,QBHeroRules.ARRAY[i]])); }
+// A feat's text without its Prerequisite and Ability Score Increase lines, for a one-line summary.
+const featBlurb=f=>String(f?.desc||'').split('\n').filter(l=>!/^\*\*(Prerequisite|Ability Score Increase)/.test(l)).join(' ');
 // Which abilities a feat's own +1 can raise, read from its "Ability Score Increase" line (Grappler: STR or DEX; Epic Boons: any). null: the feat has no +1.
 const AB_NAME={Strength:'STR',Dexterity:'DEX',Constitution:'CON',Intelligence:'INT',Wisdom:'WIS',Charisma:'CHA'};
 function featAbilities(id){ const m=(crData().feats.find(x=>x.id===id)?.desc||'').match(/Ability Score Increase\.\*\*([^\n]*)/); if(!m) return null; if(/of your choice/.test(m[1])) return ABIL.slice(); const ks=Object.entries(AB_NAME).filter(([n])=>m[1].includes(n)).map(([,k])=>k); return ks.length?ks:null; }
@@ -638,11 +640,15 @@ function crStepBody(c,sheet){
       ${cls?`<div class="card stack cr-detail"><label class="f">Level<select data-act-change="cr-level">${Array.from({length:20},(_,i)=>crOpt(i+1,'Level '+(i+1),b.level===i+1)).join('')}</select><span class="small muted">Use the level your DM asked for. New adventures usually start at level 1.</span></label>
         ${b.level>=3&&cls.subclass?`<p><b>Subclass at level 3:</b> ${esc(cls.subclass.name)} · ${esc(cls.subclass.summary)} <span class="small muted">(the SRD has one subclass per class)</span></p>`:''}
         ${({fighter:1,paladin:2,ranger:2})[b.cls]<=b.level?`<label class="f">Fighting Style feat<select data-bind="creator.build.fightingStyle" data-rerender>${crOpt('','Choose…',!b.fightingStyle)}${styles.map(f=>crOpt(f.id,f.name,b.fightingStyle===f.id)).join('')}</select><span class="small muted">${esc(firstSentence(styles.find(f=>f.id===b.fightingStyle)?.desc||'Defense adds 1 to armor class while you wear armor; Archery adds 2 to ranged attack rolls.'))}</span></label>`:''}
-        ${asi.map(lv=>{const u=(c.asiUI[lv]??={}), feats=D.feats.filter(f=>lv===19?(f.type==='epic-boon'||f.id==='ability-score-improvement'):(f.type==='general'&&f.minLevel<=lv));
-          return `<fieldset class="cr-asi"><legend>Level ${lv}: ${lv===19?'Epic Boon or an improvement':'Ability Score Improvement or a feat'}</legend><select data-bind="creator.asiUI.${lv}.feat" data-rerender>${crOpt('','Choose…',!u.feat)}${feats.map(f=>crOpt(f.id,f.name,u.feat===f.id)).join('')}</select>
+        ${asi.length?`<div class="row small"><label><input type="checkbox" data-act="cr-featview" data-v="featRec" ${c.featRec?'checked':''}> Only recommended feats (★: the +1 suits a ${esc(cls?.name||'class')})</label><label><input type="checkbox" data-act="cr-featview" data-v="featFuture" ${c.featFuture?'checked':''}> Show future feats (not available yet, and why)</label></div>`:''}
+        ${asi.map(lv=>{const u=(c.asiUI[lv]??={}), main=crPriority(b.cls).slice(0,2), rec=f=>f.id==='ability-score-improvement'||(featAbilities(f.id)||[]).some(k=>main.includes(k));
+          const pool=D.feats.filter(f=>lv===19?(f.type==='epic-boon'||f.id==='ability-score-improvement'):f.type==='general'), avail=pool.filter(f=>u.feat===f.id||QBHeroRules.featAllowed(b,f,lv)), feats=avail.filter(f=>!c.featRec||rec(f)||u.feat===f.id);
+          const future=c.featFuture?pool.filter(f=>!avail.includes(f)).map(f=>({f,why:QBHeroRules.featBlockers(b,f,lv)})):[];
+          return `<fieldset class="cr-asi"><legend>Level ${lv}: ${lv===19?'Epic Boon or an improvement':'Ability Score Improvement or a feat'}</legend><select data-bind="creator.asiUI.${lv}.feat" data-rerender>${crOpt('','Choose…',!u.feat)}${feats.map(f=>crOpt(f.id,f.name+(rec(f)?' ★':''),u.feat===f.id)).join('')}</select>
             ${u.feat==='ability-score-improvement'?`<select data-bind="creator.asiUI.${lv}.mode" data-rerender>${crOpt('2','+2 to one ability',u.mode!=='1-1')}${crOpt('1-1','+1 to two abilities',u.mode==='1-1')}</select><select data-bind="creator.asiUI.${lv}.a" data-rerender>${crOpt('','Ability…',!u.a)}${ABIL.map(k=>crOpt(k,APPROACH[k].name+' ('+k+')',u.a===k)).join('')}</select>${u.mode==='1-1'?`<select data-bind="creator.asiUI.${lv}.b" data-rerender>${crOpt('','Ability…',!u.b)}${ABIL.map(k=>crOpt(k,APPROACH[k].name+' ('+k+')',u.b===k)).join('')}</select>`:''}`
             :featAbilities(u.feat)?`<select data-bind="creator.asiUI.${lv}.a" data-rerender>${crOpt('','+1 to an ability…',!u.a)}${featAbilities(u.feat).map(k=>crOpt(k,'+1 '+APPROACH[k].name+' ('+k+')',u.a===k)).join('')}</select>`:''}
-            ${u.feat?`<p class="small muted">${esc(firstSentence(D.feats.find(f=>f.id===u.feat)?.desc))}</p>`:''}</fieldset>`;}).join('')}
+            ${u.feat?`<p class="small muted">${esc(firstSentence(featBlurb(D.feats.find(f=>f.id===u.feat))))}</p>`:''}
+            ${c.featFuture?(future.length?`<p class="small"><b>Not yet:</b></p><ul class="small muted">${future.map(x=>`<li>${esc(x.f.name)}${rec(x.f)?' ★':''}: ${esc(x.why.join(', '))}</li>`).join('')}</ul>`:'<p class="small muted">No other feats are waiting: you can already take every feat of this kind.</p>'):''}</fieldset>`;}).join('')}
         ${b.level>1?`<fieldset class="cr-asi"><legend>Hit points after level 1</legend><label><input type="radio" name="cr-hp" data-act="cr-hp" data-v="average" ${b.hp.method!=='roll'?'checked':''}> Take the average (${hd/2+1} + Constitution per level)</label><label><input type="radio" name="cr-hp" data-act="cr-hp" data-v="roll" ${b.hp.method==='roll'?'checked':''}> Roll a fair d${hd} per level (each roll is kept)</label>
           ${b.hp.method==='roll'?`<div class="pickrow">${Array.from({length:b.level-1},(_,i)=>i+2).map(lv=>Number.isInteger(b.hp.rolls[lv])?`<span class="chip">Level ${lv}: ${b.hp.rolls[lv]}</span>`:`<button class="btn sm" data-act="cr-hp-roll" data-v="${lv}">Roll level ${lv}</button>`).join('')}</div>`:''}</fieldset>`:''}</div>`:''}`; }
   case 'abilities': {
@@ -754,6 +760,7 @@ function creatorActions(){ const B=()=>crState().build, D=()=>crData();
     const bg=D().backgrounds.find(x=>x.id===q.background), two=Object.entries(q.boost); c.boostUI=two.length===3?{mode:'1-1-1',plus2:'',plus1:''}:{mode:'2-1',plus2:two.find(([,v])=>v===2)?.[0]||'',plus1:two.find(([,v])=>v===1)?.[0]||''};
     c.asiUI=Object.fromEntries(Object.entries(q.asi||{}).map(([lv,x])=>[lv,{feat:x.feat,mode:'2',a:Object.keys(x.plus)[0]||''}]));
     toast(`Quick build: ${D().species.find(x=>x.id===q.species)?.name}, ${bg.name} background, standard array. Change anything you like.`); },
+  'cr-featview':d=>{ const c=crState(); c[d.v]=!c[d.v]; },
   'cr-level':d=>{ B().level=Number(d.v)||1; },
   'cr-hp':d=>{ B().hp.method=d.v; },
   'cr-hp-roll':d=>{ const b=B(), hd=D().classes.find(x=>x.id===b.cls)?.hitDie||8; if(!Number.isInteger(b.hp.rolls[d.v])) b.hp.rolls[d.v]=QBHeroRules.rollHp(hd); },
@@ -781,7 +788,8 @@ function creatorActions(){ const B=()=>crState().build, D=()=>crData();
   'cr-randname':()=>{ B().name=NAMES[Math.floor(Math.random()*NAMES.length)]; },
   'cr-new':()=>{ S.creator=crNew(); },
   'cr-add':()=>{ const c=crState(), sheet=crSheet(c); if(sheet.open.length||!c.build.name.trim()) { toast('Finish the open choices first.'); return; }
-    const used=crData().backgrounds.find(x=>x.id===c.build.background&&x.homebrew); const usedSp=crData().species.find(x=>x.id===c.build.species&&x.homebrew), usedCl=crData().classes.find(x=>x.id===c.build.cls&&x.homebrew); const copy=x=>x?[JSON.parse(JSON.stringify(x))]:[]; if(used||usedSp||usedCl) c.build.hbData={backgrounds:copy(used),species:copy(usedSp),classes:copy(usedCl)}; // the hero keeps its own copy
+    const used=crData().backgrounds.find(x=>x.id===c.build.background&&x.homebrew); const usedSp=crData().species.find(x=>x.id===c.build.species&&x.homebrew), usedCl=crData().classes.find(x=>x.id===c.build.cls&&x.homebrew); const copy=x=>x?[JSON.parse(JSON.stringify(x))]:[]; const featIds=new Set([crData().backgrounds.find(x=>x.id===c.build.background)?.feat?.id,c.build.speciesFeat,c.build.fightingStyle,...Object.values(c.build.asi||{}).map(x=>x.feat)].filter(Boolean)), usedFt=crData().feats.filter(x=>x.homebrew&&featIds.has(x.id)).map(x=>JSON.parse(JSON.stringify(x)));
+    if(used||usedSp||usedCl||usedFt.length) c.build.hbData={backgrounds:copy(used),species:copy(usedSp),classes:copy(usedCl),feats:usedFt}; // the hero keeps its own copy
     const p=QBHeroRules.toHero(JSON.parse(JSON.stringify(c.build)),sheet,{id:uid('p'),want:c.story.want}); p.name=c.build.name.trim(); heroDefaults(p); S.party.push(p);
     [['want','wants'],['left','left behind'],['fear','fears']].forEach(([k,l])=>{ if(c.story[k].trim()) S.hooks.push({id:uid('h'),text:`${p.name} ${l}: ${c.story[k].trim()}`,status:'dangling',clock:0,source:'Character'}); });
     toast(`${p.name} joined the party. Their story answers are now leads on the DM desk.`); S.creator=crNew(); }
@@ -796,8 +804,8 @@ async function saveFile(name,text,done){
   if(dl){ try{ await dl.save({filename:name,data:text}); toast(done); }catch(e){ if(e?.code==='declined') toast('Export cancelled.'); else if(e?.code==='rate_limited') toast('A save is already waiting for your answer.'); else toast('Export is not available here.'); } return; }
   try{ const url=URL.createObjectURL(new Blob([text],{type:'application/json'})), a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000); toast(done); }catch{ toast('Export is not available in this browser.'); }
 }
-function hbState(){ S.homebrew ??= {}; S.homebrew.backgrounds ??= []; S.homebrew.species ??= []; S.homebrew.classes ??= []; return S.homebrew; }
-const HB_KINDS=[['backgrounds','Backgrounds',true],['species','Species',true],['classes','Classes',true]];
+function hbState(){ S.homebrew ??= {}; S.homebrew.backgrounds ??= []; S.homebrew.species ??= []; S.homebrew.classes ??= []; S.homebrew.feats ??= []; return S.homebrew; }
+const HB_KINDS=[['backgrounds','Backgrounds',true],['species','Species',true],['classes','Classes',true],['feats','Feats',true]];
 function hbCompare(e){
   const D=QBHERO, name=id=>D.skills.find(k=>k.id===id)?.name||id;
   const rows=[...D.backgrounds.map(b=>({name:b.name,ab:b.abilities.join(', '),feat:b.feat?.name||'',skills:b.skills.map(name).join(', '),tool:b.tools[0]||b.toolChoice?.desc.replace(/^Choose one kind of /,'one ')||'',kit:QBHomebrew.kitValue(b.equipment.choices[0]),mine:false})),
@@ -811,7 +819,7 @@ function hbEditor(){
     <section class="card stack"><label class="f">Name<input data-bind="hbEdit.name" value="${esc(e.name)}" maxlength="80" placeholder="Smuggler, Lighthouse Keeper…"></label>
       <label class="f">What was this life like? (optional, shown to players)<textarea data-bind="hbEdit.desc" rows="3" maxlength="2000">${esc(e.desc)}</textarea></label></section>
     <section class="card stack"><h3>Three abilities it can raise</h3><p class="small muted">Players raise one by 2 and another by 1, or all three by 1. Pick abilities that fit the life it describes.</p><div class="cr-checks">${ABIL.map(k=>pick('abilities',k,e.abilities.includes(k),`${APPROACH[k].name} (${k})`,3)).join('')}</div></section>
-    <section class="card stack"><h3>One origin feat</h3><select data-bind="hbEdit.feat" data-rerender>${crOpt('','Choose…',!e.feat)}${D.feats.filter(f=>f.type==='origin').map(f=>crOpt(f.id,f.name,e.feat===f.id)).join('')}</select>${e.feat?`<p class="small muted">${esc(firstSentence(D.feats.find(f=>f.id===e.feat)?.desc))}</p>`:''}</section>
+    <section class="card stack"><h3>One origin feat</h3><select data-bind="hbEdit.feat" data-rerender>${crOpt('','Choose…',!e.feat)}${QBHeroRules.data().feats.filter(f=>f.type==='origin').map(f=>crOpt(f.id,f.name+(f.homebrew?' (homebrew)':''),e.feat===f.id)).join('')}</select>${e.feat?`<p class="small muted">${esc(firstSentence(D.feats.find(f=>f.id===e.feat)?.desc))}</p>`:''}</section>
     <section class="card stack"><h3>Two skills</h3><div class="cr-checks">${D.skills.map(k=>pick('skills',k.id,e.skills.includes(k.id),`${esc(k.name)} <span class="small muted">${k.ability}</span>`,2)).join('')}</div></section>
     <section class="card stack"><h3>One tool</h3><select data-bind="hbEdit.tool" data-rerender>${crOpt('','Choose…',!e.tool)}${QBHomebrew.tools().map(t=>crOpt(t,t,e.tool===t)).join('')}</select></section>
     <section class="card stack"><h3>Starting kit</h3><p class="small muted">Players take this kit or 50 GP instead. SRD kits are worth 45–56 GP including the gold.</p>
@@ -909,47 +917,78 @@ function hbClassEditor(){
       <p class="small muted">Bold: your class (its Quick build hero). Grey: the weakest and strongest SRD class. Damage per action is against AC 15, grazes counted. Spell slots and limited features aren’t counted, so casters are stronger than this shows.</p>
       <button class="btn sm" data-act="hb-fighttest">Test in fights…</button><div id="hb-fight-out">${S.hbFight?.id===e.id?S.hbFight.html:''}</div>`:''}</aside></div>`;
 }
+// The feat editor: what kind of feat, from which level, an optional +1, and what it does in the DM's own words.
+function hbFeatEditor(){
+  const e=S.hbEdit; e.prereq??=QBHomebrew.newPrereq(); const p=e.prereq, others=hbState().feats.filter(x=>x.id!==e.id), T=QBHomebrew.FEAT_TYPES, checks=QBHomebrew.checkFeat(e,others), ok=checks.every(x=>x.ok), srd=QBHERO.feats.filter(x=>x.type===e.type);
+  const needsPlus=e.type==='general'||e.type==='epic-boon';
+  return `<div class="cr-layout"><div class="cr-main">
+    <section class="card stack"><h3>The feat</h3><label class="f">Name<input data-bind="hbEdit.name" value="${esc(e.name)}" placeholder="Tough Hide, Night Hunter…" maxlength="80"></label>
+      <label class="f">Kind<select data-act-change="hb-feattype">${Object.entries(T).map(([k,x])=>crOpt(k,x.label,e.type===k)).join('')}</select></label>
+      <label class="f">From level<select data-bind="hbEdit.minLevel" data-rerender>${Array.from({length:20},(_,i)=>i+1).filter(l=>l>=T[e.type].minLevel).map(l=>crOpt(l,'Level '+l,Number(e.minLevel)===l)).join('')}</select></label>
+      <label><input type="checkbox" data-act="hb-cflag" data-p="repeatable" ${e.repeatable?'checked':''}> A hero may take it more than once</label></section>
+    <section class="card stack"><h3>Ability increase</h3><p class="small muted">${needsPlus?'2024 general feats and Epic Boons raise one ability by 1. Tick the abilities a player may choose from (all six means any).':'Origin and Fighting Style feats don’t raise abilities in the 2024 rules.'}</p>
+      ${needsPlus?`<div class="cr-checks">${ABIL.map(k=>`<label class="cr-check ${e.abilities.includes(k)?'on':''}"><input type="checkbox" data-act="hb-ctoggle" data-p="abilities" data-v="${k}" ${e.abilities.includes(k)?'checked':''}> ${APPROACH[k].name} (${k})</label>`).join('')}</div>`:''}</section>
+    <section class="card stack"><h3>Prerequisites</h3><p class="small muted">Use them only when the feat truly needs them. The creator only offers the feat to heroes who meet them.</p>
+      <p class="small"><b>An ability score</b> (any one of the ticked)</p><div class="cr-checks">${ABIL.map(k=>`<label class="cr-check ${p.abilities.includes(k)?'on':''}"><input type="checkbox" data-act="hb-ctoggle" data-p="prereq.abilities" data-v="${k}" ${p.abilities.includes(k)?'checked':''}> ${k}</label>`).join('')}</div>
+      ${p.abilities.length?`<label class="f">Of at least<select data-bind="hbEdit.prereq.score" data-rerender>${[13,14,15,16,17].map(n=>crOpt(n,n+(n===13?' (usual)':' (stricter)'),Number(p.score)===n)).join('')}</select></label>`:''}
+      <label><input type="checkbox" data-act="hb-cflag" data-p="prereq.spellcasting" ${p.spellcasting?'checked':''}> The Spellcasting or Pact Magic feature</label>
+      <div class="row"><label class="f">Another feat<select data-bind="hbEdit.prereq.feat" data-rerender>${crOpt('','None',!p.feat)}${[...QBHERO.feats,...others].map(x=>crOpt(x.id,x.name+(x.homebrew||x.kind==='feat'?' (homebrew)':''),p.feat===x.id)).join('')}</select></label>
+      <label class="f">A class<select data-bind="hbEdit.prereq.cls" data-rerender>${crOpt('','Any class',!p.cls)}${[...QBHERO.classes,...hbState().classes].map(c=>crOpt(c.id,c.name,p.cls===c.id)).join('')}</select></label></div>
+      <label class="f">Anything else (shown, not checked)<input data-bind="hbEdit.prereq.text" value="${esc(p.text||'')}" placeholder="the Rage feature, the ability to cast Mage Hand…" maxlength="300"></label></section>
+    <section class="card stack"><h3>What it does</h3><p class="small muted">Shown on the hero sheet. Write it in your own words; Quillbound doesn’t calculate it, so note numbers the player should use.</p>
+      <textarea data-bind="hbEdit.desc" rows="6" maxlength="3000" placeholder="When you…">${esc(e.desc)}</textarea></section>
+    <div class="cr-foot"><button class="btn" data-act="hb-cancel">Cancel</button><button class="btn primary" data-act="hb-save">Save feat</button></div></div>
+    <aside class="cr-sheet"><div class="eyebrow">Checked against the 2024 structure</div><h3>${ok?'Ready for approval':'Not finished'}</h3>
+      <ul class="hb-checks">${checks.map(c=>`<li class="${c.ok?'ok':'warn'}">${c.ok?'✓':'⚠'} <b>${esc(c.label)}</b>${c.detail?' · '+esc(c.detail):''}</li>`).join('')}</ul>
+      <p class="small"><b>SRD feats of this kind:</b> ${esc(srd.map(x=>x.name).join(', ')||'none')}</p>
+      <p class="small muted">There is no power score for feats: compare it with the SRD feats above and decide when you approve it.</p>
+      <h4>Design tips</h4><ul class="small">${QBHomebrew.featAdvice(e).map(x=>`<li>${esc(x)}</li>`).join('')}</ul><p class="small muted">From the D&amp;D Wiki feat design guides. Tips never block approval.</p></aside></div>`;
+}
 function vHomebrew(){
-  const hb=hbState(), kind=S.hbKind||'backgrounds', one=kind==='species'?'species':kind==='classes'?'class':'background';
+  QBHeroRules.setHomebrew(QBHomebrew.forCreator(hbState())); // approved homebrew feats can be chosen and required here too
+  const hb=hbState(), kind=S.hbKind||'backgrounds', one=kind==='species'?'species':kind==='classes'?'class':kind==='feats'?'feat':'background';
+  if(S.hbEdit?.kind==='feat') return `<div class="pagehead"><div><div class="eyebrow">Homebrew · feat</div><h2>${esc(S.hbEdit.name||'New feat')}</h2><p>Name it, choose its kind and level, and describe what it does. Approved feats appear in the creator wherever a feat of that kind is chosen.</p></div></div>${hbFeatEditor()}`;
   if(S.hbEdit?.kind==='class') return `<div class="pagehead"><div><div class="eyebrow">Homebrew · class</div><h2>${esc(S.hbEdit.name||'New class')}</h2><p>Build the class from a base, a progression and features. The panel on the right measures it against all 12 SRD classes at levels 1, 5, 11 and 17.</p></div></div>${hbClassEditor()}`;
   if(S.hbEdit) return S.hbEdit.kind==='species'
     ?`<div class="pagehead"><div><div class="eyebrow">Homebrew · species</div><h2>${esc(S.hbEdit.name||'New species')}</h2><p>Pick traits from building blocks. Each has a weight; the panel on the right places your species among the SRD ones.</p></div></div>${hbSpeciesEditor()}`
     :`<div class="pagehead"><div><div class="eyebrow">Homebrew · background</div><h2>${esc(S.hbEdit.name||'New background')}</h2><p>Build inside the 2024 structure. The panel on the right checks each part and compares it with the SRD backgrounds.</p></div></div>${hbEditor()}`;
-  const list=hb[kind]||[], fits=b=>kind==='species'?QBHomebrew.speciesFits(b):kind==='classes'?QBHomebrew.classFits(b):QBHomebrew.fits(b);
-  const line=b=>kind==='classes'?`d${b.hitDie} · ${esc(b.primary.join(', '))} · saves ${esc(b.saves.join(', '))} · ${b.caster==='none'?'no spells':esc(b.caster)+' caster'}${b.extraAttack?' · Extra Attack':''} · subclass ${esc(b.subclass.name||'?')}`
+  const list=hb[kind]||[], fits=b=>kind==='species'?QBHomebrew.speciesFits(b):kind==='classes'?QBHomebrew.classFits(b):kind==='feats'?QBHomebrew.featFits(b,hb.feats.filter(y=>y.id!==b.id)):QBHomebrew.fits(b);
+  const line=b=>kind==='feats'?`${esc(QBHomebrew.FEAT_TYPES[b.type]?.label.split(' (')[0]||'')} · from level ${Number(b.minLevel)||1}${b.abilities.length?' · +1 '+esc(b.abilities.length===6?'any ability':b.abilities.join(' or ')):''}${b.repeatable?' · repeatable':''}`
+    :kind==='classes'?`d${b.hitDie} · ${esc(b.primary.join(', '))} · saves ${esc(b.saves.join(', '))} · ${b.caster==='none'?'no spells':esc(b.caster)+' caster'}${b.extraAttack?' · Extra Attack':''} · subclass ${esc(b.subclass.name||'?')}`
     :kind==='species'
     ?`${esc(b.size)} · ${Number(b.speed)+(b.traits.some(t=>t.block==='speed')?5:0)} ft · score ${QBHomebrew.speciesScore(b)} (SRD ${QBHomebrew.BAND.min}–${QBHomebrew.BAND.max}) · ${esc(QBHomebrew.speciesToSrd(b).traits.map(t=>t.name).join(', '))}`
     :`${esc(b.abilities.join(', '))} · ${esc(QBHERO.feats.find(f=>f.id===b.feat)?.name||'no feat')} · ${esc(b.skills.map(s=>QBHERO.skills.find(k=>k.id===s)?.name||s).join(', '))} · ${esc(b.tool||'no tool')} · kit ${QBHomebrew.kitValue(b.kit)} GP`;
-  return `<div class="pagehead"><div><div class="eyebrow">Homebrew · DM only</div><h2>Your own options</h2><p>Make your own backgrounds, species and classes inside the 2024 rules. The app compares them with the SRD; you decide what players may use by approving it.</p></div>
-      <div class="row"><button class="btn" data-act="hb-export" ${(hb.backgrounds.length||hb.species.length||hb.classes.length)?'':'disabled'}>Export…</button><label class="btn">Import…<input type="file" id="hb-file" accept=".json,application/json" hidden></label></div></div>
+  return `<div class="pagehead"><div><div class="eyebrow">Homebrew · DM only</div><h2>Your own options</h2><p>Make your own backgrounds, species, classes and feats inside the 2024 rules. The app compares them with the SRD; you decide what players may use by approving it.</p></div>
+      <div class="row"><button class="btn" data-act="hb-export" ${(hb.backgrounds.length||hb.species.length||hb.classes.length||hb.feats.length)?'':'disabled'}>Export…</button><label class="btn">Import…<input type="file" id="hb-file" accept=".json,application/json" hidden></label></div></div>
     <div class="cr-tabs" role="tablist">${HB_KINDS.map(([k,l,ready])=>`<button role="tab" aria-selected="${kind===k}" data-act="hb-kind" data-v="${k}" ${ready?'':'disabled'}>${l}${ready?'':' · coming next'}</button>`).join('')}</div>
     <div class="row" style="margin:12px 0"><button class="btn primary" data-act="hb-new">New ${one}</button></div>
-    <div class="results">${list.map(b=>{const fit=fits(b);return `<article class="card stack"><div class="row" style="justify-content:space-between"><h3>${esc(b.name||'Unnamed '+one)}</h3><span class="chip ${fit?'ok':'warn'}">${fit?(kind==='backgrounds'?'Fits the 2024 structure':'Within the SRD range'):'Draft: not finished'}</span></div>
+    <div class="results">${list.map(b=>{const fit=fits(b);return `<article class="card stack"><div class="row" style="justify-content:space-between"><h3>${esc(b.name||'Unnamed '+one)}</h3><span class="chip ${fit?'ok':'warn'}">${fit?(kind==='backgrounds'||kind==='feats'?'Fits the 2024 structure':'Within the SRD range'):'Draft: not finished'}</span></div>
       <p class="small">${line(b)}</p>${b.desc?`<p class="small muted">${esc(b.desc)}</p>`:''}
       <div class="row"><label class="cr-check ${b.approved?'on':''}"><input type="checkbox" data-act="hb-approve" data-v="${b.id}" ${b.approved?'checked':''}> Approved by the DM: players can choose it</label><button class="btn sm" data-act="hb-edit" data-v="${b.id}">Edit</button><button class="btn sm ghost" data-act="hb-del" data-v="${b.id}">Delete</button></div></article>`;}).join('')||`<div class="empty">No homebrew ${kind} yet. Choose New ${one} to make one.</div>`}</div>
     <p class="small muted">Heroes keep a copy of the homebrew they were made with, so editing or deleting it later doesn’t change existing heroes.</p>`;
 }
 // Read an import file, then let the DM decide about every clash before anything changes.
 function hbImportFile(file){ file.text().then(text=>{ const hb=hbState(), parsed=QBHomebrew.parseImport(text,hb); if(parsed.error){ toast(parsed.error); return; }
-  const dlg=openDialog('Import homebrew',`<p>${parsed.items.length} item${parsed.items.length===1?'':'s'} in this file (backgrounds and species). Imported homebrew starts unapproved.</p>
+  const dlg=openDialog('Import homebrew',`<p>${parsed.items.length} item${parsed.items.length===1?'':'s'} in this file. Imported homebrew starts unapproved.</p>
     <ul>${parsed.items.map(b=>`<li><b>${esc(b.name)}</b>${parsed.clashes.includes(b.id)?` · you already have one with this name<select data-clash="${esc(b.id)}">${crOpt('skip','Keep mine, skip this one',true)}${crOpt('copy','Keep both (import as a copy)',false)}${crOpt('replace','Replace mine with this one',false)}</select>`:''}</li>`).join('')}</ul>
     <div class="row"><button class="btn primary" id="hb-import-go">Import</button><button class="btn" id="hb-import-cancel">Cancel</button></div>`);
   dlg.querySelector('#hb-import-cancel').onclick=()=>dlg.close();
   dlg.querySelector('#hb-import-go').onclick=()=>{ const decisions={}; dlg.querySelectorAll('[data-clash]').forEach(s=>decisions[s.dataset.clash]=s.value); const r=QBHomebrew.applyImport(hb,parsed,decisions); S.homebrew=r.hb; dlg.close(); render(); toast(`Imported: ${r.done.added} added, ${r.done.replaced} replaced, ${r.done.skipped} skipped.`); };
 }).catch(()=>toast('This file could not be read.')); }
-function homebrewActions(){ const find=id=>{const hb=hbState(); for(const k of ['backgrounds','species','classes']){const x=hb[k].find(b=>b.id===id); if(x) return {k,x};} return {};};
-  const fitsOf=x=>x.kind==='species'?QBHomebrew.speciesFits(x):x.kind==='class'?QBHomebrew.classFits(x):QBHomebrew.fits(x);
+function homebrewActions(){ const find=id=>{const hb=hbState(); for(const k of ['backgrounds','species','classes','feats']){const x=hb[k].find(b=>b.id===id); if(x) return {k,x};} return {};};
+  const fitsOf=x=>x.kind==='species'?QBHomebrew.speciesFits(x):x.kind==='class'?QBHomebrew.classFits(x):x.kind==='feat'?QBHomebrew.featFits(x,hbState().feats.filter(y=>y.id!==x.id)):QBHomebrew.fits(x);
   return {
   'hb-kind':d=>{ S.hbKind=d.v; },
-  'hb-new':()=>{ S.hbEdit=S.hbKind==='species'?QBHomebrew.newSpecies():S.hbKind==='classes'?QBHomebrew.newClass():QBHomebrew.newBackground(); window.scrollTo(0,0); },
+  'hb-new':()=>{ S.hbEdit=S.hbKind==='species'?QBHomebrew.newSpecies():S.hbKind==='classes'?QBHomebrew.newClass():S.hbKind==='feats'?QBHomebrew.newFeat():QBHomebrew.newBackground(); window.scrollTo(0,0); },
   'hb-edit':d=>{ S.hbEdit=JSON.parse(JSON.stringify(find(d.v).x)); window.scrollTo(0,0); },
   'hb-cancel':()=>{ S.hbEdit=null; },
   'hb-save':()=>{ const hb=hbState(), src=S.hbEdit, e={...src,name:String(src.name||'').trim(),updated:Date.now()};
     if(e.kind==='species') Object.assign(e,{speed:Number(e.speed)||30});
     if(e.kind==='class') for(const k of ['hitDie','cantrips','fightingStyle','mastery','sneakFrom','martialArtsFrom']) e[k]=Number(e[k])||0;
-    if(e.kind!=='species') e.kit={items:src.kit.items.map(i=>({id:i.id,count:Math.max(1,Math.round(Number(i.count)||1))})),gp:Math.max(0,Math.round(Number(src.kit.gp)||0))};
+    if(e.kind==='feat'){ e.minLevel=Math.max(QBHomebrew.FEAT_TYPES[e.type]?.minLevel||1,Number(e.minLevel)||1); if(!['general','epic-boon'].includes(e.type)) e.abilities=[]; }
+    if(e.kind!=='species'&&e.kind!=='feat') e.kit={items:src.kit.items.map(i=>({id:i.id,count:Math.max(1,Math.round(Number(i.count)||1))})),gp:Math.max(0,Math.round(Number(src.kit.gp)||0))};
     if(!e.name){ toast('Give it a name first.'); return; }
-    const list=e.kind==='species'?hb.species:e.kind==='class'?hb.classes:hb.backgrounds, i=list.findIndex(b=>b.id===e.id); if(i>=0) list[i]=e; else list.push(e);
+    const list=e.kind==='species'?hb.species:e.kind==='class'?hb.classes:e.kind==='feat'?hb.feats:hb.backgrounds, i=list.findIndex(b=>b.id===e.id); if(i>=0) list[i]=e; else list.push(e);
     if(e.approved&&!fitsOf(e)) { e.approved=false; toast('Saved. It no longer fits, so it is unapproved until you approve it again.'); } else toast('Saved.');
     S.hbEdit=null; },
   'hb-toggle':d=>{ const list=S.hbEdit[d.k], i=list.indexOf(d.v); if(i>=0) list.splice(i,1); else if(list.length<+d.max) list.push(d.v); else toast(`Choose ${d.max}. Untick one first.`); },
@@ -957,9 +996,11 @@ function homebrewActions(){ const find=id=>{const hb=hbState(); for(const k of [
   'hb-delitem':d=>{ S.hbEdit.kit.items.splice(+d.v,1); },
   'hb-addtrait':d=>{ if(!d.v) return; const t={block:d.v}; if(d.v==='darkvision') t.range='60'; if(d.v==='natural') Object.assign(t,{name:'Claws',dice:'1d6',type:'Slashing',finesse:false}); if(d.v==='spell') t.level='3'; if(d.v==='custom'||d.v==='drawback') t.weight='1'; S.hbEdit.traits.push(t); },
   'hb-deltrait':d=>{ S.hbEdit.traits.splice(+d.v,1); },
+  // feat editor: a new kind moves the level up to where that kind starts, and drops a +1 it can't have
+  'hb-feattype':d=>{ const e=S.hbEdit, min=QBHomebrew.FEAT_TYPES[d.v]?.minLevel||1; e.type=d.v; if(Number(e.minLevel)<min||d.v==='epic-boon') e.minLevel=min; if(d.v==='origin'||d.v==='fighting-style') e.abilities=[]; },
   // class editor: toggles in nested lists ("skills.from"), flags, and rows (features, attacks, expertise)
   'hb-ctoggle':d=>{ const path=d.p.split('.'); let o=S.hbEdit; for(const k of path.slice(0,-1)) o=o[k]; const list=o[path[path.length-1]], i=list.indexOf(d.v); if(i>=0) list.splice(i,1); else if(list.length<(+d.max||99)) list.push(d.v); else toast(`Choose ${d.max}. Untick one first.`); },
-  'hb-cflag':d=>{ S.hbEdit[d.p]=!S.hbEdit[d.p]; },
+  'hb-cflag':d=>{ const path=d.p.split('.'); let o=S.hbEdit; for(const k of path.slice(0,-1)) o=o[k]; const k=path.at(-1); o[k]=!o[k]; },
   'hb-crow-add':d=>{ const blank={expertise:{level:1,count:1},attacks:{level:1,name:'',dice:'1d6',ability:'INT',type:''},features:{level:1,name:'',desc:''},'subclass.features':{level:3,name:'',desc:''}}[d.k]; const list=d.k==='subclass.features'?S.hbEdit.subclass.features:S.hbEdit[d.k]; list.push({...blank}); },
   'hb-crow-del':d=>{ const list=d.k==='subclass.features'?S.hbEdit.subclass.features:S.hbEdit[d.k]; list.splice(+d.v,1); },
   'hb-fighttest':()=>{ const e=S.hbEdit, lv=5; crSpells(()=>render()); const r=QBHomebrew.fightTest(e,lv,150);

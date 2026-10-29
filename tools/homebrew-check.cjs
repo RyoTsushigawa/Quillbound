@@ -88,6 +88,31 @@ const ft=plain(B.fightTest(art,5,40));assert.deepEqual(ft.rows.map(r=>r.name),['
 const cls=plain(B.parseImport(B.exportJson({classes:[art]}),{classes:[]}));assert.equal(cls.items[0].kind,'class');assert.equal(plain(B.classToSrd(cls.items[0])).attacksFrom[0].name,'Lightning Launcher','classes survive export and import');
 console.log('PASS: homebrew classes: structure checks; measured against the 12 SRD classes at levels 1/5/11/17 (an overpowered class is flagged); Toxik’s Artificer gives AC 17, Lightning Launcher +7 (1d6+4), Investigation +10 and half-caster slots; the fight test runs; export/import keeps classes.');
 
+/* feats: the 2024 structure, prerequisites the creator enforces, a +1 that works like Grappler's, export and import */
+{const hide={...B.newFeat(),id:'hb-ft-hide',name:'Thick-Skinned',type:'general',minLevel:4,abilities:['STR','CON'],desc:'While you aren’t wearing heavy armor, you take 2 less bludgeoning damage from attacks.'};
+assert.deepEqual(plain(B.checkFeat(hide)).filter(c=>!c.ok).map(c=>c.label),[]);
+assert.deepEqual(plain(B.checkFeat(B.newFeat())).filter(c=>!c.ok).map(c=>c.label),['A name','A +1 to an ability','What it does']);
+assert(!B.featFits({...hide,name:'Grappler'}),'an SRD name is taken');assert(!B.featFits({...hide,type:'origin'}),'origin feats have no +1');
+const strict={...hide,id:'hb-ft-strict',name:'Iron Hide',abilities:['CON'],prereq:{...B.newPrereq(),feat:'hb-ft-hide',abilities:['CON'],score:15}};
+assert(B.featFits(strict,[hide]),'a stricter feat that needs another feat');assert(!B.featFits({...strict,prereq:{...strict.prereq,score:12}},[hide]),'ability prerequisites are 13–17');
+const c3={...strict,id:'c3',prereq:{...B.newPrereq(),feat:'hb-ft-strict'}},c4={...strict,id:'c4',prereq:{...B.newPrereq(),feat:'c3'}};
+assert(B.featFits(c3,[hide,strict])&&!B.featFits(c4,[hide,strict,c3]),'feat chains stop at three');
+assert(B.featAdvice(strict).some(x=>/same ability/.test(x)),'the guide’s tip on +1 and prerequisite on the same ability');
+R.setHomebrew({feats:[hide,strict].map(f=>plain(B.featToSrd(f)))});
+const base={name:'Brannoc',species:'human',cls:'fighter',level:8,abilities:{method:'set',base:{STR:15,DEX:12,CON:13,INT:8,WIS:10,CHA:10}},background:'soldier',boost:{STR:2,CON:1},hp:{method:'average'}};
+const hideF=plain(R.data().feats.find(f=>f.id==='hb-ft-hide')),strictF=plain(R.data().feats.find(f=>f.id==='hb-ft-strict'));
+assert(R.featAllowed(base,hideF,4)&&!R.featAllowed(base,strictF,4),'Iron Hide needs Thick-Skinned first');
+const took={...base,asi:{4:{feat:'hb-ft-hide',plus:{CON:1}}}};assert.equal(plain(R.derive(took)).scores.CON,15,'its +1 raises CON');
+assert(R.featAllowed(took,strictF,8)&&!R.featAllowed({...base,asi:{4:{feat:'hb-ft-hide',plus:{STR:1}}}},strictF,8),'and CON 15 from before level 8');
+assert(plain(R.derive(took)).features.some(f=>f.name==='Thick-Skinned'),'the feat is on the sheet');R.setHomebrew(null);
+const back=plain(B.parseImport(B.exportJson({feats:[strict]}),{feats:[]}));assert.equal(back.items[0].kind,'feat');assert.equal(back.items[0].prereq.score,15,'feats survive export and import');}
+console.log('PASS: homebrew feats follow the 2024 structure (+1 for general feats and boons, none for origin), enforce prerequisites in the creator (ability 13–17 before that level, another feat, class, spellcasting), stop chains at three, and survive export/import.');
+{const later={...B.newFeat(),id:'hb-ft-later',name:'Old Hand',type:'general',minLevel:8,abilities:['WIS'],desc:'Once per long rest you can reroll a failed Wisdom save.',prereq:{...B.newPrereq(),abilities:['WIS'],score:13}};
+R.setHomebrew({feats:[plain(B.featToSrd(later))]});const f=plain(R.data().feats.find(x=>x.id==='hb-ft-later'));
+const b={name:'X',species:'human',cls:'wizard',level:4,abilities:{method:'set',base:{STR:8,DEX:14,CON:14,INT:15,WIS:10,CHA:10}},background:'sage',boost:{INT:2,CON:1}};
+assert.deepEqual(plain(R.featBlockers(b,f,4)),['from level 8','needs Wisdom 13'],'future feats say what is missing');R.setHomebrew(null);}
+console.log('PASS: future feats list what a hero still needs (a later level, an ability score).');
+
 /* the homebrew that ships with the app for The Night Shift */
 vm.runInContext(fs.readFileSync(path.join(root,'src/app/table-homebrew.js'),'utf8'),ctx);const T=plain(ctx.QB_TABLE_HOMEBREW);
 assert.deepEqual([T.species.map(s=>s.name),T.classes.map(c=>c.name)],[['Vampire'],['Artificer']],'Vampire is a species, Artificer a class');

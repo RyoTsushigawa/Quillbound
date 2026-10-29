@@ -36,6 +36,7 @@ The **Create a hero** tab builds 2024 (SRD 5.2) heroes from level 1 to 20.
 - **Background increases:** the background raises two of its three abilities by +2 and +1, or all three by +1. Scores can't go above 20.
 - **Hit points after level 1:** the average (die ÷ 2 + 1 + Constitution) or a fair roll per level. Rolls are kept.
 - **Levels 4, 8, 12, 16** (and the Fighter's and Rogue's extra levels): an Ability Score Improvement or a feat. **Level 19:** an Epic Boon. A feat that raises an ability by 1 (Grappler: Strength or Dexterity; Epic Boons: any ability) asks which one.
+- **Feat choices** have two toggles: **Only recommended feats** narrows the menu to Ability Score Improvement and feats whose +1 can raise one of the class's main abilities (marked ★), and **Show future feats** lists the feats the hero can't take yet with what's missing (a later level, an ability score, another feat, a class). Homebrew feats only appear once the hero meets their prerequisites.
 - **Other choices,** each counted on its step: fighting styles, expertise, weapon masteries, the Skilled and Versatile feats, cantrips and prepared spells.
 
 **Equipment.** You take the class's and the background's starting kit.
@@ -54,7 +55,7 @@ The **Create a hero** tab builds 2024 (SRD 5.2) heroes from level 1 to 20.
 
 ### Homebrew
 
-The **Homebrew** tab (DM only) builds your own backgrounds, species and classes.
+The **Homebrew** tab (DM only) builds your own backgrounds, species, classes and feats.
 
 **Built-in table homebrew:** The Night Shift's Vampire species and Artificer class ship with the app (`src/app/table-homebrew.js`). The first time a browser opens Quillbound they are added, approved, unless that browser already has homebrew with the same name. After that they behave like your own: you can edit, unapprove or delete them, and they don't come back. When the app ships a newer version of one (the Artificer was updated to the 2025 rules), it replaces the earlier shipped copy and keeps its approval; homebrew of your own is never replaced.
 
@@ -84,6 +85,13 @@ The **Homebrew** tab (DM only) builds your own backgrounds, species and classes.
 - **Subclass:** chosen at level 3, with a name, a summary, its own features, and training and tools it grants at level 3 (for example heavy armor and Smith's Tools).
 - **The SRD range:** the screen derives a Quick build hero of the class at levels 1, 5, 11 and 17 and compares its HP, AC and average damage per action with all 12 SRD classes. A class is "within the SRD range" unless its HP or damage is more than 10% above the strongest SRD class, or its AC is above the highest SRD AC, at any of those levels.
 - **Test in fights…** runs 150 Stakes fights at level 5 for parties of four identical heroes (yours, Fighter, Rogue, Wizard) against a pack of CR level/4 monsters, a pair of CR level/2 and one tough enemy of CR level. It reports rounds, how often a hero drops, and how often the party is wiped. Healing, stamina and breaking points are left out, so it compares classes rather than tactics.
+
+**Feats** are written by you; Quillbound checks their structure and enforces their prerequisites, but doesn't calculate what they do.
+- **Kind and level:** origin (level 1, from a background or the Human), general (level 4 and up), Fighting Style (level 1) or Epic Boon (level 19). Each appears in the creator wherever a feat of that kind is chosen.
+- **The +1:** in the 2024 rules every general feat and Epic Boon also raises an ability by 1, and origin and Fighting Style feats don't. You tick which abilities the player may choose from; the creator then asks, as for Grappler.
+- **Prerequisites the creator enforces:** an ability score of 13 (usual) to 17 (stricter), counted from before the level the feat is taken; the Spellcasting or Pact Magic feature; another feat taken earlier; or a class. Anything else (a class feature, a spell) is free text the sheet shows. A hero only sees feats they qualify for.
+- **Chains:** a feat may need a feat that needs a feat, but no longer than three.
+- **Design tips** from the D&D Wiki feat design guides appear while you write (the "I am a …" naming test, conditional rather than flat bonuses, no prerequisite on the ability the feat raises, about the worth of a +2 increase). They never block approval; there is no power score for feats, so you judge that when you approve.
 
 **The 2024 structure**
 - A background follows the 2024 structure, and the screen checks each part live:
