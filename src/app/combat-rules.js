@@ -13,7 +13,7 @@
   };
   const zones = ['cover', 'center', 'objective'];
   const OUT = ['down', 'dead', 'fled', 'surrendered', 'bargained'];
-  const PRIMARY = { Fighter: 'STR', Rogue: 'DEX', Barbarian: 'STR', Paladin: 'STR', Cleric: 'WIS', Bard: 'CHA', Ranger: 'DEX', Warlock: 'CHA', Wizard: 'INT', Druid: 'WIS' };
+  const PRIMARY = { Fighter: 'STR', Rogue: 'DEX', Barbarian: 'STR', Paladin: 'STR', Cleric: 'WIS', Bard: 'CHA', Ranger: 'DEX', Warlock: 'CHA', Wizard: 'INT', Druid: 'WIS', Artificer:'INT' };
   const clone = x => JSON.parse(JSON.stringify(x));
   const A = () => root.QBAttacks;
   const mod = s => Math.floor(((Number(s) || 10) - 10) / 2);
@@ -179,6 +179,10 @@
     const p = s.party.find(p => p.id === (d.mode === 'enemy' ? d.target : d.actor)); if (!p) return;
     const best = keys => keys.reduce((a, b) => (Number(p.abil?.[b]) || 10) > (Number(p.abil?.[a]) || 10) ? b : a);
     const action = d.mode === 'enemy' ? 'defend' : d.action;
+    if(d.mode!=='enemy'&&action==='improvise'&&d.effect==='objective'&&d.objectiveId){
+      const o=root.EncounterDesign?.objective(s,d.objectiveId);
+      const allowed=o?.abilities||['INT'];d.ability=allowed.includes(d.objectiveAbility)?d.objectiveAbility:allowed[0];d.trained=d.objectiveTrained===true;return;
+    }
     let ability = action === 'move' ? 'DEX' : action === 'defend' ? best(['DEX', 'CON']) : PRIMARY[p.cls] || 'STR';
     if (action === 'improvise' && d.effect === 'condition') {
       const label = d.condition || '';
@@ -210,6 +214,11 @@
     if (l.pending) throw Error('Confirm or cancel the current roll first.');
     if (!active(s, a)) throw Error('Choose a character who can act.');
     if (l.acted[a.id]) throw Error('This character has acted. Start the next round or choose someone else.');
+    const objectiveAction=d.mode!=='enemy'&&d.action==='improvise'&&d.effect==='objective'&&d.objectiveId;
+    if(objectiveAction){
+      root.EncounterDesign.validateObjective(s,d);
+      if(d.objectiveBonus!==''&&d.objectiveBonus!==undefined&&(!Number.isInteger(Number(d.objectiveBonus))||Math.abs(Number(d.objectiveBonus))>40))throw Error('Use a whole-number check bonus between -40 and 40, or leave it blank.');
+    }
     const effect = d.mode === 'enemy' ? (d.enemyEffect === 'wound' ? 'damage' : d.enemyEffect || 'damage') : null;
     if (d.mode === 'enemy' && !['damage','position','condition','goal','context'].includes(effect)) throw Error('Choose an enemy consequence.');
     if (d.mode === 'enemy' && effect !== 'damage' && !d.enemyOutcome?.trim()) throw Error('Describe the consequence before rolling defense.');
@@ -252,7 +261,7 @@
         return { ...k, target: foe.id, bonus: atk.bonus, total, band, against: foe.acNum, attack: atk.name, expr: atk.damage, damage: LANDS.includes(band) ? rollDamage(atk.damage, band === 'crit') : null, push: null,
           strike: { by: foe.id, name: back?.name || 'Attack', damage: back ? rollDamage(back.damage, band === 'disaster') : 0, reach: true } }; });
     } else {
-      const b = bonus(roller, d.ability, d.trained), k = kept[0], total = k.die + b, band = grade(k.die, total);
+      const b = objectiveAction&&d.objectiveBonus!==''&&d.objectiveBonus!==undefined?Number(d.objectiveBonus):bonus(roller, d.ability, d.trained), k = kept[0], total = k.die + b, band = grade(k.die, total);
       const expr = d.action === 'improvise' && d.effect === 'damage' ? A().heroAttack(a).damage : null;
       p.rolls = [{ ...k, bonus: b, total, band, push: null, expr, damage: expr && LANDS.includes(band) ? rollDamage(expr) : null }];
     }
@@ -442,6 +451,8 @@
     if (strikesNeeded && p.consequence === 'strike' && !active(s, actor(s, p.striker))) throw Error('Choose which enemy strikes.');
     const responseIndex = attackResponseIndex(s, p);
     if (responseIndex >= 0 && !p.rolls[responseIndex].strike.reach && p.consequence === 'goal' && !p.consequenceText.trim()) throw Error('Describe what changes in the scene.');
+    const objectiveAction=p.mode!=='enemy'&&p.action==='improvise'&&p.effect==='objective'&&p.objectiveId;
+    if(objectiveAction)root.EncounterDesign.validateObjective(s,p,true);
     remember(s);
     const lines = [];
     // The second die spends one edge: on defense the Defend cover first, otherwise the Help opening.
@@ -480,6 +491,7 @@
       if (p.consequence === 'strike') { const e = actor(s, p.striker), atk = enemyAttacks(e)[0]; lines.push(`${e.name} strikes${p.band === 'disaster' ? ' (critical)' : ''}: ` + hurt(s, a.id, Number.isInteger(p.strikeDamage) ? p.strikeDamage : rollDamage(atk?.damage || '0', p.band === 'disaster'))); }
       else fallback(p.band);
     }
+    if(objectiveAction&&LANDS.includes(p.band))lines.push(root.EncounterDesign.advanceObjective(s,p));
     const crit = p.rolls.some(r => r.band === 'crit') && !(p.mode !== 'enemy' && (p.action === 'attack' || p.effect === 'damage'));
     if (crit) {
       const ally = actor(s, p.rewardTarget);
@@ -498,7 +510,7 @@
     l.lastRoll = { die: p.die, total: p.total, band: p.band, roller: actor(s, p.roller)?.name || '', dice: p.dice };
     const dice = p.rolls.map(r => `d20 ${r.dice.length > 1 ? r.dice.join('/') + '→' : ''}${r.die}${r.push ? ' +d4 ' + r.push.d4 : ''} ${r.bonus >= 0 ? '+' : ''}${r.bonus} = ${r.total}`).join(' · ');
     log(s, `${a.name} · ${p.mode === 'enemy' ? 'enemy move: ' + p.threat : actions[p.action].name} · ${dice}. ${p.rolls.some(r => r.die === 20) ? 'NATURAL 20! ' : p.rolls.some(r => r.die === 1) ? 'NATURAL 1! ' : ''}${p.stakes && p.mode !== 'enemy' ? 'At risk: ' + p.stakes + '. ' : ''}${lines.filter(Boolean).join(' ')}`, p.band);
-    l.pending = null; l.draft.intent = ''; l.draft.stakes = ''; l.draft.die = '';
+    l.pending = null; l.draft.intent = ''; l.draft.stakes = ''; l.draft.die = '';l.draft.objectiveId='';
     checkBreaking(s);
     return l.lastRoll;
   }
@@ -525,7 +537,15 @@
     const roll = d20(); const r = { label: String(label || 'Secret check').slice(0, 120), die: roll, bonus: b, total: roll + b };
     l.secretRolls.unshift(r); l.secretRolls.length = Math.min(l.secretRolls.length, 20); return r;
   }
+  // For spells/features adjudicated at the table: spend the normal action, with no invented roll or effect.
+  function manualAction(s,id,text){
+    const l=init(s),a=actor(s,id);if(l.pending)throw Error('Confirm or cancel the current roll first.');
+    if(!active(s,a))throw Error('Choose a character who can act.');
+    if(l.acted[id])throw Error('This character has already acted.');
+    if(typeof text!=='string'||!text.trim())throw Error('Describe the action and its result.');
+    remember(s);l.acted[id]=true;log(s,a.name+' · resolved at the table: '+text.trim().slice(0,1000));
+  }
 
   root.Stakes = { contextEvents, contextPreview, actions, zones, init, actor, hero, active, needs, setStats, remember, undo, grade, attackBand, defenseBand, bonus, targets, configure,
-    rollsNeeded, rollFor, prepare, pushInfo, push, damage, rollDamage, attackResponseIndex, apply, nextRound, move, adjust, hurt, heal, deathSave, shortRest, longRest, condition, describe, log, d20, die, secret, resolveBreak, setStatus, encounterStatus, groups, staminaMax };
+    rollsNeeded, rollFor, prepare, pushInfo, push, damage, rollDamage, attackResponseIndex, apply, nextRound, move, adjust, hurt, heal, deathSave, shortRest, longRest, condition, describe, log, d20, die, secret, manualAction, resolveBreak, setStatus, encounterStatus, groups, staminaMax };
 })(globalThis);

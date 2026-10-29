@@ -3,9 +3,65 @@
   function init(s) {
     if (!s.combat) return null;
     const c = s.combat;
-    c.design ??= { mode: 'simple', clues: [], discoveries: [], clocks: [], phases: [] };
+    c.design ??= { mode: 'simple', clues: [], discoveries: [], clocks: [], phases: [], objectives: [] };
+    for(const key of ['clues','discoveries','clocks','phases','objectives'])if(!Array.isArray(c.design[key]))c.design[key]=[];
     for (const f of c.foes) { f.concealed ??= false; f.privatePlan ??= ''; f.observableTell ??= ''; f.publicName ??= f.name.split(' – ')[0]; }
     return c.design;
+  }
+  // Prepared encounters are templates. Live progress must never mutate the saved encounter.
+  function start(s,enc) {
+    if(enc.design)s.combat.design=JSON.parse(JSON.stringify(enc.design));
+    const d=init(s),l=root.Stakes.init(s);
+    for(const key of ['cover','center','objective'])if(typeof enc.zones?.[key]==='string'&&enc.zones[key].trim())l.zones[key]=enc.zones[key].slice(0,100);
+    for(const f of s.combat.foes)if(['cover','center','objective'].includes(f.startZone))l.positions[f.id]=f.startZone;
+    return d;
+  }
+  const size=o=>Math.max(1,Math.min(12,Math.trunc(Number(o.size)||1)));
+  const progress=o=>Math.max(0,Math.min(size(o),Math.trunc(Number(o.filled)||0)));
+  const complete=o=>progress(o)>=size(o);
+  function objective(s,id){return init(s)?.objectives.find(o=>o.id===id);}
+  function objectiveReady(s,id,heroId) {
+    const d=init(s),o=objective(s,id),a=s.party.find(p=>p.id===heroId),l=root.Stakes.init(s);
+    if(!o)return {ok:false,why:'This objective is no longer available.'};
+    if(complete(o))return {ok:false,why:'This objective is already complete.'};
+    if(!a||!root.Stakes.active(s,a))return {ok:false,why:'Choose a hero who can act.'};
+    if(l.pending)return {ok:false,why:'Confirm or cancel the current roll first.'};
+    if(l.acted[a.id])return {ok:false,why:'This hero has acted. Choose another or start the next round.'};
+    const missing=(o.requires||[]).filter(id=>!d.objectives.some(x=>x.id===id&&complete(x)));
+    if(missing.length)return {ok:false,why:'First complete: '+missing.map(id=>objective(s,id)?.name||id).join(', ')+'.'};
+    if(o.zone&&o.zone!=='any'&&l.positions[a.id]!==o.zone)return {ok:false,why:'Reach '+(l.zones[o.zone]||o.zone)+' first. Use Move if getting there is risky.'};
+    return {ok:true,objective:o,hero:a};
+  }
+  function chooseObjective(s,id,heroId) {
+    const check=objectiveReady(s,id,heroId);if(!check.ok)throw Error(check.why);
+    if(check.objective.automatic)throw Error('This task uses an action without a roll.');
+    const o=check.objective,abilities=(o.abilities||['INT']).filter(k=>['STR','DEX','CON','INT','WIS','CHA'].includes(k));
+    const ability=abilities.sort((a,b)=>(check.hero.abil?.[b]||10)-(check.hero.abil?.[a]||10))[0]||'INT';
+    Object.assign(root.Stakes.init(s).draft,{actor:heroId,mode:'hero',action:'improvise',effect:'objective',target:'',objectiveId:id,objectiveAbility:ability,objectiveTrained:false,objectiveBonus:'',intent:o.description||o.name,stakes:o.stakes||''});
+  }
+  function validateObjective(s,p,confirm=false) {
+    // At confirm the pending exchange is expected; no other mutation may bypass prerequisites.
+    const l=root.Stakes.init(s),pending=l.pending;if(confirm)l.pending=null;
+    let check;try{check=objectiveReady(s,p.objectiveId,p.actor);}finally{if(confirm)l.pending=pending;}
+    if(!check.ok)throw Error(check.why);
+    if(check.objective.automatic)throw Error('This objective does not take a roll.');
+    const allowed=(check.objective.abilities||['INT']);if(!allowed.includes(p.objectiveAbility))throw Error('Choose one of this objective’s abilities.');
+    return check.objective;
+  }
+  function advanceObjective(s,p) {
+    const o=objective(s,p.objectiveId);if(!o)return '';
+    o.filled=Math.min(size(o),progress(o)+1);
+    return `${o.name}: ${o.filled}/${size(o)}.${complete(o)&&o.success?' DM: '+o.success:''}`;
+  }
+  function automaticObjective(s,id,heroId) {
+    const check=objectiveReady(s,id,heroId);if(!check.ok)throw Error(check.why);
+    if(!check.objective.automatic)throw Error('Roll for this objective instead.');
+    root.Stakes.remember(s);const text=advanceObjective(s,{objectiveId:id});
+    root.Stakes.init(s).acted[heroId]=true;root.Stakes.log(s,check.hero.name+' uses an action without a roll. '+text);
+  }
+  function adjustObjective(s,id,delta) {
+    if(root.Stakes.init(s).pending)throw Error('Confirm or cancel the current roll first.');
+    const o=objective(s,id);if(!o)return;root.Stakes.remember(s);o.filled=Math.max(0,Math.min(size(o),progress(o)+delta));root.Stakes.log(s,`DM adjustment: ${o.name} ${o.filled}/${size(o)}.`);
   }
   function passive(p) {
     const bonus = Number.isFinite(Number(p.perceptionBonus)) && p.perceptionBonus !== '' ? Number(p.perceptionBonus) : Math.floor(((Number(p.abil?.WIS) || 10) - 10) / 2);
@@ -55,5 +111,5 @@
       root.Stakes.log(s,`${name} ×${group.length}: one card for the group; each keeps its own HP, and the group breaks when half of it is down.`);
     }
   }
-  root.EncounterDesign={init,passive,eligible,discover,clock,phase,groupMinions};
+  root.EncounterDesign={init,start,passive,eligible,discover,clock,phase,groupMinions,objective,objectiveReady,chooseObjective,validateObjective,advanceObjective,automaticObjective,adjustObjective,complete,size,progress};
 })(globalThis);
