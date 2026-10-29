@@ -286,6 +286,14 @@ The equipment data corrects one error in its source: Parchment costs 1 SP a shee
 
 ## Clues, intent and encounter complexity
 
+### Prepared scene objectives
+
+A prepared fight may now carry named zones, private enemy plans/tells, clues, clocks, phases and optional objective cards. Starting it copies these settings into the live encounter, including initial clock values; progress never mutates the saved template. Ordinary fights remain unchanged. See [scene objectives](docs/SCENE-OBJECTIVES.md).
+
+**Attempt objective** prepares a normal Improvise action. Choose an allowed ability and proficiency, or enter the full check bonus from the sheet when a skill/tool/Expertise applies. On confirmation, success or mixed success adds one progress; mixed success still has its ordinary consequence. Setbacks add none. Push, Cancel and Undo follow the ordinary rules. Prerequisites, location and the hero's one-action limit are enforced. A certain task may use **Use action · no roll** instead; it still spends the normal action. Progress correction is explicitly a DM correction, not a free action for the hero. Completion notes, clock changes, phases and victory remain DM decisions.
+
+Only a reviewed public objective title and its progress reach the player display. Solutions, checks, prerequisites and completion notes remain private. **Record an action resolved at the table…** marks the normal action spent and records manually adjudicated spells/features, without inventing an attack roll or applying spell effects. Use the usual HP/condition corrections for those effects; spell slots remain manual. Artificer default Help/support actions use Intelligence.
+
 Private enemy plans are separate from observable tells. Set each hero’s Perception bonus, then prepare layered observations by passive threshold and location. Discoveries remain private until explicitly shared. Revealing a clue does not reveal a concealed enemy.
 
 Simple mode offers clues and plans; Standard adds manually advanced goal clocks; Boss adds manually triggered phase reminders. These modes do not change damage or dice probabilities. Subclasses remain sourced references with manual use reminders.
@@ -295,3 +303,4 @@ Simple mode offers clues and plans; Standard adds manually advanced goal clocks;
 For Improvise, choose Resolve a physical situation, or choose that consequence for an enemy move. Declare a specific outcome: trap a limb/equipment, knock a weapon away, knock someone down, remove a restraint, recover a weapon, or stand up. Successful hero outcomes (including mixed success) and failed enemy defenses apply or clear the corresponding condition on confirmation. The result previews the condition and the private combat log explains why. Undo restores the conditions. No free-text inference or AI is used.
 
 Removing restraints clears only Pinned or Sword pinned; custom and combined conditions need explicit DM review. Moving to cover while Exposed offers an unchecked DM suggestion to clear Exposed. It only clears if accepted and the character actually remains in cover after consequences. Context rules do not infer safety from an area name.
+

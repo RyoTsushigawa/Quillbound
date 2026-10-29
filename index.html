@@ -274,6 +274,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/ui/homebrew.js"></script>
 <script src="src/ui/campaigns.js"></script>
 <script src="src/ui/hero-import.js"></script>
+<script src="src/ui/combat-objectives.js"></script>
 <script>
 /* ---------- rules data ---------- */
 const ABIL=['STR','DEX','CON','INT','WIS','CHA'];
@@ -798,10 +799,11 @@ function vDesk(){
 function startCombat(s,enc){
   const foes=[];
   enc.foes.forEach(f=>{const b=s.bestiary.find(x=>x.id===f.ref); if(!b) return; const group=f.n>=3?uid('g'):undefined;
-    for(let i=0;i<f.n;i++) foes.push({id:uid('f'),name:b.name+(f.n>1?' '+(i+1):''),type:b.type,tier:b.tier,breaking:b.breaking,goal:b.goal,moves:b.moves,...hpFields(b),ref:b.id,group,groupName:group?b.name:undefined,status:'fighting'});
+    for(let i=0;i<f.n;i++) foes.push({id:uid('f'),name:b.name+(f.n>1?' '+(i+1):''),type:b.type,tier:b.tier,breaking:b.breaking,goal:b.goal,moves:b.moves,...hpFields(b),ref:b.id,group,groupName:group?b.name:undefined,status:'fighting',startZone:f.zone||b.zone,privatePlan:f.privatePlan??b.privatePlan??'',observableTell:f.observableTell??b.observableTell??'',concealed:f.concealed??b.concealed??false,publicName:f.publicName||b.publicName||b.name+(f.n>1?' '+(i+1):'')});
   });
   s.combat={enc:enc.id,name:enc.name,where:enc.where,goal:enc.goal,foes,round:1,log:[{kind:'scene',text:`The fight begins: ${enc.name}. No initiative roll: the DM chooses who acts first.`}]};
   Stakes.init(s);
+  EncounterDesign.start(s,enc);
   return s.combat;
 }
 
@@ -837,6 +839,7 @@ const ACT={
   ...creatorActions(),
   ...homebrewActions(),
   ...campaignActions(),
+  ...combatObjectiveActions(),
   'lib-open':d=>{if(!S.importer.lib) return; S.importer.pi=+d.v; S.importer.phase='product'; S.importer.status=''; window.scrollTo(0,0);},
   'lib-back':()=>{S.importer.phase='library'; S.importer.status='';},
   'lib-clear':()=>{if(window.QB) QB.clear(); Object.assign(S.importer,{lib:null,pi:null,phase:'library',status:'',versions:{}});},
@@ -1025,15 +1028,15 @@ function combatComposer(){
   const attackPickers=choices.length>1?`<div class="lt-attack-picks"><p class="small muted">Choose the weapon for each attack. These choices share one Attack action; targets may differ.</p>${sequence.map((current,i)=>`<label class="f">Attack ${i+1}<select data-bind="combat.lite.draft.attackNames.${i}" data-rerender>${(i===0?choices:choices.filter(x=>x.count===sequence[0].count)).map(x=>`<option value="${esc(x.name)}" ${x.name===current.name?'selected':''}>${esc(x.name)} · d20 ${fmt(x.bonus)} · ${esc(x.damage)}${i===0?' · '+x.count+' roll'+(x.count===1?'':'s'):''}</option>`).join('')}</select></label>`).join('')}</div>`:'';
   const sheet=enemy?`<p class="lt-sheet">${esc(roller?.name||'The hero')} rolls <b>d20 ${fmt((roller?.ac||10)-10)}</b> (AC ${roller?.ac||10} − 10) for each attack and must beat 11 + its attack bonus.<span>${esc(a.name)}: ${esc(attackText(a))}</span></p>`
     :d.action==='attack'?`<p class="lt-sheet">${sequence.map((x,i)=>`${i+1}. ${esc(x.name)}: <b>d20 ${fmt(x.bonus)}</b>, damage ${esc(x.damage)}`).join(' · ')} against ${esc(t?.name||'the target')}’s AC ${t?.acNum??'?'}<span>One strike-back at most per Attack action, from the first eligible graze or miss while the enemy can respond.</span></p>`
-    :`<p class="lt-sheet">From ${esc(roller?.name||'the hero')}’s sheet: <b>${ABIL_NAME[d.ability]||d.ability} ${fmt(Stakes.bonus(roller,d.ability,false))}${d.trained?' + '+(roller?.prof||0)+' proficiency':''} = ${fmt(Stakes.bonus(roller,d.ability,d.trained))}</b><span>The selected action chooses this automatically.</span></p>`;
+    :combatCheckSummary(S,d,roller);
   const edge=enemy?ts.some(x=>(x.id===d.target||d.targets?.includes(x.id))&&(l.openings[x.id]||l.protected[x.id])):roller&&l.openings[roller.id];
   const enemyEffect=enemy?`<label class="f">If the defense fails<select data-bind="combat.lite.draft.enemyEffect" data-rerender>${[['damage',`Deal damage (${attackText(a)})`],['position','Change position'],['condition','Create a condition'],['goal','Advance an enemy objective'],['context','Resolve a physical situation (automatic conditions)']].map(([v,x])=>`<option value="${v}" ${d.enemyEffect===v?'selected':''}>${esc(x)}</option>`).join('')}</select></label>${d.enemyEffect!=='damage'?`<label class="f">Agree what happens before rolling<textarea data-bind="combat.lite.draft.enemyOutcome">${esc(d.enemyOutcome)}</textarea></label><p class="small muted">One defense roll against its best attack. On a failed defense, apply this stated consequence instead of damage.</p>`:''}${d.enemyEffect==='condition'?`<label class="f">Condition<input data-bind="combat.lite.draft.enemyCondition" value="${esc(d.enemyCondition)}"></label>`:''}${d.enemyEffect==='position'?zoneSelect('combat.lite.draft.destination',d.destination):''}`:'';
   return `<section class="lt-compose">${who}<div class="eyebrow">${enemy?'Enemy move · the hero rolls to defend':'1 · Choose an action'}</div><h3>${esc(a.name)}${l.acted[a.id]?' · already acted':''}</h3>
-    ${actions}${((enemy&&d.enemyEffect==='context')||(!enemy&&d.action==='improvise'&&d.effect==='context'))?contextSelect(d):''}${enemyEffect}${target}${splitTargets}${improvise}${destination}${describe}${stakes}${attackPickers}${sheet}
+    ${actions}${((enemy&&d.enemyEffect==='context')||(!enemy&&d.action==='improvise'&&d.effect==='context'))?contextSelect(d):''}${enemyEffect}${target}${splitTargets}${improvise}${combatObjectiveDraftFields(d)}${destination}${describe}${stakes}${attackPickers}${sheet}
     ${blocked.length?`<p class="lt-warning">${esc(blockedName)} needs ${esc(blocked.join(', '))} first. <button class="btn sm" data-act="lt-stats" data-id="${esc(enemy?a.id:t.id)}">Add numbers</button></p>`:''}
     ${edge?`<p class="lt-tip">${l.openings[roller.id]?'An ally created an opening':'An ally is covering this hero'}: roll two fair d20s on the first roll, keep the higher. At the table, enter both like 3/17.</p>`:''}
     <div class="lt-roll-controls"><button class="btn primary" data-act="lt-roll" ${canAct&&!blocked.length?'':'disabled'}>${enemy?`Roll defense${n>1?' ×'+n:''} · public`:`Roll ${n>1?n+' d20s':'d20'} · public`}</button><div class="lt-table"><label for="lt-die">Or enter physical dice${n>1?` (${n}, in order)`:''}:</label><div class="row"><input id="lt-die" type="text" inputmode="numeric" data-bind="combat.lite.draft.die" value="${esc(d.die)}" placeholder="${n>1?Array.from({length:n},(_,i)=>12-i*3).join(' '):'12'}" aria-label="Table d20 results"><button class="btn" data-act="lt-table" ${canAct&&!blocked.length?'':'disabled'}>Use roll</button></div></div></div>
-    ${l.acted[a.id]?'<p class="small muted">Choose a ready character or start the next round.</p>':''}
+    ${l.acted[a.id]?'<p class="small muted">Choose a ready character or start the next round.</p>':`<button class="btn sm ghost" data-act="co-table-action" ${canAct?'':'disabled'}>Record an action resolved at the table…</button>`}
     <p class="small muted">${enemy?'Natural 20 always avoids; natural 1 is a critical hit.':d.action==='attack'?'Natural 20 doubles damage dice; a natural 1 can trigger a critical strike-back if it is the first eligible graze or miss.':'Natural 1 / 20 always count. Otherwise: 15+ success · 8–14 success with a consequence · 7 or less setback.'}</p></section>`;
 }
 const ATTACK_LABEL={crit:'Critical hit: damage dice double',success:'Hit',mixed:'Graze: half damage',setback:'Miss',disaster:'Natural 1: miss'};
@@ -1070,7 +1073,7 @@ function combatResult(){
     <div class="lt-rolls">${rows}</div>
     ${consequences}${reward}${Stakes.contextPreview(p)?`<p><b>Automatic condition:</b> ${esc(Stakes.contextPreview(p).add||'Clear '+Stakes.contextPreview(p).remove.join(' / '))}. ${esc(Stakes.contextPreview(p).reason)}</p>`:''}${!enemy&&p.action==='move'&&p.destination==='cover'&&['crit','success','mixed'].includes(p.band)&&l.conditions[p.actor].includes('Exposed')?`<label><input type="checkbox" data-bind="combat.lite.pending.clearExposure" ${p.clearExposure?'checked':''}> DM judgment: this cover provides safety; clear Exposed if the character remains here after consequences.</label>`:''}
     ${p.cost.stamina||p.cost.hd?`<p class="small">On confirm, ${esc(a.name)} spends ${[p.cost.stamina&&p.cost.stamina+' stamina',p.cost.hd&&p.cost.hd+' Hit Die'].filter(Boolean).join(' and ')}.</p>`:''}
-    <div class="row"><button class="btn primary" data-act="lt-confirm">Confirm result</button><button class="btn ghost" data-act="lt-cancel">Cancel roll</button></div><p class="small muted">Nothing changes until you confirm, and a cancelled push costs nothing. Undo can reverse a confirmed result.</p></section>`;
+    ${combatObjectiveResult(p)}<div class="row"><button class="btn primary" data-act="lt-confirm">Confirm result</button><button class="btn ghost" data-act="lt-cancel">Cancel roll</button></div><p class="small muted">Nothing changes until you confirm, and a cancelled push costs nothing. Undo can reverse a confirmed result.</p></section>`;
 }
 // Outside a fight: the party's HP, stamina and Hit Dice, and the two rests.
 function partyRest(){
@@ -1090,13 +1093,14 @@ function vCombat(){
   return `${clHint(hint[0],hint[1])}
   <div class="pagehead lt-heading"><div><div class="eyebrow">Stakes combat · round ${c.round}</div><h2>${esc(c.name)}</h2>${c.goal?`<p><b>They want:</b> ${esc(c.goal)}</p>`:'<p>Pick a token. Choose an action. Let the die decide.</p>'}</div>
     <div class="row"><button class="btn" data-act="lt-undo" ${l.history.length?'':'disabled'}>↶ Undo</button><button class="btn" data-act="lt-round" ${l.pending?'disabled':''}>Next round</button><button class="btn ghost" data-act="c-end">End fight</button></div></div>
-  <div class="row hd-controls"><button class="btn sm" data-act="hd-guide">Conditions guide</button><button class="btn sm" data-act="hd-secret">DM secret roll</button></div>
+  <div class="row hd-controls"><button class="btn sm" data-act="hd-guide">Conditions guide</button><button class="btn sm" data-act="hd-secret">DM secret roll</button><button class="btn sm" data-act="co-edit" ${l.pending?'disabled':''}>Prepare objective…</button></div>
   <div class="lt-layout"><div class="lt-stage">
     <div class="lt-scenehead"><span class="eyebrow">The scene · ${esc(c.where||'')}</span><button class="btn sm ghost" data-act="lt-zones" ${l.pending?'disabled':''}>Name areas</button></div>
     <div class="lt-board">${Stakes.zones.map(z=>`<section class="lt-zone" data-zone="${z}" aria-label="${esc(l.zones[z])}"><h3>${esc(l.zones[z])}</h3><div class="lt-zone-body">${zoneTokens(actors.filter(a=>l.positions[a.id]===z))||'<p class="small muted">Drop a token here</p>'}</div></section>`).join('')}</div>
     <p class="lt-boardhint">Drag tokens to arrange the scene. Or use <b>Place selected token</b> below. Free placement is a DM adjustment; choose Move for a risky action.</p>
     <div class="lt-placement"><span class="small">Place selected token:</span>${Stakes.zones.map(z=>`<button class="btn sm" data-act="lt-place" data-v="${z}" ${l.pending?'disabled':''}>${esc(l.zones[z])}</button>`).join('')}</div>
     <div class="lt-turnstrip"><span class="eyebrow">${Stakes.encounterStatus(S).phase==="cleared"?"No enemies still fighting":Stakes.encounterStatus(S).phase==="party-down"?"All heroes down":"Still to act"}</span>${ready.length?ready.map(a=>`<button class="chip" data-act="lt-pick" data-id="${esc(a.id)}" ${l.pending?'disabled':''}>${esc(a.name)}</button>`).join(''):'<span>Everyone has acted. Ready for the next round.</span>'}</div>
+    ${combatObjectivesView()}
     <details class="lt-rules"><summary>The rules in one minute</summary>
       <p>Say what you do, and what's at risk if it goes wrong. Then roll a d20. A natural 20 and a natural 1 always count.</p>
       <p><b>Attack:</b> d20 + your attack bonus against the target’s armor class. Reach it and you hit for your normal damage. Miss by 5 or less and it’s a graze: half damage. The first eligible graze or miss while the enemy is standing may trigger one strike-back for the whole Attack action, unless it can't reach you. Extra Attack means one roll per attack.</p>
@@ -1382,3 +1386,5 @@ render();
 import * as QB from './src/app/library-session.js';
 window.QB=QB;
 </script>
+
+

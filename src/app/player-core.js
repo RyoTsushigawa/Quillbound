@@ -33,6 +33,7 @@
         foes: rows(c.foes).filter(f => f.concealed !== true).map(f => ({ name: text(f.publicName || f.name), state: foeState(f), conditions: conditions(f), position: position(f.id), conditionHelp: conditionHelp(f) })),
         clues: rows(c.design?.discoveries).filter(x => x.shared === true).map(x => ({text:text(x.text),hero:text(x.heroName)})),
         clocks: rows(c.design?.clocks).filter(x => x.shared === true && c.design?.mode !== 'simple').map(x => ({name:text(x.publicName),filled:Number(x.filled)||0,size:Number(x.size)||1})),
+        objectives: rows(c.design?.objectives).filter(x=>x.shared===true&&text(x.publicName)).map(x=>{const size=Math.max(1,Math.min(12,Math.trunc(Number(x.size)||1)));return {name:text(x.publicName),filled:Math.max(0,Math.min(size,Math.trunc(Number(x.filled)||0))),size};}),
         roll: l?.lastRoll ? { die: Number(l.lastRoll.die), total: Number(l.lastRoll.total), band: text(l.lastRoll.band), roller: text(l.lastRoll.roller) } : null };
     }
     if (spotlight?.type === 'text') result.spotlight = { type: 'text', title: text(spotlight.title), text: text(spotlight.text) };
@@ -52,6 +53,7 @@
       html += '<section><h2>Combat · Round '+e(c.round)+'</h2>';
       html += rows(c.clues).map(x=>'<article><h3>Noticed by '+e(x.hero)+'</h3><p>'+e(x.text)+'</p></article>').join('');
       html += rows(c.clocks).map(x=>'<p>'+e(x.name)+': '+e(x.filled)+' / '+e(x.size)+'</p>').join('');
+      html += rows(c.objectives).map(x=>'<p><b>'+e(x.name)+'</b>: '+e(x.filled)+' / '+e(x.size)+'</p>').join('');
       const STATE = { fresh:'Fresh', hurt:'Hurt', bloodied:'Bloodied', wavering:'Wavering: close to giving up', down:'Down', fled:'Fled', surrendered:'Surrendered', bargained:'Made a deal', fighting:'In the fight' };
       html += '<div class="cards">'+rows(c.heroes).map(p=>'<article><h3>'+e(p.name)+'</h3><p>'+e(p.position)+'</p><p>HP '+e(p.hp)+' / '+e(p.hpMax)+(p.dying?' · '+e(p.dying==='dead'?'Dead':'Dying'):'')+'</p><p>Stamina '+e(p.stamina)+' / '+e(p.staminaMax)+(p.stamina===0?' · Winded':'')+'</p><p>'+e(rows(p.conditions).join(' · '))+'</p>'+conditionDetails(p)+'</article>').join('')+rows(c.foes).map(f=>'<article><h3>'+e(f.name)+'</h3><p>'+e(f.position)+'</p><p>'+e(STATE[f.state]||f.state)+'</p><p>'+e(rows(f.conditions).join(' · '))+'</p>'+conditionDetails(f)+'</article>').join('')+'</div></section>';
     }
