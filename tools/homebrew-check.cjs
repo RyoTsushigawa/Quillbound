@@ -62,7 +62,7 @@ R.setHomebrew(null);
 const both=plain(B.parseImport(B.exportJson({backgrounds:[keeper],species:[vampire]}),{backgrounds:[],species:[]}));assert.deepEqual(both.items.map(x=>x.kind),['background','species']);assert.equal(B.speciesScore(both.items[1]),8,'species survive export and import');
 console.log('PASS: homebrew species: weights place all 9 SRD species at 4–8; the Nachtschicht vampire scores 8; Quinn as a vampire gets Claws +7 (1d6+4, Sneak Attack) and Bite +5 (1d6+2) as on the sheet; export/import keeps species.');
 
-/* classes: structure, the comparison with the 12 SRD classes, Toxic's Artificer, the fight test */
+/* classes: structure, the comparison with the 12 SRD classes, Toxik's Artificer, the fight test */
 const art={...B.newClass(),id:'hb-cl-artificer',name:'Artificer',desc:'Inventors who channel magic through tools and machines.',hitDie:8,primary:['INT'],saves:['CON','INT'],
   skills:{choose:2,from:['arcana','history','investigation','medicine','nature','perception','sleight-of-hand']},armor:['light','medium','shields'],weapons:['simple'],
   caster:'half',spellAbility:'INT',spellList:'wizard',cantrips:'2',extraAttack:true,expertise:[{level:'1',count:'1'}],
@@ -76,17 +76,17 @@ const brute={...art,id:'hb-cl-brute',name:'Brute',hitDie:12,extraAttack:true,sne
 assert(!B.classPowerCheck(brute).ok,'a class stronger than every SRD class is flagged');assert(!B.classFits(brute));
 assert.equal(plain(B.classToSrd({...art,sneakFrom:'0'})).levels[4].specific?.sneak_attack,undefined,'"0" from a form means no Sneak Attack');
 R.setHomebrew({classes:[plain(B.classToSrd(art))]});
-const toxic=plain(R.derive({name:'Toxic',species:vampire.id,cls:art.id,level:5,abilities:{method:'set',base:{STR:10,DEX:16,CON:14,INT:15,WIS:12,CHA:8}},background:'sage',boost:{INT:1,CON:1,WIS:1},
+const toxik=plain(R.derive({name:'Toxik',species:vampire.id,cls:art.id,level:5,abilities:{method:'set',base:{STR:10,DEX:16,CON:14,INT:15,WIS:12,CHA:8}},background:'sage',boost:{INT:1,CON:1,WIS:1},
   skills:['arcana','investigation'],expertise:['investigation'],asi:{4:{feat:'ability-score-improvement',plus:{INT:2}}},training:['rapier'],gear:{cls:0,bg:1,extra:[{id:'half-plate-armor',count:1,how:'grant'},{id:'rapier',count:1,how:'grant'}]},hp:{method:'average'}}));
 R.setHomebrew(null);
-assert.equal(toxic.subclass,'Armorer');assert.equal(toxic.ac,17,'half plate 15 + DEX 2, as on Toxic’s sheet');assert.equal(toxic.scores.INT,18);
-assert.equal(toxic.attacks.find(a=>a.name==='Lightning Launcher').bonus+' '+toxic.attacks.find(a=>a.name==='Lightning Launcher').damage,'7 1d6+4','Lightning Launcher +7, 1d6+4');
-assert.equal(toxic.attacks.find(a=>a.name==='Rapier').bonus,6,'the folding sword (a rapier the DM granted) +6');assert.equal(toxic.skills.investigation.bonus,10);assert.equal(toxic.skills.arcana.bonus,7);
-assert.deepEqual([toxic.spellcasting.dc,toxic.spellcasting.cantrips,toxic.spellcasting.slots.slice(0,2).join('/')],[15,3,'4/2'],'half caster: slots like a Paladin, cantrips 2 (+1 at 4)');
+assert.equal(toxik.subclass,'Armorer');assert.equal(toxik.ac,17,'half plate 15 + DEX 2, as on Toxik’s sheet');assert.equal(toxik.scores.INT,18);
+assert.equal(toxik.attacks.find(a=>a.name==='Lightning Launcher').bonus+' '+toxik.attacks.find(a=>a.name==='Lightning Launcher').damage,'7 1d6+4','Lightning Launcher +7, 1d6+4');
+assert.equal(toxik.attacks.find(a=>a.name==='Rapier').bonus,6,'the folding sword (a rapier the DM granted) +6');assert.equal(toxik.skills.investigation.bonus,10);assert.equal(toxik.skills.arcana.bonus,7);
+assert.deepEqual([toxik.spellcasting.dc,toxik.spellcasting.cantrips,toxik.spellcasting.slots.slice(0,2).join('/')],[15,3,'4/2'],'half caster: slots like a Paladin, cantrips 2 (+1 at 4)');
 vm.runInContext(fs.readFileSync(path.join(root,'src/app/srd-monsters.js'),'utf8'),ctx);
 const ft=plain(B.fightTest(art,5,40));assert.deepEqual(ft.rows.map(r=>r.name),['Artificer','Fighter','Rogue','Wizard']);assert(ft.rows.every(r=>r.cells.length===3&&r.cells.every(c=>c.rounds>0&&c.dropped>=0&&c.dropped<=100)));
 const cls=plain(B.parseImport(B.exportJson({classes:[art]}),{classes:[]}));assert.equal(cls.items[0].kind,'class');assert.equal(plain(B.classToSrd(cls.items[0])).attacksFrom[0].name,'Lightning Launcher','classes survive export and import');
-console.log('PASS: homebrew classes: structure checks; measured against the 12 SRD classes at levels 1/5/11/17 (an overpowered class is flagged); Toxic’s Artificer gives AC 17, Lightning Launcher +7 (1d6+4), Investigation +10 and half-caster slots; the fight test runs; export/import keeps classes.');
+console.log('PASS: homebrew classes: structure checks; measured against the 12 SRD classes at levels 1/5/11/17 (an overpowered class is flagged); Toxik’s Artificer gives AC 17, Lightning Launcher +7 (1d6+4), Investigation +10 and half-caster slots; the fight test runs; export/import keeps classes.');
 
 /* the homebrew that ships with the app for The Night Shift */
 vm.runInContext(fs.readFileSync(path.join(root,'src/app/table-homebrew.js'),'utf8'),ctx);const T=plain(ctx.QB_TABLE_HOMEBREW);
