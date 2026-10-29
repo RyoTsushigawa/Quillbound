@@ -64,9 +64,13 @@ The **Create a hero** tab builds 2024 (SRD 5.2) heroes from level 1 to 20.
 
 ### Homebrew
 
-The **Homebrew** tab (DM only) builds your own backgrounds, species, classes and feats.
+The **Homebrew** tab builds your own backgrounds, species, classes and feats; the DM approves what players may use.
 
 **Built-in table homebrew:** The Night Shift's Vampire species and Artificer class ship with the app (`src/app/table-homebrew.js`). The first time a browser opens Quillbound they are added, approved, unless that browser already has homebrew with the same name. After that they behave like your own: you can edit, unapprove or delete them, and they don't come back. When the app ships a newer version of one (the Artificer was updated to the 2025 rules), it replaces the earlier shipped copy and keeps its approval; homebrew of your own is never replaced.
+
+**Players' homebrew:** players have the Homebrew tab too ("My homebrew"), with the same editors and checks, but they can't approve anything. **Send to DM** saves an idea as a homebrew file; the DM imports it under Homebrew → Import, where it arrives unapproved and marked "From a player". The creator's Species, Class and Background steps have **Make your own …** links (and "a feat") that open the matching editor.
+
+**Publishing to the table:** **Publish to the table…** (DM) saves everything the DM approved as `table.json`. Put it in the repository's `homebrew/` folder (on GitHub: Add file → Upload files, or send it to Claude). Every browser that opens the site then adds it by itself, approved, and players can use it in the creator. A newer published version replaces the copy a browser got from the table; whatever the DM takes off the table and publishes again leaves every browser that got it from there. A player who deletes a published item keeps it deleted. Heroes keep their own copies throughout. Without accounts a player could edit a file they import, but that only changes their own browser: the DM still sees, in each hero file, exactly which homebrew a hero uses.
 
 **Species** have a base (Small or Medium, speed 25–35 ft, creature type) and traits from building blocks. Each block has a weight:
 

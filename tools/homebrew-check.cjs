@@ -127,6 +127,21 @@ R.setHomebrew(null);}
 console.log('PASS: the shipped Artificer follows the 2025 class: cantrips at 10 and 14, half-caster slots, class and Armorer tools, a 150 GP kit, no Expertise.');
 console.log('PASS: the shipped Night Shift homebrew (Vampire species, Artificer class) passes the same checks as homebrew made on the screen.');
 
+/* players' homebrew: submissions to the DM, and the table the DM publishes (added, updated and removed automatically) */
+{const idea={...B.newFeat(),id:'hb-ft-idea',name:'Night Owl',type:'origin',minLevel:1,desc:'You see better at night than most; Advantage on Perception checks in dim light.'};
+const sent=JSON.parse(B.exportJson({feats:[idea]},[idea.id],{from:'player'}));assert.equal(sent.from,'player');assert.equal(sent.feats[0].approved,false);
+const got=plain(B.parseImport(JSON.stringify(sent),{feats:[]}));assert(got.fromPlayer&&got.items[0].fromPlayer&&!got.items[0].approved,'the DM sees a player’s submission, unapproved');
+const dm={backgrounds:[],species:[],classes:[],feats:[{...idea,approved:true,updated:100},{...idea,id:'hb-ft-draft',name:'Draft',approved:false}]};
+const table=B.exportJson(dm,null,{approved:true});assert.deepEqual(JSON.parse(table).feats.map(f=>f.name),['Night Owl'],'only approved homebrew is published');
+const p={backgrounds:[],species:[],classes:[],feats:[]};assert.equal(B.mergeTable(p,table),1);assert(p.feats[0].approved&&p.feats[0].fromTable,'added to a player’s browser, approved');
+assert.equal(B.mergeTable(p,table),0,'nothing twice');
+dm.feats[0]={...dm.feats[0],desc:'Updated text that is long enough to pass.',updated:200};assert.equal(B.mergeTable(p,B.exportJson(dm,null,{approved:true})),1);assert.match(p.feats[0].desc,/Updated/,'a newer version replaces it');
+assert.equal(B.mergeTable(p,B.exportJson({...dm,feats:[]},null,{approved:true})),1);assert.equal(p.feats.length,0,'taken off the table: removed');
+const own={backgrounds:[],species:[],classes:[],feats:[{...idea,id:'hb-ft-mine',approved:false}]};B.mergeTable(own,table);assert.equal(own.feats.length,1,'a player’s own homebrew of that name is kept, not doubled');
+const q={feats:[],tableDismissed:['hb-ft-idea']};assert.equal(B.mergeTable(q,table),0,'deleted by the player: not added again');
+assert.equal(B.mergeTable({feats:[]},B.exportJson(dm,null)),0,'a file that isn’t the DM’s published table changes nothing');}
+console.log('PASS: players send homebrew to the DM as unapproved submissions; the DM’s published table reaches every browser approved, updates, and removes what the DM takes off; a player’s deletion sticks.');
+
 /* the screen, end to end */
 ctx.capture=(title,body)=>{captured=title;handlers={};return {close(){},querySelector:k=>handlers[k]??={}};};run('openDialog=capture;');
 run(`S=fresh();S.role='dm';S.tab='homebrew';render();`);assert(node('#view').innerHTML.includes('No homebrew backgrounds yet'));

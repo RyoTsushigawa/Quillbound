@@ -278,9 +278,12 @@
   }
 
   const FORMAT = 'quillbound-homebrew';
-  function exportJson(hb, ids) {
-    const pick = list => (list || []).filter(x => !ids || ids.includes(x.id)).map(x => ({ ...x, approved: false }));
-    return JSON.stringify({ format: FORMAT, version: 3, exported: new Date().toISOString(), backgrounds: pick(hb?.backgrounds), species: pick(hb?.species), classes: pick(hb?.classes), feats: pick(hb?.feats) }, null, 2);
+  // opts.from = 'player': a player's submission to the DM (marked so the DM sees where it came from).
+  // opts.approved: the DM shares the homebrew they approved; a player's import keeps those approvals.
+  function exportJson(hb, ids, opts = {}) {
+    const pick = list => (list || []).filter(x => (!ids || ids.includes(x.id)) && (!opts.approved || x.approved)).map(x => ({ ...x, approved: !!opts.approved, fromPlayer: undefined }));
+    return JSON.stringify({ format: FORMAT, version: 3, exported: new Date().toISOString(), ...(opts.from === 'player' ? { from: 'player' } : {}), ...(opts.approved ? { approvedByDm: true } : {}),
+      backgrounds: pick(hb?.backgrounds), species: pick(hb?.species), classes: pick(hb?.classes), feats: pick(hb?.feats) }, null, 2);
   }
   const str = (v, n) => String(v ?? '').slice(0, n);
   const cleanBackground = b => ({ ...newBackground(), ...b, kind: 'background', approved: false, name: str(b.name, 80), desc: str(b.desc, 2000),
@@ -305,10 +308,31 @@
     let data; try { data = JSON.parse(text); } catch { return { error: 'This file is not readable homebrew (not JSON).' }; }
     if (data?.format !== FORMAT) return { error: 'This file is not a Quillbound homebrew export.' };
     const ok = x => x && typeof x === 'object' && typeof x.name === 'string';
-    const items = [...(data.backgrounds || []).filter(ok).map(cleanBackground), ...(data.species || []).filter(ok).map(cleanSpecies), ...(data.classes || []).filter(ok).map(cleanClass), ...(data.feats || []).filter(ok).map(cleanFeat)];
+    // a DM's shared file keeps its approvals; a player's submission is marked as one; anything else starts unapproved
+    const mark = clean => x => ({ ...clean(x), updated: Number(x.updated) || 0, approved: !!data.approvedByDm && x.approved === true, ...(data.from === 'player' ? { fromPlayer: true } : {}) });
+    const items = [...(data.backgrounds || []).filter(ok).map(mark(cleanBackground)), ...(data.species || []).filter(ok).map(mark(cleanSpecies)), ...(data.classes || []).filter(ok).map(mark(cleanClass)), ...(data.feats || []).filter(ok).map(mark(cleanFeat))];
     const listOf = it => it.kind === 'species' ? hb?.species : it.kind === 'class' ? hb?.classes : it.kind === 'feat' ? hb?.feats : hb?.backgrounds;
     const clashes = items.filter(b => (listOf(b) || []).some(x => x.id === b.id || x.name.toLowerCase() === b.name.toLowerCase())).map(b => b.id);
-    return { items, clashes };
+    return { items, clashes, approvedByDm: !!data.approvedByDm, fromPlayer: data.from === 'player' };
+  }
+  // The table's approved homebrew (homebrew/table.json on the site, written by the DM's "Publish to the table…"): added
+  // to every browser automatically, approved. A newer published version replaces a copy that came from the table; homebrew
+  // of a browser's own (same id, made there) is never replaced, and a name it already uses is skipped. Deleting works both
+  // ways: what the DM takes off the table leaves every browser that got it from the table, and what a player deletes
+  // (hb.tableDismissed) isn't added again. Heroes keep their own copies, so they still work. Returns how many changed.
+  function mergeTable(hb, text) {
+    let data; try { data = JSON.parse(text); } catch { return 0; }
+    if (data?.format !== FORMAT || !data.approvedByDm) return 0;
+    const parsed = parseImport(text, hb); if (parsed.error) return 0;
+    let n = 0; const onTable = new Set(parsed.items.filter(x => x.approved).map(x => x.id)), dismissed = new Set(hb.tableDismissed || []);
+    for (const kind of ['backgrounds', 'species', 'classes', 'feats']) { const before = (hb[kind] || []).length; hb[kind] = (hb[kind] || []).filter(x => !x.fromTable || onTable.has(x.id)); n += before - hb[kind].length; }
+    for (const it of parsed.items) { if (!it.approved || dismissed.has(it.id)) continue;
+      const kind = it.kind === 'species' ? 'species' : it.kind === 'class' ? 'classes' : it.kind === 'feat' ? 'feats' : 'backgrounds';
+      hb[kind] ??= []; const list = hb[kind], i = list.findIndex(x => x.id === it.id), copy = { ...it, fromTable: true, updated: Number(it.updated) || 0 };
+      if (i >= 0) { if (list[i].fromTable && (Number(list[i].updated) || 0) < copy.updated) { list[i] = copy; n++; } continue; }
+      if (list.some(x => String(x.name).trim().toLowerCase() === it.name.trim().toLowerCase())) continue;
+      list.push(copy); n++; }
+    return n;
   }
   // Apply an import. decisions[id] = 'replace' | 'copy' | 'skip' for clashes; everything else is added. Imported homebrew starts unapproved.
   function applyImport(hb, parsed, decisions = {}) {
@@ -324,5 +348,5 @@
     return { hb: out, done };
   }
 
-  root.QBHomebrew = { FEAT_TYPES, newFeat, newPrereq, checkFeat, featFits, featAdvice, featToSrd, CASTER, CLASS_KIT, newClass, checkClass, classToSrd, compareClass, classPowerCheck, classFits, srdClassTable, fightTest, encountersFor, ABIL, KIT_MIN, KIT_MAX, BAND, BLOCKS, newBackground, kitValue, tools, checkBackground, fits, backgroundToSrd, newSpecies, speciesScore, traitWeight, checkSpecies, speciesFits, speciesToSrd, srdSpeciesScores, forCreator, exportJson, parseImport, applyImport };
+  root.QBHomebrew = { mergeTable, FEAT_TYPES, newFeat, newPrereq, checkFeat, featFits, featAdvice, featToSrd, CASTER, CLASS_KIT, newClass, checkClass, classToSrd, compareClass, classPowerCheck, classFits, srdClassTable, fightTest, encountersFor, ABIL, KIT_MIN, KIT_MAX, BAND, BLOCKS, newBackground, kitValue, tools, checkBackground, fits, backgroundToSrd, newSpecies, speciesScore, traitWeight, checkSpecies, speciesFits, speciesToSrd, srdSpeciesScores, forCreator, exportJson, parseImport, applyImport };
 })(globalThis);

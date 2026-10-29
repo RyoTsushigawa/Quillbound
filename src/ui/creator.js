@@ -191,9 +191,14 @@ function vCreate(){
   const stepper=`<div class="cr-steps" role="list">${steps.map(([k,l])=>{const n=crOpenIn(sheet,c,k);return `<button role="listitem" data-act="cr-step" data-v="${k}" ${k===c.step?'aria-current="step"':''} class="${n?'':'done'}">${l}${k==='review'?'':n?` <span class="badge">${n}</span>`:' ✓'}</button>`;}).join('')}</div>`;
   const foot=`<div class="cr-foot"><button class="btn" data-act="cr-step" data-v="${steps[i-1]?.[0]||''}" ${i===0?'disabled':''}>Back</button>${i<steps.length-1?`<button class="btn primary" data-act="cr-step" data-v="${steps[i+1][0]}">Next: ${steps[i+1][1]}</button>`:''}</div>`;
   return `<div class="pagehead"><div><div class="eyebrow">Character creator · SRD 5.2 rules</div><h2>${head[0]}</h2><p>${head[1]}</p></div></div>
-    <div class="cr-layout"><div class="cr-main">${stepper}${crStepBody(c,sheet)}${foot}</div>
+    <div class="cr-layout"><div class="cr-main">${stepper}${crStepBody(c,sheet)}${crOwnIdea(c.step)}${foot}</div>
     <details class="cr-sheet-wrap" open><summary>View sheet</summary>${crSheetPanel(c,sheet)}</details></div>`;
 }
+// "Make your own": the steps with things players may invent open the matching Homebrew editor (src/ui/homebrew.js).
+const CR_OWN={species:['species','species'],class:['classes','class'],background:['backgrounds','background']};
+function crOwnIdea(step){ const k=CR_OWN[step], feat=step==='class'||step==='background';
+  if(!k&&!feat) return '';
+  return `<p class="small muted cr-own">Missing something? ${k?`<button class="linklike" data-act="hb-start" data-v="${k[0]}">Make your own ${k[1]}</button>`:''}${k&&feat?' or ':''}${feat?'<button class="linklike" data-act="hb-start" data-v="feats">a feat</button>':''}${S.role==='dm'?'.':' and send it to your DM.'}</p>`; }
 // Creator actions; spread into ACT where it is defined.
 // A hero keeps copies of the homebrew it uses (background, species, class, feats), so it still works after the DM
 // edits or deletes that homebrew, or in another browser (a hero file sent to the DM).

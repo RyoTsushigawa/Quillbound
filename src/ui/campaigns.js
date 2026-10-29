@@ -2,13 +2,19 @@
    A plain script, loaded before the main script in index.html: it defines functions and uses the main script's
    globals (S, esc, render, toast, openDialog, clConfirm, uid, heroDefaults …) when they run.
    Players see Start, Create a hero and My heroes; the DM unlocks the rest with a passphrase on their own device. */
-const PLAYER_TABS = new Set(['home', 'create', 'heroes']);
+const PLAYER_TABS = new Set(['home', 'create', 'heroes', 'homebrew']);
 const isDm = () => S.role === 'dm';
 // Called once after the save loads: everyone starts as a player; the save becomes the first campaign.
 // Heroes made before player mode went into this browser's party; the first time, they're copied into My heroes.
 function cmInit() {
   if (!S.myHeroes) S.myHeroes = (S.party || []).filter(p => p.build && !p.example).map(p => ({ id: 'ph-' + p.id, build: { ...JSON.parse(JSON.stringify(p.build)), name: p.name }, story: { want: p.want || '' }, saved: Date.now() }));
   S.role ??= 'player'; QBCampaigns.ensure(S); if (!isDm() && !PLAYER_TABS.has(S.tab)) S.tab = 'home';
+  cmLoadTable();
+}
+// The DM's published homebrew (homebrew/table.json on the site): added, updated or removed in this browser by itself.
+function cmLoadTable() {
+  if (typeof fetch !== 'function' || typeof location === 'undefined' || location.protocol === 'file:') return;
+  fetch('homebrew/table.json', { cache: 'no-cache' }).then(r => r.ok ? r.text() : '').then(text => { if (!text) return; const n = QBHomebrew.mergeTable(hbState(), text); if (n) { save(); render(); } }).catch(() => {});
 }
 // Called by render(): show only the tabs this mode may use, and the mode switch.
 function cmShell() {
