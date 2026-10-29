@@ -85,3 +85,6 @@
   .ps-pg:last-child{break-after:auto}
   .ps-sheet{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* ---------- player mode (src/ui/campaigns.js): tabs and buttons the mode hides ---------- */
+.tab[hidden],#player-btn[hidden]{display:none!important}
