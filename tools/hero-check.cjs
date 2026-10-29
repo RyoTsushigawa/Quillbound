@@ -154,3 +154,11 @@ console.log('PASS: 29 fan-made subclasses (summaries) join the SRD and Player’
 const R7=c7.QBHeroRules,s=plain(R7.derive(R7.quickBuild('paladin','A',3,{species:'aasimar'})));assert.equal(c7.QBHERO.species.length,10,'9 SRD species + the Aasimar');assert.equal(s.species,'Aasimar');assert.deepEqual(s.open,[]);
 assert.deepEqual(s.features.filter(f=>['Celestial Resistance','Healing Hands','Light Bearer','Celestial Revelation'].includes(f.name)).length,4);}
 console.log('PASS: the Aasimar builds a complete hero with its traits.');
+
+/* Player's Handbook spells beyond the free rules (src/app/phb-spells.js, loaded after the SRD list) */
+{const c8=vm.createContext({crypto:require('crypto').webcrypto});for(const f of ['srd-heroes','srd-spells','phb-spells','hero-rules'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),c8);
+const L=c8.QBSPELLS,R8=c8.QBHeroRules,extra=L.filter(s=>s.source==='phb-2024');assert.equal(extra.length,33);assert.equal(new Set(L.map(s=>s.id)).size,L.length,'no spell twice');
+assert(extra.every(s=>s.level>=0&&s.level<=9&&s.classes.length&&s.time&&s.range&&s.duration&&s.desc&&(!s.damage||s.damageType)),'every field set');
+const w={...R8.quickBuild('warlock','W',5)};w.spells.cantrips=['toll-the-dead','mind-sliver'];const at=plain(R8.derive(w).attacks).filter(a=>a.kind==='cantrip');
+assert.deepEqual(at.map(a=>[a.name,a.save,a.damage]),[['Toll the Dead','WIS','2d8'],['Mind Sliver','INT','2d6']],'save cantrips scale at level 5');}
+console.log('PASS: 33 Player’s Handbook spells (summaries) join the 339 SRD spells; their attack cantrips calculate.');
