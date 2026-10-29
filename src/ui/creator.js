@@ -59,7 +59,8 @@ const crOpenIn=(sheet,c,k)=>k==='story'?(c.build.name.trim()?0:1):sheet.open.fil
 const crSteps=sheet=>CR_STEPS.filter(([k])=>k!=='spells'||sheet.spellcasting);
 // Spells are a large file: load them only when needed (the check loads them directly).
 function crSpells(then){ if(globalThis.QBSPELLS) return globalThis.QBSPELLS; if(then) (crSpells.waiting||=[]).push(then);
-  if(!crSpells.loading&&typeof document.createElement==='function'){ crSpells.loading=true; const s=document.createElement('script'); s.src='src/app/srd-spells.js'; s.onload=()=>{ (crSpells.waiting||[]).splice(0).forEach(f=>f()); render(); }; document.head.appendChild(s); } return null; }
+  if(!crSpells.loading&&typeof document.createElement==='function'){ crSpells.loading=true; const s=document.createElement('script'); s.src='src/app/srd-spells.js'; const done=()=>{ (crSpells.waiting||[]).splice(0).forEach(f=>f()); render(); };
+    s.onload=()=>{ const p=document.createElement('script'); p.src='src/app/phb-spells.js'; p.onload=p.onerror=done; document.head.appendChild(p); }; /* then the Player's Handbook spells */ document.head.appendChild(s); } return null; }
 const crPick=(act,attrs,on,label,body)=>`<button class="choice ${on?'on':''}" data-act="${act}" ${attrs} aria-pressed="${on}">${label}${body||''}</button>`;
 // The optional extra (a spell's description) sits outside the label, so opening it doesn't tick the box.
 const crCheck=(k,v,on,label,max,extra='')=>`<div class="cr-check ${on?'on':''}"><label><input type="checkbox" data-act="cr-toggle" data-k="${k}" data-v="${esc(v)}" data-max="${max}" ${on?'checked':''}> <span>${label}</span></label>${extra}</div>`;
