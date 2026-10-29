@@ -50,3 +50,18 @@ assert.equal(s.combat.round,9);
 assert.equal(s.combat.foes[0].hpNow,120-32);
 assert(R.undo(s));assert.equal(s.combat.round,8,'Undo round transition');
 console.log('PASS: boss lasts eight rounds, retains HP and turn state, and round Undo works.');
+
+
+// Large encounters should not silently merge turns, lose combatants or corrupt state.
+s=state(Array.from({length:80},(_,i)=>foe('thug-'+i,12)));
+assert.equal(R.encounterStatus(s).foes,80);
+assert.equal(R.encounterStatus(s).ready,82);
+for(let i=0;i<80;i++) R.setStatus(s,'thug-'+i,i%2?'surrendered':'fled');
+assert.equal(R.encounterStatus(s).phase,'cleared');
+assert.equal(R.encounterStatus(s).ready,2);
+assert.equal(s.combat.foes.length,80);
+assert(s.combat.foes.every(f=>f.hpNow===12));
+for(let r=0;r<12;r++){R.nextRound(s);assert.equal(R.encounterStatus(s).foes,80);assert.equal(R.encounterStatus(s).ready,2);}
+assert.equal(s.combat.round,13);
+assert(R.undo(s));assert.equal(s.combat.round,12);
+console.log('PASS: 80 separate foes preserve identity/HP through status updates and 12 rounds.');
