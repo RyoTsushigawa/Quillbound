@@ -44,5 +44,28 @@
     s('Tasha’s Bubbling Cauldron', 6, 'Conjuration', ['warlock', 'wizard'], 'Action', '5 feet', 'V, S, M', '10 minutes', {}, 'A cauldron fills with copies of a common potion you know that creatures can drink.'),
     s('Power Word Fortify', 7, 'Enchantment', ['bard', 'cleric'], 'Action', '60 feet', 'V', 'Instantaneous', {}, 'Share 120 temporary hit points among up to six creatures you choose.')
   ];
-  for (const sp of SPELLS) if (!list.some(x => x.id === sp.id || x.name.toLowerCase() === sp.name.toLowerCase())) list.push(sp);
+  // Entered from memory (no source page to check against): marked unchecked until compared with the book.
+  const u = sp => ({ ...sp, unchecked: true, desc: sp.desc.replace(/ \(Summary;[^)]*\)$/, ' (Summary entered from memory; check it against the 2024 Player’s Handbook.)') });
+  const UNCHECKED = [
+    s('Thunderclap', 0, 'Evocation', ['bard', 'druid', 'sorcerer', 'warlock', 'wizard'], 'Action', 'Self', 'S', 'Instantaneous', { save: 'CON', damage: '1d6', type: 'Thunder' }, 'A thunderous boom hits every creature within 5 feet of you that fails its save.', 'More dice at levels 5, 11 and 17.'),
+    s('Word of Radiance', 0, 'Evocation', ['cleric'], 'Action', 'Self', 'V, M', 'Instantaneous', { save: 'CON', damage: '1d6', type: 'Radiant' }, 'Burning light hits creatures of your choice within 5 feet of you that fail their save.', 'More dice at levels 5, 11 and 17.'),
+    s('Arms of Hadar', 1, 'Conjuration', ['warlock'], 'Action', 'Self', 'V, S', 'Instantaneous', { save: 'STR', damage: '2d6', type: 'Necrotic' }, 'Dark tendrils lash creatures within 10 feet; those that fail can’t take Reactions until their next turn (half damage on a save).', '+1d6 per slot level above 1.'),
+    s('Shadow Blade', 2, 'Illusion', ['sorcerer', 'warlock', 'wizard'], 'Bonus Action', 'Self', 'V, S', C, { damage: '2d8', type: 'Psychic' }, 'A sword of shadow (Finesse, Light, Thrown) for 2d8 Psychic, with Advantage in dim light or darkness.', 'Extra d8s at slot levels 3, 5 and 7.'),
+    s('Summon Beast', 2, 'Conjuration', ['druid', 'ranger'], 'Action', '90 feet', 'V, S, M', H, {}, 'Call a bestial spirit of air, land or water that fights beside you.', 'The spirit grows with the slot level.'),
+    s('Aura of Vitality', 3, 'Evocation', ['cleric', 'paladin'], 'Action', 'Self', 'V', C, {}, 'Each turn, as a Bonus Action, heal a creature within your 30-foot aura by 2d6.'),
+    s('Elemental Weapon', 3, 'Transmutation', ['druid', 'paladin', 'ranger'], 'Action', 'Touch', 'V, S', H, {}, 'A weapon becomes magical: +1 to hit and 1d4 extra damage of an element you choose.', 'Higher bonuses with higher slots.'),
+    s('Feign Death', 3, 'Necromancy', ['bard', 'cleric', 'druid', 'wizard'], 'Action or Ritual', 'Touch', 'V, S, M', '1 hour', { ritual: true }, 'A willing creature appears dead, resists damage and can’t be poisoned while it lasts.'),
+    s('Aura of Purity', 4, 'Abjuration', ['cleric', 'paladin'], 'Action', 'Self', 'V', 'Concentration, up to 10 minutes', {}, 'Allies within 30 feet resist Poison damage and have Advantage against several conditions.'),
+    s('Summon Elemental', 4, 'Conjuration', ['druid', 'ranger', 'wizard'], 'Action', '90 feet', 'V, S, M', H, {}, 'Call an elemental spirit of air, earth, fire or water that fights beside you.', 'The spirit grows with the slot level.'),
+    s('Circle of Power', 5, 'Abjuration', ['cleric', 'paladin', 'wizard'], 'Action', 'Self', 'V', 'Concentration, up to 10 minutes', {}, 'Allies within 30 feet have Advantage on saves against magic and take no damage when they succeed on half-damage saves.'),
+    s('Destructive Wave', 5, 'Evocation', ['paladin'], 'Action', 'Self', 'V', 'Instantaneous', { save: 'CON', damage: '5d6', type: 'Thunder' }, 'A shock wave hits foes within 30 feet with Thunder plus Radiant or Necrotic damage and knocks them Prone (half on a save).'),
+    s('Jallarzi’s Storm of Radiance', 5, 'Evocation', ['warlock', 'wizard'], 'Action', '120 feet', 'V, S, M', C, { save: 'CON', damage: '2d10', type: 'Radiant' }, 'A column of light and thunder deafens and blinds creatures inside and burns them each turn (half on a save).', '+1d10 per slot level above 5.'),
+    s('Steel Wind Strike', 5, 'Conjuration', ['ranger', 'wizard'], 'Action', '30 feet', 'S, M', 'Instantaneous', { attack: 'melee', damage: '6d10', type: 'Force' }, 'Flourish a weapon and strike up to five creatures, then teleport next to one of them.'),
+    s('Swift Quiver', 5, 'Transmutation', ['ranger'], 'Bonus Action', 'Self', 'V, S, M', C, {}, 'Your ammunition never runs out, and each turn you can make two extra attacks with a ranged weapon as a Bonus Action.'),
+    s('Synaptic Static', 5, 'Enchantment', ['bard', 'sorcerer', 'warlock', 'wizard'], 'Action', '120 feet', 'V, S', 'Instantaneous', { save: 'INT', damage: '8d6', type: 'Psychic' }, 'A psychic explosion; those that fail are muddled and subtract 1d6 from their rolls for a while (half on a save).'),
+    s('Yolande’s Regal Presence', 5, 'Enchantment', ['bard', 'wizard'], 'Action', 'Self', 'V, S, M', C, { save: 'WIS', damage: '4d6', type: 'Psychic' }, 'An aura of majesty: creatures near you take Psychic damage and are knocked Prone or pushed on a failed save.'),
+    s('Summon Fiend', 6, 'Conjuration', ['warlock', 'wizard'], 'Action', '90 feet', 'V, S, M', H, {}, 'Call a fiendish spirit (demon, devil or yugoloth) that fights beside you.', 'The spirit grows with the slot level.'),
+    s('Telepathy', 8, 'Divination', ['wizard'], 'Action', 'Unlimited', 'V, S, M', '24 hours', {}, 'A telepathic link with a familiar creature on the same plane for a day.')
+  ].map(u);
+  for (const sp of [...SPELLS, ...UNCHECKED]) if (!list.some(x => x.id === sp.id || x.name.toLowerCase() === sp.name.toLowerCase())) list.push(sp);
 })(globalThis);
