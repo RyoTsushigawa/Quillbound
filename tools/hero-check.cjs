@@ -135,11 +135,12 @@ console.log('PASS: subclasses: four per class (36 from the Player’s Handbook a
 
 /* more backgrounds: 3 from the 2022 playtest (third ability added) and 11 classic ones converted; all in the 2024 structure */
 {const c5=vm.createContext({crypto:require('crypto').webcrypto});for(const f of ['srd-heroes','phb-feats','phb-backgrounds','phb-subclasses','extra-backgrounds','hero-rules','homebrew'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),c5);
-const H5=c5.QBHERO,R5=c5.QBHeroRules,B5=c5.QBHomebrew;assert.equal(H5.backgrounds.length,30);assert.equal(new Set(H5.backgrounds.map(b=>b.id)).size,30,'no background twice');
-for(const bg of H5.backgrounds.filter(b=>['playtest','classic'].includes(b.source))){assert.equal(bg.abilities.length,3,bg.name);assert.equal(new Set(bg.abilities).size,3,bg.name);assert(H5.feats.some(f=>f.id===bg.feat.id&&f.type==='origin'),bg.name);
-  assert(bg.equipment.choices[0].items.every(i=>H5.equipment[i.id]),bg.name+': kit items exist');const ch=bg.equipment.choices[0];if(bg.source==='classic')assert(B5.kitValue({items:ch.items,gp:ch.gp})>=40&&B5.kitValue({items:ch.items,gp:ch.gp})<=60,bg.name+': kit about 50 GP');
+const H5=c5.QBHERO,R5=c5.QBHeroRules,B5=c5.QBHomebrew;assert.equal(H5.backgrounds.length,33);assert.equal(new Set(H5.backgrounds.map(b=>b.id)).size,33,'no background twice');
+assert.deepEqual(plain(H5.backgrounds.filter(b=>b.source==='adventure').map(b=>b.id+' '+b.name+' '+b.tools[0])),["hb-bg-sammler-quinn Nachtbastlerin Thieves' Tools",'hb-bg-sammler-camilla Hüterin der Zugabe Flute',"hb-bg-sammler-toxic Nachtingenieur Tinker's Tools"],'the Sammlersache backgrounds keep their ids');
+for(const bg of H5.backgrounds.filter(b=>['playtest','classic','adventure'].includes(b.source))){assert.equal(bg.abilities.length,3,bg.name);assert.equal(new Set(bg.abilities).size,3,bg.name);assert(H5.feats.some(f=>f.id===bg.feat.id&&f.type==='origin'),bg.name);
+  assert(bg.equipment.choices[0].items.every(i=>H5.equipment[i.id]),bg.name+': kit items exist');const ch=bg.equipment.choices[0];if(['classic','adventure'].includes(bg.source))assert(B5.kitValue({items:ch.items,gp:ch.gp})>=40&&B5.kitValue({items:ch.items,gp:ch.gp})<=60,bg.name+': kit about 50 GP');
   const b={...R5.quickBuild('rogue','T',1),background:bg.id,boost:{[bg.abilities[0]]:1,[bg.abilities[1]]:1,[bg.abilities[2]]:1},toolChoice:'',expertise:[]};R5.fillDefaults(b);assert.deepEqual(plain(R5.derive(b).open),[],bg.name+': nothing left open');}}
-console.log('PASS: 30 backgrounds: SRD, Player’s Handbook, 2022 playtest (with a third ability) and 11 classic ones converted to the 2024 structure; each builds a complete hero.');
+console.log('PASS: 33 backgrounds: SRD, Player’s Handbook, 2022 playtest (with a third ability), 11 classic ones converted to the 2024 structure and the 3 of Die Sammlersache; each builds a complete hero.');
 
 /* fan-made subclasses (5.5 fan wiki), after the SRD and Player's Handbook ones */
 {const c6=vm.createContext({crypto:require('crypto').webcrypto});for(const f of ['srd-heroes','phb-feats','phb-backgrounds','phb-subclasses','fan-subclasses','srd-spells','hero-rules'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),c6);
