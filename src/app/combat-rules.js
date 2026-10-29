@@ -82,7 +82,7 @@
     };
     const l = c.lite;
     l.conditionNotes ??= {}; l.secretRolls ??= []; l.breaking ??= {}; l.broke ??= {}; l.protected ??= {}; l.openings ??= {};
-    l.draft.contextEvent ??= 'trapped'; l.draft.stakes ??= ''; l.draft.enemyOutcome ??= ''; l.draft.enemyCondition ??= 'Pinned';
+    l.draft.attackNames ??= []; l.draft.contextEvent ??= 'trapped'; l.draft.stakes ??= ''; l.draft.enemyOutcome ??= ''; l.draft.enemyCondition ??= 'Pinned';
     if (!l.draft.enemyEffect || l.draft.enemyEffect === 'wound') l.draft.enemyEffect = 'damage';
     if (l.draft.effect === 'wound') l.draft.effect = 'damage';
     if ((l.version || 1) < 3) convert(s, l);
@@ -195,7 +195,7 @@
   // How many d20s this exchange needs: one per attack for Attack and for a damaging enemy move, otherwise one.
   function rollsNeeded(s, d) {
     if (d.mode === 'enemy') return (d.enemyEffect || 'damage') === 'damage' ? Math.max(1, enemyAttacks(actor(s, d.actor) || {}).length) : 1;
-    if (d.action === 'attack') return A().heroAttack(actor(s, d.actor) || {}).count;
+    if (d.action === 'attack') return A().heroAttackSequence(actor(s, d.actor) || {}, d.attackNames || []).length;
     return 1;
   }
   // The roller may roll twice on the first die: an opening from Help, or on defense the cover of a Defend.
@@ -237,8 +237,8 @@
       p.rolls = kept.map((k, i) => { const atk = atks[i], b = Number(t.ac) - 10, total = k.die + b, band = defenseBand(k.die, total, atk.bonus);
         return { ...k, bonus: b, total, band, against: 12 + atk.bonus, attack: atk.name, expr: atk.damage, damage: effect === 'damage' && FAILS.includes(band) ? rollDamage(atk.damage, band === 'disaster') : 0 }; });
     } else if (d.action === 'attack') {
-      const atk = A().heroAttack(a), back = enemyAttacks(t)[0];
-      p.rolls = kept.map(k => { const total = k.die + atk.bonus, band = attackBand(k.die, total, t.acNum);
+      const selected = A().heroAttackSequence(a, d.attackNames || []), back = enemyAttacks(t)[0];
+      p.rolls = kept.map((k, i) => { const atk = selected[i], total = k.die + atk.bonus, band = attackBand(k.die, total, t.acNum);
         return { ...k, bonus: atk.bonus, total, band, against: t.acNum, attack: atk.name, expr: atk.damage, damage: LANDS.includes(band) ? rollDamage(atk.damage, band === 'crit') : null, push: null,
           strike: { by: t.id, name: back?.name || 'Attack', damage: back ? rollDamage(back.damage, band === 'disaster') : 0, reach: true } }; });
     } else {
