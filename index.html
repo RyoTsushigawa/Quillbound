@@ -17,7 +17,7 @@
 .brand{display:flex;align-items:center;gap:8px;font-family:var(--display);font-size:1.55rem;font-weight:700;letter-spacing:.01em}
 .brand svg{width:26px;height:26px;color:var(--accent)}
 .proto{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid currentColor;border-radius:3px;padding:1px 5px;font-weight:600}
-.tabs{display:flex;gap:2px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.tabs{display:flex;flex-wrap:wrap;gap:2px;flex:1;min-width:0;order:3;flex-basis:100%} /* their own row, wrapping: no tab is ever scrolled out of sight */
 .tab{white-space:nowrap}
 @media (max-width:640px){ .tabs{order:3;flex-basis:100%} }
 .tab{font:inherit;font-weight:500;background:none;border:0;color:var(--muted);padding:7px 12px;border-radius:5px;cursor:pointer;display:flex;align-items:baseline;gap:7px}
