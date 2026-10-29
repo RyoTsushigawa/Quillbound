@@ -118,3 +118,17 @@ for(const bg of H3.backgrounds){assert.equal(bg.abilities.length,3);assert.equal
 const base={...R3.quickBuild('fighter','T',4),boost:{STR:2,CON:1}},farmer=R3.derive({...base,background:'farmer'}),soldier=R3.derive({...base,background:'soldier'});
 assert.equal(farmer.scores.CON,soldier.scores.CON);assert.equal(farmer.hp.max-soldier.hp.max,8,'Farmer: Tough gives +2 HP per level');}
 console.log('PASS: all 16 backgrounds of the 2024 rules (12 from the Player’s Handbook as summaries) build complete heroes; Farmer’s Tough adds its hit points.');
+
+/* subclasses: four per class (the SRD one plus three from the Player's Handbook), chosen in the build; some calculate */
+{const c4=vm.createContext({crypto:require('crypto').webcrypto});for(const f of ['srd-heroes','phb-feats','phb-backgrounds','phb-subclasses','srd-spells','hero-rules'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),c4);
+const H4=c4.QBHERO,R4=c4.QBHeroRules;assert(H4.classes.every(c=>c.subclasses.length===4&&c.subclasses[0].id===c.subclass.id),'4 subclasses each, the SRD one first');
+assert(H4.classes.every(c=>c.subclasses.every(s=>s.features.length&&s.features.every(f=>f.level>=3&&f.level<=20&&f.name&&f.desc))),'every feature named, levelled and described');
+assert.equal(R4.derive(R4.quickBuild('bard','L',6)).subclass,'College of Lore','no choice made: the SRD subclass, as before');
+const ek={...R4.quickBuild('fighter','EK',7),subclass:'eldritch-knight'};R4.fillDefaults(ek);const s=plain(R4.derive(ek));
+assert.equal(s.subclass,'Eldritch Knight');assert.deepEqual([s.spellcasting.ability,s.spellcasting.cantrips,s.spellcasting.prepared,s.spellcasting.slots.slice(0,3).join('/')],['INT',2,5,'4/2/0'],'Eldritch Knight casts like a third caster');assert.deepEqual(s.open,[]);
+assert(s.features.some(f=>f.name==='War Magic')&&!s.features.some(f=>f.name==='Improved Critical'),'its own features, not the Champion’s');
+const at={...R4.quickBuild('rogue','AT',10),subclass:'arcane-trickster'};R4.fillDefaults(at);assert.equal(R4.derive(at).spellcasting.cantrips,4,'Arcane Trickster: 3 cantrips, 4 at level 10');
+const val={...R4.quickBuild('bard','V',6),subclass:'college-of-valor'};assert(R4.proficientWith(val,'longsword')&&R4.proficientWith(val,'scale-mail'),'Valor: martial weapons, medium armor');
+val.gear={cls:1,bg:1,extra:[{id:'longsword',count:1,how:'grant'}]};assert.equal(R4.derive(val).attacks.find(a=>a.name==='Longsword').count,2,'Valor: Extra Attack at 6');
+assert.equal(R4.derive({...val,level:5}).attacks.find(a=>a.name==='Longsword').count,1);}
+console.log('PASS: subclasses: four per class (36 from the Player’s Handbook as summaries), chosen per hero (the SRD one by default); Eldritch Knight and Arcane Trickster cast spells, Valor gains training and Extra Attack.');

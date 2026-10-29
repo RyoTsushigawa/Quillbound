@@ -186,6 +186,10 @@
     const level = Math.max(1, Math.min(20, f.level || 1));
     const species = f.species || 'human'; if (!f.species) check.push('No species found: Human was chosen; change it in the creator.');
     const b = R.quickBuild(f.cls, f.name || 'Hero', level, { species }); b.name = (f.name || 'Hero').slice(0, 80);
+    // the subclass by name ("Thief", "College of Glamour", "Glamour")
+    const subWant = key(SUBCLASS_DE[norm(f.subclass)] || f.subclass), subs = data.classes.find(x => x.id === f.cls)?.subclasses || [];
+    const subHit = subWant && subs.find(s => key(s.name) === subWant || key(s.name).replace(/^(pathofthe|pathof|collegeof|circleofthe|circleof|oathofthe|oathof|warriorofthe|warriorof)/, '').replace(/(domain|sorcery|patron)$/, '') === subWant.replace(/(domain|sorcery|patron)$/, ''));
+    if (subHit) b.subclass = subHit.id;
     // background by name; otherwise one that raises the hero's best abilities
     const bgName = key(f.background), bg = data.backgrounds.find(x => key(x.name) === bgName) || null;
     const best = Object.entries(f.abilities).sort((x, y) => y[1] - x[1]).map(([k]) => k);
@@ -261,7 +265,7 @@
     for (const a of f.attacks) { const an = key(ATTACK_DE[norm(a.name)] || a.name), ours = sheet.attacks.find(x => key(x.name) === an || key(x.name) === key(GEAR_DE[norm(a.name)] || '')) || sheet.attacks.find(x => x.bonus === a.bonus && key(x.damage).startsWith(key(a.damage))); compare.push({ what: a.name + (ours && key(ours.name) !== key(a.name) ? ` (${ours.name})` : ''), sheet: `${a.bonus >= 0 ? '+' : ''}${a.bonus} ${a.damage}`, ours: ours ? `${ours.bonus >= 0 ? '+' : ''}${ours.bonus} ${ours.damage}` : 'not on the Quillbound sheet', same: !!ours && ours.bonus === a.bonus && key(ours.damage).startsWith(key(a.damage)) }); }
     if (b.cls === 'bard' && level >= 2 && compare.some(x => !x.same && /^[+-]/.test(x.sheet))) check.push('Bards add half their proficiency bonus to skills they aren’t trained in (Jack of All Trades). Skills that are 1 higher here than on the sheet come from that.');
     const subName = SUBCLASS_DE[norm(f.subclass)] || f.subclass;
-    if (subName && sheet.subclass && key(subName) !== key(sheet.subclass)) check.push(`Subclass “${f.subclass}” isn’t in Quillbound yet: ${sheet.subclass} is used for now.`);
+    if (subName && !subHit && sheet.subclass && key(subName) !== key(sheet.subclass)) check.push(`Subclass “${f.subclass}” isn’t in Quillbound yet: ${sheet.subclass} is used for now.`);
     for (const n of f.feats) if (!data.feats.some(x => key(x.name) === key(n))) check.push(`Feat “${n}” isn’t in Quillbound.`);
     return { build: b, sheet, check, compare, notes: f.notes, source: f.source };
   }
