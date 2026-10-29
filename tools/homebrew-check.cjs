@@ -5,7 +5,7 @@ const root=process.argv[2]||path.resolve(__dirname,'..');
 const nodes=new Map(),node=s=>{if(!nodes.has(s))nodes.set(s,{innerHTML:'',textContent:'',setAttribute(){},classList:{add(){},remove(){}}});return nodes.get(s);};
 let captured='',handlers={};
 const ctx=vm.createContext({document:{querySelector:node,querySelectorAll:()=>[],getElementById:id=>node('#'+id),addEventListener(){}},crypto:require('node:crypto').webcrypto,BroadcastChannel:class{postMessage(){}close(){}},localStorage:{getItem:()=>null,setItem(){}},window:null,console,setTimeout:()=>0,clearTimeout(){},URL});ctx.window=ctx;ctx.addEventListener=()=>{};ctx.scrollTo=()=>{};
-for(const n of ['player-core','srd-monsters','attacks','srd-heroes','srd-spells','hero-rules','homebrew','combat-rules','conditions','encounter-design'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',n+'.js'),'utf8'),ctx);
+for(const n of ['player-core','srd-monsters','attacks','srd-heroes','phb-feats','srd-spells','hero-rules','homebrew','combat-rules','conditions','encounter-design'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',n+'.js'),'utf8'),ctx);
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');require('./ui-scripts.cjs').loadUi(html,ctx);vm.runInContext([...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(x=>x.includes('const ACT=')),ctx);
 vm.runInContext("S.role='dm';",ctx); // the Homebrew tab is the DM's
 assert([...html.matchAll(/<script src="src\/app\/([\w-]+)\.js"><\/script>/g)].map(m=>m[1]).includes('homebrew'),'index.html loads homebrew.js');
@@ -90,9 +90,16 @@ const cls=plain(B.parseImport(B.exportJson({classes:[art]}),{classes:[]}));asser
 console.log('PASS: homebrew classes: structure checks; measured against the 12 SRD classes at levels 1/5/11/17 (an overpowered class is flagged); Toxik’s Artificer gives AC 17, Lightning Launcher +7 (1d6+4), Investigation +10 and half-caster slots; the fight test runs; export/import keeps classes.');
 
 /* feats: the 2024 structure, prerequisites the creator enforces, a +1 that works like Grappler's, export and import */
-{const hide={...B.newFeat(),id:'hb-ft-hide',name:'Thick-Skinned',type:'general',minLevel:4,abilities:['STR','CON'],desc:'While you aren’t wearing heavy armor, you take 2 less bludgeoning damage from attacks.'};
+{const hide={...B.newFeat(),id:'hb-ft-hide',name:'Thick-Skinned',type:'general',minLevel:4,abilities:['STR','CON'],desc:'While you aren’t wearing heavy armor, you take 2 less bludgeoning damage from attacks.',blocks:[{block:'resistance',n:1}]};
+assert.equal(B.featScore(hide),1.5,'a +1 and a damage reduction');
+const bands=Object.fromEntries(['origin','general','fighting-style','epic-boon'].map(k=>[k,plain(B.featBand(k))]));
+assert.deepEqual([bands.origin.min,bands.origin.max,bands.general.min,bands.general.max,bands['fighting-style'].min,bands['fighting-style'].max],[1,2,1.5,3.5,0.25,1.25],'the 2024 feats set the ranges (a narrow one widened to ±0.5)');
+assert(Object.keys(B.FEAT_REFERENCE).every(id=>B.FEAT_REFERENCE[id].every(x=>B.FEAT_BLOCKS[x.block])),'every 2024 feat is rated with known blocks');
+const power=x=>plain(B.checkFeat(x)).find(c=>c.label.startsWith('Power')).ok;
+assert(!power({...hide,blocks:[]}),'a bare +1 is too weak for a general feat');assert(!power({...hide,blocks:[{block:'luck'},{block:'damageBonus'}]}),'Lucky plus a big damage bonus is too strong');
+assert(power({...hide,blocks:[{block:'luck'},{block:'damageBonus'},{block:'drawback',weight:1}]}),'a drawback pays for it');
 assert.deepEqual(plain(B.checkFeat(hide)).filter(c=>!c.ok).map(c=>c.label),[]);
-assert.deepEqual(plain(B.checkFeat(B.newFeat())).filter(c=>!c.ok).map(c=>c.label),['A name','A +1 to an ability','What it does']);
+assert.deepEqual(plain(B.checkFeat(B.newFeat())).filter(c=>!c.ok).map(c=>c.label),['A name','A +1 to an ability','What it does','Power in the range of the 2024 general feats']);
 assert(!B.featFits({...hide,name:'Grappler'}),'an SRD name is taken');assert(!B.featFits({...hide,type:'origin'}),'origin feats have no +1');
 const strict={...hide,id:'hb-ft-strict',name:'Iron Hide',abilities:['CON'],prereq:{...B.newPrereq(),feat:'hb-ft-hide',abilities:['CON'],score:15}};
 assert(B.featFits(strict,[hide]),'a stricter feat that needs another feat');assert(!B.featFits({...strict,prereq:{...strict.prereq,score:12}},[hide]),'ability prerequisites are 13–17');
@@ -127,6 +134,21 @@ R.setHomebrew(null);}
 console.log('PASS: the shipped Artificer follows the 2025 class: cantrips at 10 and 14, half-caster slots, class and Armorer tools, a 150 GP kit, no Expertise.');
 console.log('PASS: the shipped Night Shift homebrew (Vampire species, Artificer class) passes the same checks as homebrew made on the screen.');
 
+/* players' homebrew: submissions to the DM, and the table the DM publishes (added, updated and removed automatically) */
+{const idea={...B.newFeat(),id:'hb-ft-idea',name:'Night Owl',type:'origin',minLevel:1,desc:'You see better at night than most; Advantage on Perception checks in dim light.'};
+const sent=JSON.parse(B.exportJson({feats:[idea]},[idea.id],{from:'player'}));assert.equal(sent.from,'player');assert.equal(sent.feats[0].approved,false);
+const got=plain(B.parseImport(JSON.stringify(sent),{feats:[]}));assert(got.fromPlayer&&got.items[0].fromPlayer&&!got.items[0].approved,'the DM sees a player’s submission, unapproved');
+const dm={backgrounds:[],species:[],classes:[],feats:[{...idea,approved:true,updated:100},{...idea,id:'hb-ft-draft',name:'Draft',approved:false}]};
+const table=B.exportJson(dm,null,{approved:true});assert.deepEqual(JSON.parse(table).feats.map(f=>f.name),['Night Owl'],'only approved homebrew is published');
+const p={backgrounds:[],species:[],classes:[],feats:[]};assert.equal(B.mergeTable(p,table),1);assert(p.feats[0].approved&&p.feats[0].fromTable,'added to a player’s browser, approved');
+assert.equal(B.mergeTable(p,table),0,'nothing twice');
+dm.feats[0]={...dm.feats[0],desc:'Updated text that is long enough to pass.',updated:200};assert.equal(B.mergeTable(p,B.exportJson(dm,null,{approved:true})),1);assert.match(p.feats[0].desc,/Updated/,'a newer version replaces it');
+assert.equal(B.mergeTable(p,B.exportJson({...dm,feats:[]},null,{approved:true})),1);assert.equal(p.feats.length,0,'taken off the table: removed');
+const own={backgrounds:[],species:[],classes:[],feats:[{...idea,id:'hb-ft-mine',approved:false}]};B.mergeTable(own,table);assert.equal(own.feats.length,1,'a player’s own homebrew of that name is kept, not doubled');
+const q={feats:[],tableDismissed:['hb-ft-idea']};assert.equal(B.mergeTable(q,table),0,'deleted by the player: not added again');
+assert.equal(B.mergeTable({feats:[]},B.exportJson(dm,null)),0,'a file that isn’t the DM’s published table changes nothing');}
+console.log('PASS: players send homebrew to the DM as unapproved submissions; the DM’s published table reaches every browser approved, updates, and removes what the DM takes off; a player’s deletion sticks.');
+
 /* the screen, end to end */
 ctx.capture=(title,body)=>{captured=title;handlers={};return {close(){},querySelector:k=>handlers[k]??={}};};run('openDialog=capture;');
 run(`S=fresh();S.role='dm';S.tab='homebrew';render();`);assert(node('#view').innerHTML.includes('No homebrew backgrounds yet'));
@@ -143,3 +165,28 @@ run(`ACT['hb-del']({v:'${id}'});`);assert.match(captured,/Delete Lighthouse Keep
 assert.equal(plain(run('S.party[S.party.length-1]')).build.hbData.backgrounds[0].name,'Lighthouse Keeper');
 run(`S.homebrew.backgrounds.push({...QBHomebrew.newBackground(),name:'Half done'});`);const half=run('S.homebrew.backgrounds[0].id');run(`ACT['hb-approve']({v:'${half}'});`);assert.equal(run('S.homebrew.backgrounds[0].approved'),false,'an unfinished background cannot be approved');
 console.log('PASS: the Homebrew screen builds, checks and saves a background; approval puts it into the creator; a hero made with it keeps its copy after the DM deletes it; unfinished work cannot be approved.');
+
+/* subclasses for the existing classes: the class's subclass levels, measured against its own subclasses, reaching the creator */
+{const c=vm.createContext({crypto:require('crypto').webcrypto});for(const f of ['srd-heroes','phb-feats','phb-subclasses','srd-spells','hero-rules','homebrew'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),c);
+const HB=c.QBHomebrew,HR=c.QBHeroRules,p=x=>JSON.parse(JSON.stringify(x));
+assert.deepEqual([HB.subLevels('fighter'),HB.subLevels('cleric'),HB.subLevels('rogue')].map(x=>p(x)),[[3,7,10,15,18],[3,6,17],[3,9,13,17]],'each class keeps its own subclass levels');
+const rune={...HB.newSubclass('fighter'),name:'Rune Breaker',summary:'Shatter magic with your blade.',features:[3,7,10,15,18].map(l=>({level:l,name:'Rune '+l,desc:'Something in my own words.'}))};
+assert.deepEqual(p(HB.checkSubclass(rune)).filter(x=>!x.ok).map(x=>x.label),[]);assert(HB.subclassFits(rune),'a fighter subclass with written features fits');
+assert.deepEqual(p(HB.checkSubclass({...rune,name:'Champion',features:rune.features.slice(1).concat({level:4,name:'Off',desc:''})})).filter(x=>!x.ok).map(x=>x.label),['A name of its own','Features at levels 3, 7, 10, 15, 18','No features at other levels']);
+assert(!HB.subclassFits({...rune,hpPerLevel:true}),'+1 HP per level is more than any Fighter subclass gets');
+assert(HB.subclassFits({...rune,caster:true}),'a third caster fits the Fighter (the Eldritch Knight casts too)');
+const rogue={...HB.newSubclass('rogue'),name:'Duelist',summary:'x',features:[3,9,13,17].map(l=>({level:l,name:'F'+l,desc:''}))};
+assert(HB.subclassFits(rogue)&&!HB.subclassFits({...rogue,extraAttackAt:5}),'Extra Attack on a Rogue doubles Sneak Attack: flagged');
+assert(!HB.checkSubclass({...HB.newSubclass('wizard'),caster:true}).find(x=>x.label.startsWith('Spellcasting only')).ok,'a Wizard subclass cannot add its own spellcasting');
+const sorc={...HB.newSubclass('sorcerer'),name:'Ember Soul',summary:'x',features:[3,6,14,18].map(l=>({level:l,name:'F'+l,desc:''})),hpPerLevel:true,training:['medium']};
+assert(HB.subclassFits(sorc),'+1 HP per level is in the Sorcerer range (Draconic Sorcery)');
+HR.setHomebrew(HB.forCreator({subclasses:[{...sorc,approved:true}]}));
+const sorcs=HR.data().classes.find(x=>x.id==='sorcerer').subclasses;assert.equal(sorcs.at(-1).name,'Ember Soul');assert.equal(c.QBHERO.classes.find(x=>x.id==='sorcerer').subclasses.some(s=>s.homebrew),false,'the shared data stays untouched');
+const b={...HR.quickBuild('sorcerer','Ash',5),subclass:sorc.id},s=p(HR.derive(b)),s0=p(HR.derive({...b,subclass:'draconic-sorcery'}));
+assert.equal(s.subclass,'Ember Soul');assert.equal(s.hp.max,s0.hp.max,'+1 HP per level like Draconic Resilience');assert(s.features.some(f=>f.name==='F3'&&f.source==='Ember Soul'));
+const ek=p(HR.derive({...HR.quickBuild('fighter','Kel',7),subclass:(HR.setHomebrew(HB.forCreator({},{hbData:{subclasses:[p(HB.subclassToSrd({...rune,caster:true,spellAbility:'INT'}))]}})),rune.id)}));
+assert.deepEqual(ek.spellcasting.slots.slice(0,2),[4,2],'a hero’s plain copy of a third-caster subclass still casts');
+const rt=p(HB.parseImport(HB.exportJson({subclasses:[{...sorc,approved:true}]},null,{approved:true}),{subclasses:[]}));assert.equal(rt.items[0].kind,'subclass');assert.equal(rt.items[0].approved,true);
+const hb={subclasses:[]};assert.equal(HB.mergeTable(hb,HB.exportJson({subclasses:[{...sorc,approved:true}]},null,{approved:true})),1);assert.equal(hb.subclasses[0].fromTable,true,'published subclasses reach every browser');
+HR.setHomebrew(null);}
+console.log('PASS: homebrew subclasses: features at the class’s own subclass levels; measured against that class’s subclasses at 3/5/11/17 (+1 HP per level fits a Sorcerer, not a Fighter; Extra Attack on a Rogue is flagged); approved ones join the class in the creator; heroes keep a working copy; export, import and the table carry them.');

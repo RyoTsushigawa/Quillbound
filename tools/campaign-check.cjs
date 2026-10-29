@@ -12,8 +12,8 @@ const run=c=>vm.runInContext(c,ctx),C=ctx.QBCampaigns,view=()=>node('#view').inn
 ctx.saveFile=(name,text)=>{saved={name,text};};ctx.toast=t=>{toastText=t;};run('saveFile=globalThis.saveFile;toast=globalThis.toast;clConfirm=(a,b,go)=>go();'); // confirmations accepted at once
 
 (async()=>{
-/* a new browser is a player's: only Start, Create a hero and My heroes */
-assert.equal(run('S.role'),'player');assert.deepEqual(shown(),['home','create','heroes']);assert(view().includes('Welcome, adventurer'));
+/* a new browser is a player's: only Start, Create a hero, My heroes and My homebrew */
+assert.equal(run('S.role'),'player');assert.deepEqual(shown(),['home','create','heroes','homebrew']);assert(view().includes('Welcome, adventurer'));
 run("S.tab='desk';render();");assert.equal(run('S.tab'),'home','a player can’t open the DM desk');
 /* a player builds Toxik (a Vampire Artificer from the shipped homebrew), saves him and sends him to the DM */
 run(`S.tab='create';S.creator=crNew();render();ACT['cr-species']({v:'hb-sp-night-shift-vampire'});render();ACT['cr-class']({v:'hb-cl-night-shift-artificer'});render();ACT['cr-quick']({v:'hb-cl-night-shift-artificer'});
@@ -51,7 +51,13 @@ assert.throws(()=>run(`QBCampaigns.remove(S,S.campaigns.current)`),/Switch to an
 run(`ACT.reset()`);assert(run('S.dmLock&&S.myHeroes.length===1&&S.campaigns.list.length===3'));
 /* heroes made before player mode (in this browser's party) are copied into My heroes once */
 run(`delete S.myHeroes;S.party.push({id:'old1',name:'Camilla',build:{...S.party[0].build,name:'x'},want:'Fame'});cmInit();`);assert(run("S.myHeroes.some(h=>h.build.name==='Camilla'&&h.story.want==='Fame')"),'earlier heroes reach My heroes');
+/* a player's Homebrew tab: make an idea, no approving it themselves, Send to DM; the creator links to it */
+run(`S.role='player';S.tab='create';S.creator=crNew();S.creator.step='background';render();`);assert(view().includes('data-act="hb-start" data-v="backgrounds"')&&view().includes('send it to your DM'),'Make your own background, from the creator');
+run(`ACT['hb-start']({v:'feats'});Object.assign(S.hbEdit,{name:'Night Owl',type:'origin',minLevel:1,desc:'You see better at night than most; Advantage on Perception in dim light.'});ACT['hb-save']();render();`);
+assert.equal(run('S.tab'),'homebrew');assert(view().includes('Your idea: not approved yet')&&view().includes('Send to DM')&&!view().includes('data-act="hb-approve"'),'players can’t approve their own homebrew');
+run(`ACT['hb-approve']({v:S.homebrew.feats.at(-1).id})`);assert.equal(run('S.homebrew.feats.at(-1).approved'),false);
+run(`ACT['hb-send']({v:S.homebrew.feats.at(-1).id})`);assert.match(saved.name,/^night-owl\.quillbound-homebrew\.json$/);assert.equal(JSON.parse(saved.text).from,'player');
 /* locking returns to player mode */
-run(`ACT['cm-lock']();render();`);assert.equal(run('S.role'),'player');assert.deepEqual(shown(),['home','create','heroes']);
+run(`ACT['cm-lock']();render();`);assert.equal(run('S.role'),'player');assert.deepEqual(shown(),['home','create','heroes','homebrew']);
 console.log('PASS: player mode by default (DM tabs hidden); players save heroes and send hero files with their homebrew; the DM’s passphrase opens DM mode; campaigns switch, back up and restore without mixing data; hero files join (and update) the party with their attacks and story.');
 })().catch(e=>{console.error(e);process.exit(1);});
