@@ -236,12 +236,15 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
     <nav class="tabs" aria-label="Tools">
       <button class="tab cl-start" data-act="tab" data-v="home">Start here</button>
       <button class="tab" data-act="tab" data-v="create">Create a hero</button>
+      <button class="tab" data-act="tab" data-v="heroes">My heroes</button>
+      <button class="tab" data-act="tab" data-v="campaigns">Campaigns</button>
       <button class="tab" data-act="tab" data-v="import">Import adventure</button>
       <button class="tab" data-act="tab" data-v="desk">DM desk</button>
       <button class="tab" data-act="tab" data-v="homebrew">Homebrew</button>
       <button class="tab" data-act="tab" data-v="combat">Combat</button>
     </nav>
     <button class="btn sm" data-act="player-setup" id="player-btn">Player screen</button>
+    <button class="btn sm" data-act="cm-unlock" id="mode-btn">I’m the DM</button>
     <button class="btn ghost sm" data-act="cl-help">Help</button><span class="cl-save" id="save-state" role="status">Saved in this browser</span>
   </div>
 </header>
@@ -256,12 +259,14 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/app/hero-rules.js"></script>
 <script src="src/app/homebrew.js"></script>
 <script src="src/app/sheet-export.js"></script>
+<script src="src/app/campaigns.js" data-ui></script>
 <script src="src/app/table-homebrew.js"></script>
 <script src="src/app/combat-rules.js"></script>
 <script src="src/app/encounter-design.js"></script>
 <script src="src/app/conditions.js"></script>
 <script src="src/ui/creator.js"></script>
 <script src="src/ui/homebrew.js"></script>
+<script src="src/ui/campaigns.js"></script>
 <script>
 /* ---------- rules data ---------- */
 const ABIL=['STR','DEX','CON','INT','WIS','CHA'];
@@ -820,10 +825,11 @@ function endFightDialog(leads){
 /* ---------- actions ---------- */
 const ACT={
   tab:d=>{S.tab=d.v; window.scrollTo(0,0);},
-  reset:()=>{S=fresh(); toast('Demo data reset');},
+  reset:()=>{ const keep=Object.fromEntries(['role','dmLock','myHeroes','campaigns','homebrew'].filter(k=>k in S).map(k=>[k,S[k]])); S=Object.assign(fresh(),keep); toast('Demo data reset'); }, // the DM lock, players' heroes, other campaigns and homebrew stay
   discord:d=>discordPreview(d.v),
   ...creatorActions(),
   ...homebrewActions(),
+  ...campaignActions(),
   'lib-open':d=>{if(!S.importer.lib) return; S.importer.pi=+d.v; S.importer.phase='product'; S.importer.status=''; window.scrollTo(0,0);},
   'lib-back':()=>{S.importer.phase='library'; S.importer.status='';},
   'lib-clear':()=>{if(window.QB) QB.clear(); Object.assign(S.importer,{lib:null,pi:null,phase:'library',status:'',versions:{}});},
@@ -1272,7 +1278,8 @@ document.addEventListener('input',e=>{if(e.target.dataset.bind==='draft.name'){c
 function render(){
   publishPlayer();
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.v===S.tab));
-  $('#view').innerHTML={home:vHome,create:vCreate,import:vImport,desk:vDesk,combat:vCombat,homebrew:vHomebrew}[S.tab]();
+  cmShell(); // player or DM mode (src/ui/campaigns.js)
+  $('#view').innerHTML={home:S.role==='dm'?vHome:vPlayerHome,create:vCreate,heroes:vHeroes,campaigns:vCampaigns,import:vImport,desk:vDesk,combat:vCombat,homebrew:vHomebrew}[S.tab]();
   save();
 }
 document.addEventListener('click',e=>{
@@ -1357,6 +1364,7 @@ S=load()||fresh();
     if(i>=0){ if((hb[k][i].version||1)<(x.version||1)) hb[k][i]={...copy,approved:hb[k][i].approved}; }
     else if(!hb[k].some(y=>String(y.name).trim().toLowerCase()===x.name.toLowerCase())) hb[k].push(copy); }
   hb.seeded.push(T.id); save(); })();
+cmInit(); // everyone starts in player mode; the save becomes the first campaign
 delete S.modal; // older saves kept the previous popup here
 // file handles don't survive a reload: keep read results, but the library has to be dropped again
 Object.assign(S.importer,{busy:false,status:''});

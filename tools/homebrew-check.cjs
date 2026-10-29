@@ -7,6 +7,7 @@ let captured='',handlers={};
 const ctx=vm.createContext({document:{querySelector:node,querySelectorAll:()=>[],getElementById:id=>node('#'+id),addEventListener(){}},crypto:require('node:crypto').webcrypto,BroadcastChannel:class{postMessage(){}close(){}},localStorage:{getItem:()=>null,setItem(){}},window:null,console,setTimeout:()=>0,clearTimeout(){},URL});ctx.window=ctx;ctx.addEventListener=()=>{};ctx.scrollTo=()=>{};
 for(const n of ['player-core','srd-monsters','attacks','srd-heroes','srd-spells','hero-rules','homebrew','combat-rules','conditions','encounter-design'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',n+'.js'),'utf8'),ctx);
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');require('./ui-scripts.cjs').loadUi(html,ctx);vm.runInContext([...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(x=>x.includes('const ACT=')),ctx);
+vm.runInContext("S.role='dm';",ctx); // the Homebrew tab is the DM's
 assert([...html.matchAll(/<script src="src\/app\/([\w-]+)\.js"><\/script>/g)].map(m=>m[1]).includes('homebrew'),'index.html loads homebrew.js');
 const B=ctx.QBHomebrew,R=ctx.QBHeroRules,plain=x=>JSON.parse(JSON.stringify(x)),run=c=>vm.runInContext(c,ctx);
 
@@ -128,7 +129,7 @@ console.log('PASS: the shipped Night Shift homebrew (Vampire species, Artificer 
 
 /* the screen, end to end */
 ctx.capture=(title,body)=>{captured=title;handlers={};return {close(){},querySelector:k=>handlers[k]??={}};};run('openDialog=capture;');
-run(`S=fresh();S.tab='homebrew';render();`);assert(node('#view').innerHTML.includes('No homebrew backgrounds yet'));
+run(`S=fresh();S.role='dm';S.tab='homebrew';render();`);assert(node('#view').innerHTML.includes('No homebrew backgrounds yet'));
 run(`ACT['hb-new']();Object.assign(S.hbEdit,{name:'Lighthouse Keeper',feat:'alert',tool:"Navigator's Tools"});for(const v of ['WIS','CON','INT'])ACT['hb-toggle']({k:'abilities',v,max:3});ACT['hb-toggle']({k:'abilities',v:'STR',max:3});
   for(const v of ['perception','survival'])ACT['hb-toggle']({k:'skills',v,max:2});ACT['hb-additem']({v:'clothes-travelers'});S.hbEdit.kit.gp='45';render();`);
 assert(node('#view').innerHTML.includes('Fits the 2024 structure'));assert.equal(run('S.hbEdit.abilities.length'),3,'a fourth ability is refused');

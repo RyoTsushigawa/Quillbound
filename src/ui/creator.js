@@ -149,7 +149,7 @@ function crStepBody(c,sheet){
     return `<div class="card stack"><h3>${esc(b.name||'Your hero')}</h3><p>Level ${sheet.level} ${esc(sheet.species)} ${esc(sheet.cls)}${sheet.subclass?' ('+esc(sheet.subclass)+')':''} · ${esc(sheet.background)}</p>
       ${open.length?`<div class="cl-error" role="alert"><b>Still to choose:</b><ul>${open.map(o=>`<li><button class="linklike" data-act="cr-step" data-v="${o.step}">${esc(o.label)}${o.left>1?' ('+o.left+')':''}</button></li>`).join('')}</ul></div>`:'<p class="cr-count done">✓ Every choice is made.</p>'}
       ${sheet.warnings.length?`<ul class="small lt-warning">${sheet.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:''}
-      <div class="row"><button class="btn discord" data-act="discord" data-v="sheet">Preview Discord message</button><button class="btn" data-act="cr-printsheet">Character sheet (print / PDF)</button><button class="btn" data-act="cr-new">Start another</button><button class="btn primary" data-act="cr-add" ${open.length?'disabled':''}>Add to party</button></div></div>`; }
+      <div class="row"><button class="btn discord" data-act="discord" data-v="sheet">Preview Discord message</button><button class="btn" data-act="cr-printsheet">Character sheet (print / PDF)</button><button class="btn" data-act="cr-new">Start another</button><button class="btn primary" data-act="${S.role==='dm'?'cr-add':'cr-savehero'}" ${open.length?'disabled':''}>${S.role==='dm'?'Add to party':(c.heroId?'Save changes to My heroes':'Save to My heroes')}</button></div></div>`; }
   }
 }
 // The live sheet: every number calculated from the choices so far.
@@ -180,6 +180,16 @@ function vCreate(){
     <details class="cr-sheet-wrap" open><summary>View sheet</summary>${crSheetPanel(c,sheet)}</details></div>`;
 }
 // Creator actions; spread into ACT where it is defined.
+// A hero keeps copies of the homebrew it uses (background, species, class, feats), so it still works after the DM
+// edits or deletes that homebrew, or in another browser (a hero file sent to the DM).
+function crKeepHomebrew(build){
+  const D=crData(), copy=x=>x?[JSON.parse(JSON.stringify(x))]:[], used=D.backgrounds.find(x=>x.id===build.background&&x.homebrew),
+    usedSp=D.species.find(x=>x.id===build.species&&x.homebrew), usedCl=D.classes.find(x=>x.id===build.cls&&x.homebrew),
+    featIds=new Set([D.backgrounds.find(x=>x.id===build.background)?.feat?.id,build.speciesFeat,build.fightingStyle,...Object.values(build.asi||{}).map(x=>x.feat)].filter(Boolean)),
+    usedFt=D.feats.filter(x=>x.homebrew&&featIds.has(x.id)).map(x=>JSON.parse(JSON.stringify(x)));
+  if(used||usedSp||usedCl||usedFt.length) build.hbData={backgrounds:copy(used),species:copy(usedSp),classes:copy(usedCl),feats:usedFt};
+  return build;
+}
 function creatorActions(){ const B=()=>crState().build, D=()=>crData();
   return {
   'cr-step':d=>{ if(d.v) crState().step=d.v; window.scrollTo(0,0); },
@@ -221,9 +231,13 @@ function creatorActions(){ const B=()=>crState().build, D=()=>crData();
   'cr-chip':d=>{ crState().story[d.k]=d.v; },
   'cr-randname':()=>{ B().name=NAMES[Math.floor(Math.random()*NAMES.length)]; },
   'cr-new':()=>{ S.creator=crNew(); },
+  // Player mode: the hero goes to My heroes in this browser (src/ui/campaigns.js sends it to the DM from there).
+  'cr-savehero':()=>{ const c=crState(), sheet=crSheet(c); if(sheet.open.length||!c.build.name.trim()) { toast('Finish the open choices first.'); return; }
+    crKeepHomebrew(c.build); S.myHeroes??=[]; const hero={id:c.heroId||uid('ph'),build:JSON.parse(JSON.stringify({...c.build,name:c.build.name.trim()})),story:{...c.story},saved:Date.now()};
+    const i=S.myHeroes.findIndex(h=>h.id===hero.id); if(i>=0) S.myHeroes[i]=hero; else S.myHeroes.push(hero);
+    toast(`${hero.build.name} is saved in My heroes. Send them to your DM from there.`); S.creator=crNew(); S.tab='heroes'; },
   'cr-add':()=>{ const c=crState(), sheet=crSheet(c); if(sheet.open.length||!c.build.name.trim()) { toast('Finish the open choices first.'); return; }
-    const used=crData().backgrounds.find(x=>x.id===c.build.background&&x.homebrew); const usedSp=crData().species.find(x=>x.id===c.build.species&&x.homebrew), usedCl=crData().classes.find(x=>x.id===c.build.cls&&x.homebrew); const copy=x=>x?[JSON.parse(JSON.stringify(x))]:[]; const featIds=new Set([crData().backgrounds.find(x=>x.id===c.build.background)?.feat?.id,c.build.speciesFeat,c.build.fightingStyle,...Object.values(c.build.asi||{}).map(x=>x.feat)].filter(Boolean)), usedFt=crData().feats.filter(x=>x.homebrew&&featIds.has(x.id)).map(x=>JSON.parse(JSON.stringify(x)));
-    if(used||usedSp||usedCl||usedFt.length) c.build.hbData={backgrounds:copy(used),species:copy(usedSp),classes:copy(usedCl),feats:usedFt}; // the hero keeps its own copy
+    crKeepHomebrew(c.build); // the hero keeps its own copy
     const p=QBHeroRules.toHero(JSON.parse(JSON.stringify(c.build)),sheet,{id:uid('p'),want:c.story.want}); p.name=c.build.name.trim(); heroDefaults(p); S.party.push(p);
     [['want','wants'],['left','left behind'],['fear','fears']].forEach(([k,l])=>{ if(c.story[k].trim()) S.hooks.push({id:uid('h'),text:`${p.name} ${l}: ${c.story[k].trim()}`,status:'dangling',clock:0,source:'Character'}); });
     toast(`${p.name} joined the party. Their story answers are now leads on the DM desk.`); S.creator=crNew(); }
