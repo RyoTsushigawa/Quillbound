@@ -283,7 +283,8 @@
     return { ...keep, name: sheet.name || keep.name || 'Hero', cls: sheet.cls, anc: sheet.species, level: sheet.level, prof: sheet.prof, abil: sheet.scores,
       trained: Object.entries(sheet.saves).filter(([, v]) => v.prof).map(([k]) => k), hp: sheet.hp.max, hpNow: Math.min(keep.hpNow ?? sheet.hp.max, sheet.hp.max), ac: sheet.ac,
       hitDice: { die: sheet.hitDice.die, left: Math.min(keep.hitDice?.left ?? sheet.level, sheet.level) }, stamina: Math.min(keep.stamina ?? sheet.prof, sheet.prof),
-      attacks: sheet.attacks.map(a => ({ name: a.name, bonus: a.bonus, damage: a.damage, count: a.count })), attack: best ? { name: best.name } : keep.attack,
+      // Combat reads name, bonus, damage and count; type, save (a saving-throw cantrip) and kind ride along for it.
+      attacks: sheet.attacks.map(a => ({ name: a.name, bonus: a.bonus, damage: a.damage, count: a.count, type: a.type || '', save: a.save || '', kind: a.kind || '' })), attack: best ? { name: best.name } : keep.attack,
       perceptionBonus: sheet.skills.perception.bonus, build: b, sheetVersion: 2, conds: keep.conds || [null, null, null, null] };
   }
 
