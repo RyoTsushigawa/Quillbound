@@ -14,11 +14,12 @@
     drachenblütige: 'dragonborn', drachengeborener: 'dragonborn', tiefling: 'tiefling', ork: 'orc', orkin: 'orc', goliath: 'goliath' };
   const SKILL_DE = { akrobatik: 'acrobatics', 'mit tieren umgehen': 'animal-handling', 'arkane kunde': 'arcana', athletik: 'athletics', täuschen: 'deception', geschichte: 'history',
     menschenkenntnis: 'insight', einschüchtern: 'intimidation', nachforschungen: 'investigation', heilkunde: 'medicine', naturkunde: 'nature', wahrnehmung: 'perception',
-    auftreten: 'performance', überreden: 'persuasion', religion: 'religion', fingerfertigkeit: 'sleight-of-hand', heimlichkeit: 'stealth', überleben: 'survival' };
+    auftreten: 'performance', überreden: 'persuasion', religion: 'religion', fingerfertigkeit: 'sleight-of-hand', heimlichkeit: 'stealth', überleben: 'survival',
+    tierkunde: 'animal-handling', 'umgang mit tieren': 'animal-handling', arkana: 'arcana', überlebenskunst: 'survival', 'motiv erkennen': 'insight', darbietung: 'performance' };
   const GEAR_DE = { langbogen: 'longbow', kurzbogen: 'shortbow', dolch: 'dagger', rapier: 'rapier', langschwert: 'longsword', kurzschwert: 'shortsword', streitaxt: 'battleaxe', zweihänder: 'greatsword',
     zweihandschwert: 'greatsword', großaxt: 'greataxe', kampfstab: 'quarterstaff', speer: 'spear', streitkolben: 'mace', 'leichte armbrust': 'light crossbow', 'schwere armbrust': 'heavy crossbow',
     handarmbrust: 'hand crossbow', pfeile: 'arrows', bolzen: 'bolts', schild: 'shield', lederrüstung: 'leather armor', 'beschlagene lederrüstung': 'studded leather armor', kettenhemd: 'chain shirt',
-    kettenpanzer: 'chain mail', schuppenpanzer: 'scale mail', brustplatte: 'breastplate', halbplatte: 'half plate armor', plattenpanzer: 'plate armor', diebeswerkzeug: "thieves' tools", tüftlerwerkzeug: "tinker's tools" };
+    kettenpanzer: 'chain mail', 'beschlagenes leder': 'studded leather armor', leder: 'leather armor', halbplatte: 'half plate armor', flöte: 'flute', laute: 'lute', schuppenpanzer: 'scale mail', brustplatte: 'breastplate', halbplatte: 'half plate armor', plattenpanzer: 'plate armor', diebeswerkzeug: "thieves' tools", tüftlerwerkzeug: "tinker's tools" };
   const ATTACK_DE = { krallen: 'claws', klauen: 'claws', biss: 'bite', vampirbiss: 'bite', faust: 'unarmed strike', 'waffenloser schlag': 'unarmed strike' };
   const SUBCLASS_DE = { dieb: 'thief', meisterdieb: 'thief', 'pfad des berserkers': 'path of the berserker', champion: 'champion', 'kolleg des wissens': 'college of lore' };
   const norm = s => String(s || '').toLowerCase().normalize('NFC').replace(/[’']/g, '').replace(/[^a-zäöüß0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -43,6 +44,12 @@
     }
     return null;
   }
+  // "Rogue / Thief" or "Bard (College of Lore)" without a level: the level comes from elsewhere on the sheet
+  function classNoLevel(text, data) {
+    for (const part of String(text).split('·')) { const m = part.trim().match(/^([A-Za-zÄÖÜäöüß' -]+?)(?:\s*[/(]\s*([^)]+?)\)?)?\s*$/); if (!m) continue; const id = classId(m[1], data); if (id) return { cls: id, subclass: (m[2] || '').trim() }; }
+    return null;
+  }
+  const levelIn = lines => { for (const l of lines) { const m = l.match(/(?:stufe|level|lvl\.?)\s*(\d{1,2})\b/i); if (m) return +m[1]; } return null; };
   function classId(name, data) { const k = key(name); return data.classes.find(c => key(c.name) === k || c.id === k)?.id || CLASS_DE[norm(name)] || null; }
   // Species by name: SRD and homebrew, German names, and near spellings ("Vampir" → Vampire).
   function speciesId(name, data) {
@@ -56,9 +63,11 @@
     const f = blank(); f.source = 'PDF (text)';
     const all = lines.join('\n');
     // the title line: "Species · Class N (Subclass) · Background"; the name is the line just above it
-    const ti = lines.findIndex(l => classIn(l, data)); if (ti >= 0) {
-      Object.assign(f, classIn(lines[ti], data));
-      const parts = lines[ti].split('·').map(s => s.trim()), ci = parts.findIndex(p => classIn(p, data));
+    let ti = lines.findIndex(l => classIn(l, data)), noLevel = false;
+    if (ti < 0) { ti = lines.findIndex(l => l.includes('·') && cells(l).length === 1 && classNoLevel(l, data)); noLevel = ti >= 0; }
+    if (ti >= 0) {
+      Object.assign(f, noLevel ? { ...classNoLevel(lines[ti], data), level: levelIn(lines) || 1 } : classIn(lines[ti], data)); f.subclass = String(f.subclass || '').replace(/\s*\(.*$/, '').trim();
+      const parts = lines[ti].split('·').map(s => s.trim()), ci = parts.findIndex(p => noLevel ? classNoLevel(p, data) : classIn(p, data));
       for (const p of parts) { if (p === parts[ci]) continue; const sp = speciesId(p.replace(/,.*$/, ''), data); if (sp && !f.species) f.species = sp; else if (!f.background && parts.indexOf(p) > ci) f.background = p; }
       if (!f.species) { const sp = parts.map(p => speciesId(p.replace(/,.*$/, ''), data)).find(Boolean); if (sp) f.species = sp; }
       const above = lines.slice(Math.max(0, ti - 2), ti).reverse().find(l => cells(l).length === 1 && l.length <= 60 && !/night shift/i.test(l));
@@ -68,21 +77,43 @@
     const ai = lines.findIndex(l => { const c = cells(l); return c.length >= 6 && c.slice(0, 6).every(x => ABIL_ALIAS[x.toUpperCase()]); });
     if (ai >= 0) { const labels = cells(lines[ai]).slice(0, 6).map(x => ABIL_ALIAS[x.toUpperCase()]);
       for (const l of lines.slice(ai + 1, ai + 4)) { const c = cells(l); if (c.length >= 6 && c.slice(0, 6).every(x => /^\d{1,2}$/.test(x))) { labels.forEach((k, i) => f.abilities[k] = +c[i]); break; } } }
+    if (!ABIL.every(k => f.abilities[k])) for (const [alias, k] of Object.entries(ABIL_ALIAS)) { if (f.abilities[k]) continue;
+      const at = lines.findIndex(l => cells(l)[0] === alias); if (at < 0) continue;
+      for (const l of lines.slice(at + 1, at + 5)) { const c0 = cells(l)[0] || ''; if (/^\d{1,2}$/.test(c0) && +c0 >= 3 && +c0 <= 30) { f.abilities[k] = +c0; break; } } }
     // AC, HP and speed: a line of labels and the values under them
     for (let i = 0; i < lines.length - 1; i++) { const lab = cells(lines[i]), val = cells(lines[i + 1]); if (lab.length < 2 || lab.length !== val.length) continue;
-      lab.forEach((x, j) => { if (/^(rüstungsklasse|armor class|ac|rk)$/i.test(x)) f.ac = num(val[j]); if (/^(trefferpunkte|hit points|hp|tp|max hp)$/i.test(x)) f.hp = num(val[j]); if (/^(tempo|speed|bewegungsrate)$/i.test(x)) f.speed = /m\b/.test(val[j]) ? Math.round(num(val[j]) / 0.3) : num(val[j]); }); }
-    // skills: "● Stealth | +9" (filled mark = trained), "○ Arcana | +4"
-    for (const l of lines) { const m = l.match(/^([●■☒✓✔◉○□☐◯])\s*(.+?)\s*\|\s*([+−–-]?\d+)/); if (!m) continue; const id = skillId(m[2], data); if (id) f.skills[id] = { prof: !/[○□☐◯]/.test(m[1]), bonus: num(m[3]) }; }
+      lab.forEach((x, j) => { if (/^(rüstungsklasse|armor class|ac|rk)$/iu.test(x)) f.ac = num(val[j]); if (/^(trefferpunkte|hit points|hp|tp|max hp)$/iu.test(x)) f.hp = num(val[j]); if (/^(tempo|speed|bewegungsrate)$/iu.test(x)) f.speed = /m\b/.test(val[j]) ? Math.round(num(val[j]) / 0.3) : num(val[j]); }); }
+    if (!f.speed) { const m = all.match(/(?:tempo|speed)\s+(\d+(?:[.,]\d)?)\s*(m|ft|fuß)\b/i); if (m) f.speed = m[2] === 'm' ? Math.round(parseFloat(m[1].replace(',', '.')) / 0.3) : +m[1]; }
+    // skills: "● Stealth | +9" (filled mark = trained, E = expertise), "○ Arcana | +4"; anywhere on a line
+    for (const l of lines) { const c = cells(l); c.forEach((x, i) => { const m = x.match(/^([●■☒✓✔◉○□☐◯E])\s+(.+)$/); if (!m || !/^[+−–-]?\d+$/.test(c[i + 1] || '')) return; const id = skillId(m[2], data); if (id) f.skills[id] = { prof: !/[○□☐◯]/.test(m[1]), expert: m[1] === 'E', bonus: num(c[i + 1]) }; }); }
     // attacks (for comparison): "Name +7 1W6+4 …" / "Name +7 1d6+4"
     for (const l of lines) { const m = l.match(/^([A-ZÄÖÜa-zäöüß][\wäöüß' -]{1,40}?)\s+([+−-]\d+)\s+(\d+[wWdD]\d+(?:\s*[+−-]\s*\d+)?)/); if (m) f.attacks.push({ name: m[1].trim(), bonus: num(m[2]), damage: m[3].replace(/[wW]/, 'd').replace(/\s/g, '').replace('−', '-') }); }
+    lines.forEach((l, i) => { const c = cells(l), at = c.findIndex(x => /^[+−-]\d+\s*·\s*\d+[wWdD]\d+/.test(x)); if (at < 0) return;
+      const m = c[at].match(/^([+−-]\d+)\s*·\s*(\d+[wWdD]\d+(?:\s*[+−-]\s*\d+)?)/), name = lines.slice(Math.max(0, i - 3), i).reverse().map(x => cells(x)[0] || '').find(x => /^[A-Za-zÄÖÜäöüß][\wäöüß' ()/-]{1,40}$/.test(x) && !ABIL_ALIAS[x.toUpperCase()] && !skillId(x.replace(/^[●○E]\s*/, ''), data));
+      if (name && !f.attacks.some(a => a.name === name)) f.attacks.push({ name, bonus: num(m[1]), damage: m[2].replace(/[wW]/, 'd').replace(/\s/g, '').replace('−', '-') }); });
     // spells: names after "Zauber:", "Spells:", "Cantrips:", "Prepared:" (and the bullet lines that continue them)
     const spellLines = []; lines.forEach((l, i) => { if (/^\W*(zauber|spells|cantrips|zaubertricks|prepared|vorbereitet)\b\s*:/i.test(l)) { spellLines.push(l); for (const n of lines.slice(i + 1, i + 4)) { if (/^•/.test(n) && !/:\s/.test(n.slice(0, 30))) spellLines.push(n); else break; } } });
     f.spellText = spellLines.join(' ');
     // equipment line(s) for granted gear
     const gi = lines.findIndex(l => /^(ausrüstung|equipment)\b/i.test(l)); if (gi >= 0) f.gearText = lines.slice(gi + 1, gi + 5).filter(l => !/^[●■☒✓✔◉○□☐◯]/.test(l) && !/^[A-ZÄÖÜ &/]{6,}$/.test(l)).slice(0, 2).join(', ');
+    if (!f.background) { const named = data.backgrounds.filter(b => b.name.length > 3 && all.includes(b.name)).sort((a, b) => b.name.length - a.name.length)[0]; if (named) f.background = named.name; }
+    // spell references written "German / English: …" or "German / English (Grad 2): …"
+    const refs = [...all.matchAll(/\/\s*([A-Z][A-Za-z' -]{2,30}?)\s*(?:\((?:Grad|Level|Lvl\.?)\s*\d\))?\s*:/g)].map(m => m[1].trim());
+    if (refs.length >= 2) { f.spells = [...new Set(refs)]; f.spellsFromRefs = true; }
     f.notes.push(...lines.filter(l => /^•/.test(l)).map(l => l.replace(/^•\s*/, '')).slice(0, 20));
     if (!f.name) f.name = (all.match(/^[^\n]{2,40}$/m) || [''])[0];
     return f;
+  }
+  // pages: an array of line arrays, one per page → one line array per hero
+  function splitHeroes(pages, data) {
+    const heroes = [];
+    for (const lines of pages) {
+      const starts = lines.some(l => classIn(l, data)) || lines.slice(0, 8).some(l => l.includes('·') && cells(l).length === 1 && classNoLevel(l, data));
+      const named = heroes.find(h => lines.slice(0, 4).some(l => h.name && l.startsWith(h.name)));
+      if (starts) { const f = fromText(lines, data); heroes.push({ name: f.name, lines: [...lines] }); }
+      else if (named) named.lines.push(...lines); else if (heroes.length) heroes.at(-1).lines.push(...lines); else heroes.push({ name: '', lines: [...lines] });
+    }
+    return heroes.map(h => h.lines);
   }
   // Fillable PDFs (the official sheet, D&D Beyond's PDF export): fields by name, compared loosely ("Race " = "race").
   function fromFields(fields, data) {
@@ -189,12 +220,12 @@
       b.expertise = expertSkills.slice(0, R.expertiseCount(b) || 0);
     }
     // gear: matched by name, granted (the starting kits are taken as gold so nothing is counted twice)
-    const gearNames = [...f.gear.map(g => g.name), ...String(f.gearText || '').split(/[,;]/)].map(s => s.trim()).filter(Boolean), found = [], missed = [];
+    const gearNames = [...f.gear.map(g => g.name), ...String(f.gearText || '').split(/[,;.]| und | and /)].map(s => s.replace(/\([^)]*\)?/g, '').replace(/^\d+\s+/, '').trim()).filter(s => s && s.length <= 40 && !/\d+\s*(gm|gp)\b|:$/i.test(s)), found = [], missed = [];
     for (const raw of gearNames) { const n = GEAR_DE[norm(raw)] || raw, k = key(n).replace(/s$/, ''); const id = Object.keys(data.equipment).find(e => { const en = key(data.equipment[e].name); return en === k || en === k + 's' || en.replace(/armor$/, '') === k; }); if (id) found.push(id); else missed.push(raw); }
     if (found.length) { b.gear = { cls: 1, bg: 1, extra: [...new Set(found)].map(id => ({ id, count: 1, how: 'grant' })) }; delete b.equip; }
     if (missed.length) check.push(`Gear not in Quillbound’s list (add it as notes or ask the DM): ${missed.slice(0, 12).join(', ')}${missed.length > 12 ? ' …' : ''}.`);
     // weapons the sheet attacks with but the class isn't trained in: the DM granted the training (as Camilla's longbow)
-    for (const a of f.attacks) { const n = norm(GEAR_DE[norm(a.name)] || a.name), id = Object.keys(data.equipment).find(e => data.equipment[e].kind === 'weapon' && norm(data.equipment[e].name) === n);
+    for (const a of f.attacks) { const n = norm(GEAR_DE[norm(a.name)] || a.name), weapons = Object.keys(data.equipment).filter(e => data.equipment[e].kind === 'weapon'), id = weapons.find(e => norm(data.equipment[e].name) === n) || weapons.find(e => new RegExp(`(^| )${norm(data.equipment[e].name)}( |$)`).test(n) && norm(data.equipment[e].name).length >= 4);
       if (id && !R.proficientWith(b, id)) { b.training = [...new Set([...(b.training || []), id])]; if (!(b.gear?.extra || []).some(x => x.id === id)) b.gear = { cls: 1, bg: 1, ...(b.gear || {}), extra: [...(b.gear?.extra || []), { id, count: 1, how: 'grant' }] };
         check.push(`${data.equipment[id].name}: the sheet attacks with it, but the class isn’t trained in it; recorded as training granted by the DM.`); } }
     R.fillDefaults(b);
@@ -204,7 +235,7 @@
       const names = f.spells.length ? f.spells.map(norm) : null, text = norm(f.spellText || ''), picked = spells.filter(s => names ? names.includes(norm(s.name)) : new RegExp(`(^| )${norm(s.name)}( |$)`).test(text));
       if (picked.length) b.spells = { cantrips: picked.filter(s => !s.level).map(s => s.id), prepared: picked.filter(s => s.level).map(s => s.id) };
       if (!picked.length) check.push('No spells from the free rules were found on the sheet: Quick build’s picks are used; choose them in the creator.');
-      const want = names || []; const miss = want.filter(n => !spells.some(s => norm(s.name) === n)); if (miss.length) check.push(`Spells not in the free rules: ${miss.join(', ')}.`);
+      const want = f.spellsFromRefs ? [] : names || []; const miss = want.filter(n => !spells.some(s => norm(s.name) === n)); if (miss.length) check.push(`Spells not in the free rules: ${miss.join(', ')}.`);
     }
     // hit points: per-level rolls chosen so the total matches the sheet
     let sheet = R.derive(b);
@@ -235,5 +266,5 @@
     return { build: b, sheet, check, compare, notes: f.notes, source: f.source };
   }
 
-  root.QBHeroImport = { linesFromTextContent, fromText, fromFields, fromDdb, fromFoundry, fromJson, toBuild, speciesId, classId, skillId };
+  root.QBHeroImport = { linesFromTextContent, splitHeroes, fromText, fromFields, fromDdb, fromFoundry, fromJson, toBuild, speciesId, classId, skillId };
 })(globalThis);

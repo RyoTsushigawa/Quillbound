@@ -36,6 +36,13 @@ j=I.fromJson(JSON.stringify(foundry),data());assert.deepEqual([j.found.cls,j.fou
 /* what isn't a character */
 assert.match(I.fromJson('{"a":1}',data()).error,/isn’t a D&D Beyond/);assert(I.fromJson('{"format":"quillbound-hero"}',data()).quillbound);assert.match(build(I.fromText(['nothing here'],data())).error||'',/class wasn’t found/);
 console.log('PASS: hero importer: German and English text sheets, fillable PDF fields, D&D Beyond and Foundry VTT become creator heroes with the sheet’s scores, HP (through rolls) and AC; expertise, armor and differences are worked out and listed.');
+/* a sheet laid out in columns: level in the header, "Class / Subclass", scores below their labels, E for expertise, attacks stacked; two heroes in one PDF */
+{const page1=['MY TABLE | CHARACTER SHEET · LEVEL 5','Rin','Human · Rogue / Thief','ARMOR CLASS | HIT POINTS | INITIATIVE','15 | 38 | +4','ST | SAVES | SKILLS · ● TRAINED · E EXPERTISE','○ ST | +0 | ● Acrobatics | +7','10',
+  'GE','18 | ● IN | +4','KO','○ Athletics | +0','14','IN','14','WE | +1','12','CH','○ Deception | -1','8','E Stealth | +10','Dagger','+7 · 1d4+4 Piercing'],page2=['Rin: powers and notes','Speed 30 ft'],page3=['NEXT','Ola','Dwarf · Cleric / Life Domain','LEVEL 3'];
+const heroes=I.splitHeroes([page1,page2,page3],data());assert.equal(heroes.length,2,'two heroes in one PDF; the continuation page joins the first');
+const f=I.fromText(heroes[0],data());assert.deepEqual([f.name,f.cls,f.level,f.subclass,f.species],['Rin','rogue',5,'Thief','human']);assert.deepEqual(plain(f.abilities),{STR:10,DEX:18,CON:14,INT:14,WIS:12,CHA:8},'scores in a column');
+assert(f.skills.stealth.expert&&f.skills.acrobatics.prof,'E marks expertise; skills anywhere on a line');assert.deepEqual(plain(f.attacks[0]),{name:'Dagger',bonus:7,damage:'1d4+4'},'a stacked attack');}
+console.log('PASS: column-style sheets (level in the header, scores under their labels, E for expertise, stacked attacks) and several heroes in one PDF.');
 
 /* the real Night Shift PDFs, when they are on this computer (they aren't in the repository) */
 const sheets=['Toxic','Quinn','Camilla'].map(n=>path.join(process.env.USERPROFILE||'',`Downloads/${n}_DnD_Charakterbogen.pdf`)).filter(p=>fs.existsSync(p));

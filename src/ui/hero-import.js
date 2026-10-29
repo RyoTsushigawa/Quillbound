@@ -16,9 +16,9 @@ async function hiRead(file) {
     const lib = await hiPdfjs(), doc = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false, verbosity: 0 }).promise;
     const fields = await doc.getFieldObjects().catch(() => null);
     if (fields && Object.values(fields).flat().filter(x => x?.value && x.value !== 'Off').length >= 10) return { found: QBHeroImport.fromFields(fields, data) };
-    const lines = []; for (let i = 1; i <= doc.numPages; i++) lines.push(...QBHeroImport.linesFromTextContent((await (await doc.getPage(i)).getTextContent()).items));
-    if (!lines.length) return { error: 'This PDF has no readable text (it may be a scan). Build the hero in the creator instead.' };
-    return { found: QBHeroImport.fromText(lines, data) };
+    const pages = []; for (let i = 1; i <= doc.numPages; i++) pages.push(QBHeroImport.linesFromTextContent((await (await doc.getPage(i)).getTextContent()).items));
+    if (!pages.flat().length) return { error: 'This PDF has no readable text (it may be a scan). Build the hero in the creator instead.' };
+    return { founds: QBHeroImport.splitHeroes(pages, data).map(lines => QBHeroImport.fromText(lines, data)) };
   }
   return QBHeroImport.fromJson(await file.text(), data);
 }
@@ -30,7 +30,9 @@ function hiDialog(target) {
       <div class="row"><input id="hi-ddb" placeholder="https://www.dndbeyond.com/characters/12345678" style="flex:1"><button class="btn" id="hi-ddb-go">Get it</button></div><p class="small" id="hi-ddb-help"></p></details>
     <div id="hi-out" aria-live="polite"></div>`, { wide: true });
   const out = dlg.querySelector('#hi-out'), show = h => { out.innerHTML = h; };
-  const done = (found) => {
+  const done = (found, box) => {
+    const show = h => { box.innerHTML = h; }, out = box, left = () => out.parentElement.querySelectorAll('[data-hi-open]').length;
+    const finish = msg => { out.innerHTML = `<p class="small">✓ ${esc(msg)}</p>`; out.removeAttribute('data-hi-open'); toast(msg); if (!left()) { dlg.close(); render(); } };
     QBHeroRules.setHomebrew(QBHomebrew.forCreator(S.homebrew, {}));
     const r = QBHeroImport.toBuild(found, QBHeroRules, globalThis.QBSPELLS);
     if (r.error) return show(`<p class="cl-error">${esc(r.error)}</p>`);
@@ -43,11 +45,13 @@ function hiDialog(target) {
       <p class="small muted">Differences usually come from house rules, a choice the sheet doesn’t show, or rules Quillbound calculates differently. Open the hero in the creator to change anything.</p>
       <div class="row">${target === 'party' ? '<button class="btn primary" id="hi-party">Add to the party</button>' : '<button class="btn primary" id="hi-mine">Save to My heroes</button>'}<button class="btn" id="hi-edit">Open in the creator</button></div>`);
     const hero = { id: uid('ph'), build: r.build, story: { want: '', fear: '', left: '' }, saved: Date.now() };
-    out.querySelector('#hi-mine')?.addEventListener('click', () => { S.myHeroes ??= []; S.myHeroes.push(hero); dlg.close(); S.tab = 'heroes'; render(); toast(`${hero.build.name} is in My heroes.`); });
-    out.querySelector('#hi-party')?.addEventListener('click', () => { cmAddHero({ hero: { ...hero, name: hero.build.name } }); dlg.close(); render(); toast(`${hero.build.name} joined the party.`); });
+    out.querySelector('#hi-mine')?.addEventListener('click', () => { S.myHeroes ??= []; S.myHeroes.push(hero); S.tab = 'heroes'; finish(`${hero.build.name} is in My heroes.`); });
+    out.querySelector('#hi-party')?.addEventListener('click', () => { cmAddHero({ hero: { ...hero, name: hero.build.name } }); finish(`${hero.build.name} joined the party.`); });
     out.querySelector('#hi-edit').addEventListener('click', () => { S.creator = { ...crNew(), build: JSON.parse(JSON.stringify(hero.build)), step: 'review', ...(target === 'mine' ? { heroId: hero.id } : {}) }; if (target === 'mine') { S.myHeroes ??= []; S.myHeroes.push(hero); } dlg.close(); S.tab = 'create'; render(); window.scrollTo(0, 0); });
   };
-  const handle = r => { if (r.error) return show(`<p class="cl-error">${esc(r.error)}</p>`); if (r.quillbound) return show('<p class="cl-error">This is a Quillbound hero file: use <b>Open a hero file…</b> (My heroes) or <b>Add hero files…</b> (Campaigns) instead.</p>'); done(r.found); };
+  const handle = r => { if (r.error) return show(`<p class="cl-error">${esc(r.error)}</p>`); if (r.quillbound) return show('<p class="cl-error">This is a Quillbound hero file: use <b>Open a hero file…</b> (My heroes) or <b>Add hero files…</b> (Campaigns) instead.</p>');
+    const list = r.founds || [r.found]; show(list.length > 1 ? `<p class="small">${list.length} heroes in this file.</p>` : '');
+    for (const found of list) { const box = document.createElement('div'); box.setAttribute('data-hi-open', ''); out.append(box); done(found, box); } };
   dlg.querySelector('#hi-file').addEventListener('change', e => { const file = e.target.files[0]; e.target.value = ''; if (!file) return; show('<p class="small">Reading…</p>');
     const go = () => hiRead(file).then(handle).catch(er => show(`<p class="cl-error">${esc(er.message || 'This file could not be read.')}</p>`));
     if (crSpells(go)) go(); }); // the spell list loads first, so the hero's spells can be matched
