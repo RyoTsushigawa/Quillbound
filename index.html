@@ -592,6 +592,9 @@ function crState(){ if(S.creator?.v!==2) S.creator=crNew(); return S.creator; }
 // Ability priority for a class: its primary abilities, its spellcasting ability, then Constitution and Dexterity.
 function crPriority(clsId){ const c=crData().classes.find(x=>x.id===clsId); return [...new Set([...(c?.primary||[]),...(c?.spellAbility?[c.spellAbility]:[]),'CON','DEX','WIS','STR','CHA','INT'])].slice(0,6); }
 function crRecommended(clsId){ return Object.fromEntries(crPriority(clsId).map((k,i)=>[k,QBHeroRules.ARRAY[i]])); }
+// Which abilities a feat's own +1 can raise, read from its "Ability Score Increase" line (Grappler: STR or DEX; Epic Boons: any). null: the feat has no +1.
+const AB_NAME={Strength:'STR',Dexterity:'DEX',Constitution:'CON',Intelligence:'INT',Wisdom:'WIS',Charisma:'CHA'};
+function featAbilities(id){ const m=(crData().feats.find(x=>x.id===id)?.desc||'').match(/Ability Score Increase\.\*\*([^\n]*)/); if(!m) return null; if(/of your choice/.test(m[1])) return ABIL.slice(); const ks=Object.entries(AB_NAME).filter(([n])=>m[1].includes(n)).map(([,k])=>k); return ks.length?ks:null; }
 // Turn the helper fields of the screen (+2/+1 pickers, improvement pickers) into the build the rules read.
 function crSync(c){
   const b=c.build, bg=crData().backgrounds.find(x=>x.id===b.background);
@@ -599,7 +602,7 @@ function crSync(c){
   if(bg){ const u=c.boostUI; if(u.mode==='1-1-1') b.boost=Object.fromEntries(bg.abilities.map(k=>[k,1]));
     else { b.boost={}; if(bg.abilities.includes(u.plus2)) b.boost[u.plus2]=2; if(bg.abilities.includes(u.plus1)&&u.plus1!==u.plus2) b.boost[u.plus1]=1; } }
   for(const lv of QBHeroRules.asiLevels(b)){ const u=c.asiUI[lv]||{}; if(!u.feat){ delete b.asi[lv]; continue; }
-    const plus={}; if(u.feat==='ability-score-improvement'){ if(u.mode==='1-1'){ if(u.a) plus[u.a]=(plus[u.a]||0)+1; if(u.b) plus[u.b]=(plus[u.b]||0)+1; } else if(u.a) plus[u.a]=2; } else if(u.feat.startsWith('boon-')&&u.a) plus[u.a]=1;
+    const plus={}; if(u.feat==='ability-score-improvement'){ if(u.mode==='1-1'){ if(u.a) plus[u.a]=(plus[u.a]||0)+1; if(u.b) plus[u.b]=(plus[u.b]||0)+1; } else if(u.a) plus[u.a]=2; } else if(u.a&&featAbilities(u.feat)?.includes(u.a)) plus[u.a]=1;
     b.asi[lv]={feat:u.feat,plus}; }
   for(const lv of Object.keys(b.asi)) if(!QBHeroRules.asiLevels(b).includes(+lv)) delete b.asi[lv];
   if(b.equip){ if(b.equip.armor==='') b.equip.armor=null; }
@@ -635,10 +638,10 @@ function crStepBody(c,sheet){
       ${cls?`<div class="card stack cr-detail"><label class="f">Level<select data-act-change="cr-level">${Array.from({length:20},(_,i)=>crOpt(i+1,'Level '+(i+1),b.level===i+1)).join('')}</select><span class="small muted">Use the level your DM asked for. New adventures usually start at level 1.</span></label>
         ${b.level>=3&&cls.subclass?`<p><b>Subclass at level 3:</b> ${esc(cls.subclass.name)} · ${esc(cls.subclass.summary)} <span class="small muted">(the SRD has one subclass per class)</span></p>`:''}
         ${({fighter:1,paladin:2,ranger:2})[b.cls]<=b.level?`<label class="f">Fighting Style feat<select data-bind="creator.build.fightingStyle" data-rerender>${crOpt('','Choose…',!b.fightingStyle)}${styles.map(f=>crOpt(f.id,f.name,b.fightingStyle===f.id)).join('')}</select><span class="small muted">${esc(firstSentence(styles.find(f=>f.id===b.fightingStyle)?.desc||'Defense adds 1 to armor class while you wear armor; Archery adds 2 to ranged attack rolls.'))}</span></label>`:''}
-        ${asi.map(lv=>{const u=c.asiUI[lv]||{}, feats=D.feats.filter(f=>lv===19?(f.type==='epic-boon'||f.id==='ability-score-improvement'):(f.type==='general'&&f.minLevel<=lv));
+        ${asi.map(lv=>{const u=(c.asiUI[lv]??={}), feats=D.feats.filter(f=>lv===19?(f.type==='epic-boon'||f.id==='ability-score-improvement'):(f.type==='general'&&f.minLevel<=lv));
           return `<fieldset class="cr-asi"><legend>Level ${lv}: ${lv===19?'Epic Boon or an improvement':'Ability Score Improvement or a feat'}</legend><select data-bind="creator.asiUI.${lv}.feat" data-rerender>${crOpt('','Choose…',!u.feat)}${feats.map(f=>crOpt(f.id,f.name,u.feat===f.id)).join('')}</select>
             ${u.feat==='ability-score-improvement'?`<select data-bind="creator.asiUI.${lv}.mode" data-rerender>${crOpt('2','+2 to one ability',u.mode!=='1-1')}${crOpt('1-1','+1 to two abilities',u.mode==='1-1')}</select><select data-bind="creator.asiUI.${lv}.a" data-rerender>${crOpt('','Ability…',!u.a)}${ABIL.map(k=>crOpt(k,APPROACH[k].name+' ('+k+')',u.a===k)).join('')}</select>${u.mode==='1-1'?`<select data-bind="creator.asiUI.${lv}.b" data-rerender>${crOpt('','Ability…',!u.b)}${ABIL.map(k=>crOpt(k,APPROACH[k].name+' ('+k+')',u.b===k)).join('')}</select>`:''}`
-            :u.feat?.startsWith('boon-')?`<select data-bind="creator.asiUI.${lv}.a" data-rerender>${crOpt('','+1 to an ability…',!u.a)}${ABIL.map(k=>crOpt(k,'+1 '+k,u.a===k)).join('')}</select>`:''}
+            :featAbilities(u.feat)?`<select data-bind="creator.asiUI.${lv}.a" data-rerender>${crOpt('','+1 to an ability…',!u.a)}${featAbilities(u.feat).map(k=>crOpt(k,'+1 '+APPROACH[k].name+' ('+k+')',u.a===k)).join('')}</select>`:''}
             ${u.feat?`<p class="small muted">${esc(firstSentence(D.feats.find(f=>f.id===u.feat)?.desc))}</p>`:''}</fieldset>`;}).join('')}
         ${b.level>1?`<fieldset class="cr-asi"><legend>Hit points after level 1</legend><label><input type="radio" name="cr-hp" data-act="cr-hp" data-v="average" ${b.hp.method!=='roll'?'checked':''}> Take the average (${hd/2+1} + Constitution per level)</label><label><input type="radio" name="cr-hp" data-act="cr-hp" data-v="roll" ${b.hp.method==='roll'?'checked':''}> Roll a fair d${hd} per level (each roll is kept)</label>
           ${b.hp.method==='roll'?`<div class="pickrow">${Array.from({length:b.level-1},(_,i)=>i+2).map(lv=>Number.isInteger(b.hp.rolls[lv])?`<span class="chip">Level ${lv}: ${b.hp.rolls[lv]}</span>`:`<button class="btn sm" data-act="cr-hp-roll" data-v="${lv}">Roll level ${lv}</button>`).join('')}</div>`:''}</fieldset>`:''}</div>`:''}`; }

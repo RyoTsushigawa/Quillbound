@@ -35,7 +35,7 @@ The **Create a hero** tab builds 2024 (SRD 5.2) heroes from level 1 to 20.
   - Roll 4d6 drop the lowest, with fair dice. The dice are kept with the hero and can't be rolled again.
 - **Background increases:** the background raises two of its three abilities by +2 and +1, or all three by +1. Scores can't go above 20.
 - **Hit points after level 1:** the average (die ÷ 2 + 1 + Constitution) or a fair roll per level. Rolls are kept.
-- **Levels 4, 8, 12, 16** (and the Fighter's and Rogue's extra levels): an Ability Score Improvement or a feat. **Level 19:** an Epic Boon.
+- **Levels 4, 8, 12, 16** (and the Fighter's and Rogue's extra levels): an Ability Score Improvement or a feat. **Level 19:** an Epic Boon. A feat that raises an ability by 1 (Grappler: Strength or Dexterity; Epic Boons: any ability) asks which one.
 - **Other choices,** each counted on its step: fighting styles, expertise, weapon masteries, the Skilled and Versatile feats, cantrips and prepared spells.
 
 **Equipment.** You take the class's and the background's starting kit.
