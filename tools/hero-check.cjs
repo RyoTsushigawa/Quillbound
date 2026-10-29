@@ -118,3 +118,47 @@ for(const bg of H3.backgrounds){assert.equal(bg.abilities.length,3);assert.equal
 const base={...R3.quickBuild('fighter','T',4),boost:{STR:2,CON:1}},farmer=R3.derive({...base,background:'farmer'}),soldier=R3.derive({...base,background:'soldier'});
 assert.equal(farmer.scores.CON,soldier.scores.CON);assert.equal(farmer.hp.max-soldier.hp.max,8,'Farmer: Tough gives +2 HP per level');}
 console.log('PASS: all 16 backgrounds of the 2024 rules (12 from the Player’s Handbook as summaries) build complete heroes; Farmer’s Tough adds its hit points.');
+
+/* subclasses: four per class (the SRD one plus three from the Player's Handbook), chosen in the build; some calculate */
+{const c4=vm.createContext({crypto:require('crypto').webcrypto});for(const f of ['srd-heroes','phb-feats','phb-backgrounds','phb-subclasses','srd-spells','hero-rules'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),c4);
+const H4=c4.QBHERO,R4=c4.QBHeroRules;assert(H4.classes.every(c=>c.subclasses.length===4&&c.subclasses[0].id===c.subclass.id),'4 subclasses each, the SRD one first');
+assert(H4.classes.every(c=>c.subclasses.every(s=>s.features.length&&s.features.every(f=>f.level>=3&&f.level<=20&&f.name&&f.desc))),'every feature named, levelled and described');
+assert.equal(R4.derive(R4.quickBuild('bard','L',6)).subclass,'College of Lore','no choice made: the SRD subclass, as before');
+const ek={...R4.quickBuild('fighter','EK',7),subclass:'eldritch-knight'};R4.fillDefaults(ek);const s=plain(R4.derive(ek));
+assert.equal(s.subclass,'Eldritch Knight');assert.deepEqual([s.spellcasting.ability,s.spellcasting.cantrips,s.spellcasting.prepared,s.spellcasting.slots.slice(0,3).join('/')],['INT',2,5,'4/2/0'],'Eldritch Knight casts like a third caster');assert.deepEqual(s.open,[]);
+assert(s.features.some(f=>f.name==='War Magic')&&!s.features.some(f=>f.name==='Improved Critical'),'its own features, not the Champion’s');
+const at={...R4.quickBuild('rogue','AT',10),subclass:'arcane-trickster'};R4.fillDefaults(at);assert.equal(R4.derive(at).spellcasting.cantrips,4,'Arcane Trickster: 3 cantrips, 4 at level 10');
+const val={...R4.quickBuild('bard','V',6),subclass:'college-of-valor'};assert(R4.proficientWith(val,'longsword')&&R4.proficientWith(val,'scale-mail'),'Valor: martial weapons, medium armor');
+val.gear={cls:1,bg:1,extra:[{id:'longsword',count:1,how:'grant'}]};assert.equal(R4.derive(val).attacks.find(a=>a.name==='Longsword').count,2,'Valor: Extra Attack at 6');
+assert.equal(R4.derive({...val,level:5}).attacks.find(a=>a.name==='Longsword').count,1);}
+console.log('PASS: subclasses: four per class (36 from the Player’s Handbook as summaries), chosen per hero (the SRD one by default); Eldritch Knight and Arcane Trickster cast spells, Valor gains training and Extra Attack.');
+
+/* more backgrounds: 3 from the 2022 playtest (third ability added) and 11 classic ones converted; all in the 2024 structure */
+{const c5=vm.createContext({crypto:require('crypto').webcrypto});for(const f of ['srd-heroes','phb-feats','phb-backgrounds','phb-subclasses','extra-backgrounds','hero-rules','homebrew'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),c5);
+const H5=c5.QBHERO,R5=c5.QBHeroRules,B5=c5.QBHomebrew;assert.equal(H5.backgrounds.length,30);assert.equal(new Set(H5.backgrounds.map(b=>b.id)).size,30,'no background twice');
+for(const bg of H5.backgrounds.filter(b=>['playtest','classic'].includes(b.source))){assert.equal(bg.abilities.length,3,bg.name);assert.equal(new Set(bg.abilities).size,3,bg.name);assert(H5.feats.some(f=>f.id===bg.feat.id&&f.type==='origin'),bg.name);
+  assert(bg.equipment.choices[0].items.every(i=>H5.equipment[i.id]),bg.name+': kit items exist');const ch=bg.equipment.choices[0];if(bg.source==='classic')assert(B5.kitValue({items:ch.items,gp:ch.gp})>=40&&B5.kitValue({items:ch.items,gp:ch.gp})<=60,bg.name+': kit about 50 GP');
+  const b={...R5.quickBuild('rogue','T',1),background:bg.id,boost:{[bg.abilities[0]]:1,[bg.abilities[1]]:1,[bg.abilities[2]]:1},toolChoice:'',expertise:[]};R5.fillDefaults(b);assert.deepEqual(plain(R5.derive(b).open),[],bg.name+': nothing left open');}}
+console.log('PASS: 30 backgrounds: SRD, Player’s Handbook, 2022 playtest (with a third ability) and 11 classic ones converted to the 2024 structure; each builds a complete hero.');
+
+/* fan-made subclasses (5.5 fan wiki), after the SRD and Player's Handbook ones */
+{const c6=vm.createContext({crypto:require('crypto').webcrypto});for(const f of ['srd-heroes','phb-feats','phb-backgrounds','phb-subclasses','fan-subclasses','srd-spells','hero-rules'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),c6);
+const H6=c6.QBHERO,R6=c6.QBHeroRules,all=H6.classes.flatMap(c=>c.subclasses);assert.equal(all.filter(s=>s.source==='fan').length,29);assert.equal(new Set(all.map(s=>s.id)).size,all.length,'no subclass twice');
+assert(all.every(s=>s.features.every(f=>f.level>=3&&f.level<=20&&f.name&&f.desc)));assert(H6.classes.every(c=>c.subclasses[0].source==='srd'));
+const sw={...R6.quickBuild('bard','S',6),subclass:'college-of-swords',gear:{cls:1,bg:1,extra:[{id:'scimitar',count:1,how:'grant'}]}};assert(R6.proficientWith(sw,'scimitar')&&R6.proficientWith(sw,'scale-mail'),'Swords: scimitars and medium armor');assert.equal(R6.derive(sw).attacks.find(a=>a.name==='Scimitar').count,2,'Swords: Extra Attack at 6');
+assert(R6.proficientWith({...R6.quickBuild('cleric','F',3),subclass:'forge-domain'},'plate-armor')&&!R6.proficientWith(R6.quickBuild('cleric','L',3),'plate-armor'),'Forge Domain: heavy armor');}
+console.log('PASS: 29 fan-made subclasses (summaries) join the SRD and Player’s Handbook ones; College of Swords and the Forge and Order Domains change the sheet.');
+
+/* the Aasimar (Player's Handbook species, summarised) */
+{const c7=vm.createContext({crypto:require('crypto').webcrypto});for(const f of ['srd-heroes','phb-feats','phb-species','srd-spells','hero-rules'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),c7);
+const R7=c7.QBHeroRules,s=plain(R7.derive(R7.quickBuild('paladin','A',3,{species:'aasimar'})));assert.equal(c7.QBHERO.species.length,10,'9 SRD species + the Aasimar');assert.equal(s.species,'Aasimar');assert.deepEqual(s.open,[]);
+assert.deepEqual(s.features.filter(f=>['Celestial Resistance','Healing Hands','Light Bearer','Celestial Revelation'].includes(f.name)).length,4);}
+console.log('PASS: the Aasimar builds a complete hero with its traits.');
+
+/* Player's Handbook spells beyond the free rules (src/app/phb-spells.js, loaded after the SRD list) */
+{const c8=vm.createContext({crypto:require('crypto').webcrypto});for(const f of ['srd-heroes','srd-spells','phb-spells','hero-rules'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),c8);
+const L=c8.QBSPELLS,R8=c8.QBHeroRules,extra=L.filter(s=>s.source==='phb-2024');assert.equal(extra.length,51);assert(!extra.some(s=>s.unchecked),'all confirmed by the DM');assert.equal(extra.find(s=>/^Jallarzi/.test(s.name)).damage[5],'2d10+2d10');assert(!L.some(s=>s.name==='Shadow Blade'),'Shadow Blade is a legacy spell');assert(extra.filter(s=>s.unchecked).every(s=>/check it against/.test(s.desc)));assert.equal(new Set(L.map(s=>s.id)).size,L.length,'no spell twice');
+assert(extra.every(s=>s.level>=0&&s.level<=9&&s.classes.length&&s.time&&s.range&&s.duration&&s.desc&&(!s.damage||s.damageType)),'every field set');
+const w={...R8.quickBuild('warlock','W',5)};w.spells.cantrips=['toll-the-dead','mind-sliver'];const at=plain(R8.derive(w).attacks).filter(a=>a.kind==='cantrip');
+assert.deepEqual(at.map(a=>[a.name,a.save,a.damage]),[['Toll the Dead','WIS','2d8'],['Mind Sliver','INT','2d6']],'save cantrips scale at level 5');}
+console.log('PASS: 51 Player’s Handbook spells (summaries; the ones entered from memory confirmed by the DM) join the 339 SRD spells; their attack cantrips calculate.');

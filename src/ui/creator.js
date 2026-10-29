@@ -21,6 +21,19 @@ function crNew(){return {v:2,step:'species',tab:'summary',swap:null,boostUI:{mod
   build:{name:'',level:1,abilities:{method:'array',base:null},boost:{},skills:[],expertise:[],mastery:[],asi:{},hp:{method:'average',rolls:{}},gear:{cls:0,bg:0},spells:{cantrips:[],prepared:[]},featPicks:{}},
   story:{left:'',want:'',fear:''}};}
 function crState(){ if(S.creator?.v!==2) S.creator=crNew(); return S.creator; }
+// Saved/exported heroes carry build choices, not the creator's temporary picker state.
+// Restore those pickers before crSheet/crSync can write their values back to the build.
+function crRestoreSelections(c){
+  const boost=Object.entries(c.build.boost||{});
+  c.boostUI=boost.length===3&&boost.every(([,n])=>n===1)
+    ?{mode:'1-1-1',plus2:'',plus1:''}
+    :{mode:'2-1',plus2:boost.find(([,n])=>n===2)?.[0]||'',plus1:boost.find(([,n])=>n===1)?.[0]||''};
+  c.asiUI=Object.fromEntries(Object.entries(c.build.asi||{}).map(([lv,x])=>{
+    const plus=Object.entries(x.plus||{}), split=x.feat==='ability-score-improvement'&&plus.length===2&&plus.every(([,n])=>n===1);
+    return [lv,{feat:x.feat,mode:split?'1-1':'2',a:plus[0]?.[0]||'',...(split?{b:plus[1][0]}:{})}];
+  }));
+  return c;
+}
 // Ability priority for a class: its primary abilities, its spellcasting ability, then Constitution and Dexterity.
 function crPriority(clsId){ const c=crData().classes.find(x=>x.id===clsId); return [...new Set([...(c?.primary||[]),...(c?.spellAbility?[c.spellAbility]:[]),'CON','DEX','WIS','STR','CHA','INT'])].slice(0,6); }
 function crRecommended(clsId){ return Object.fromEntries(crPriority(clsId).map((k,i)=>[k,QBHeroRules.ARRAY[i]])); }
@@ -46,7 +59,8 @@ const crOpenIn=(sheet,c,k)=>k==='story'?(c.build.name.trim()?0:1):sheet.open.fil
 const crSteps=sheet=>CR_STEPS.filter(([k])=>k!=='spells'||sheet.spellcasting);
 // Spells are a large file: load them only when needed (the check loads them directly).
 function crSpells(then){ if(globalThis.QBSPELLS) return globalThis.QBSPELLS; if(then) (crSpells.waiting||=[]).push(then);
-  if(!crSpells.loading&&typeof document.createElement==='function'){ crSpells.loading=true; const s=document.createElement('script'); s.src='src/app/srd-spells.js'; s.onload=()=>{ (crSpells.waiting||[]).splice(0).forEach(f=>f()); render(); }; document.head.appendChild(s); } return null; }
+  if(!crSpells.loading&&typeof document.createElement==='function'){ crSpells.loading=true; const s=document.createElement('script'); s.src='src/app/srd-spells.js'; const done=()=>{ (crSpells.waiting||[]).splice(0).forEach(f=>f()); render(); };
+    s.onload=()=>{ const p=document.createElement('script'); p.src='src/app/phb-spells.js'; p.onload=p.onerror=done; document.head.appendChild(p); }; /* then the Player's Handbook spells */ document.head.appendChild(s); } return null; }
 const crPick=(act,attrs,on,label,body)=>`<button class="choice ${on?'on':''}" data-act="${act}" ${attrs} aria-pressed="${on}">${label}${body||''}</button>`;
 // The optional extra (a spell's description) sits outside the label, so opening it doesn't tick the box.
 const crCheck=(k,v,on,label,max,extra='')=>`<div class="cr-check ${on?'on':''}"><label><input type="checkbox" data-act="cr-toggle" data-k="${k}" data-v="${esc(v)}" data-max="${max}" ${on?'checked':''}> <span>${label}</span></label>${extra}</div>`;
@@ -70,7 +84,8 @@ function crStepBody(c,sheet){
     return `<div class="row cr-quick"><span class="small muted">New to D&D? Choose a class card, then <b>Quick build</b> fills every other choice with a sensible default you can change.</span>${cls?`<button class="btn sm" data-act="cr-quick" data-v="${cls.id}">Quick build: ${esc(cls.name)}</button>`:''}</div>
       <div class="choices">${D.classes.map(x=>{const p=CLASS_PITCH[x.name]||{pitch:firstSentence(x.desc),blurb:''};return crPick('cr-class',`data-v="${x.id}"`,b.cls===x.id,`<div class="meta"><span class="eyebrow">${esc(x.name)}</span>${x.homebrew?'<span class="chip acc">Homebrew</span>':''}${p.diff?`<span class="chip ${p.diff.startsWith('Eas')?'ok':p.diff==='Medium'?'warn':'bad'}">${p.diff}</span>`:''}</div><div class="pitch">${esc(p.pitch||'')}</div>`,`<div class="desc">${esc(p.blurb||'')}</div><div class="small muted">Hit die d${x.hitDie} · ${esc(x.primary.join(' or '))}</div>`);}).join('')}</div>
       ${cls?`<div class="card stack cr-detail"><label class="f">Level<select data-act-change="cr-level">${Array.from({length:20},(_,i)=>crOpt(i+1,'Level '+(i+1),b.level===i+1)).join('')}</select><span class="small muted">Use the level your DM asked for. New adventures usually start at level 1.</span></label>
-        ${b.level>=3&&cls.subclass?`<p><b>Subclass at level 3:</b> ${esc(cls.subclass.name)} · ${esc(cls.subclass.summary)} <span class="small muted">(the SRD has one subclass per class)</span></p>`:''}
+        ${b.level>=3&&cls.subclasses?.length>1?(()=>{ const cur=QBHeroRules.subOf(b); return `<label class="f">Subclass (level 3)<select data-bind="creator.build.subclass" data-rerender>${cls.subclasses.map(s=>crOpt(s.id,s.name+(s.source==='srd'?'':s.source==='phb-2024'?' · Player’s Handbook':' · fan-made'),cur?.id===s.id)).join('')}</select></label><p class="small">${esc(cur?.summary||'')}${cur?.source&&cur.source!=='srd'?' <span class="muted">Summary; the full rules are in the book.</span>':''}</p>`; })()
+          :b.level>=3&&cls.subclass?`<p><b>Subclass at level 3:</b> ${esc(cls.subclass.name)} · ${esc(cls.subclass.summary)}</p>`:''}
         ${({fighter:1,paladin:2,ranger:2})[b.cls]<=b.level?`<label class="f">Fighting Style feat<select data-bind="creator.build.fightingStyle" data-rerender>${crOpt('','Choose…',!b.fightingStyle)}${styles.map(f=>crOpt(f.id,f.name,b.fightingStyle===f.id)).join('')}</select><span class="small muted">${esc(firstSentence(styles.find(f=>f.id===b.fightingStyle)?.desc||'Defense adds 1 to armor class while you wear armor; Archery adds 2 to ranged attack rolls.'))}</span></label>`:''}
         ${asi.length?`<div class="row small"><label><input type="checkbox" data-act="cr-featview" data-v="featRec" ${c.featRec?'checked':''}> Only recommended feats (★: the +1 suits ${/^[AEIOU]/i.test(cls?.name||'')?'an':'a'} ${esc(cls?.name||'class')})</label><label><input type="checkbox" data-act="cr-featview" data-v="featFuture" ${c.featFuture?'checked':''}> Show future feats (not available yet, and why)</label></div>`:''}
         ${asi.map(lv=>{const u=(c.asiUI[lv]??={}), main=crPriority(b.cls).slice(0,2), rec=f=>f.id==='ability-score-improvement'||(featAbilities(f.id)||[]).some(k=>main.includes(k));
@@ -99,7 +114,7 @@ function crStepBody(c,sheet){
       <p class="small muted">Your background (next step) adds +2 and +1, or +1 to three abilities. Scores can’t go above 20.</p>`; }
   case 'background': {
     const u=c.boostUI;
-    return `<div class="choices">${D.backgrounds.map(x=>crPick('cr-bg',`data-v="${x.id}"`,b.background===x.id,`<div class="cls">${esc(x.name)}${x.homebrew?' <span class="chip acc">Homebrew</span>':''}</div>`,`<div class="small">${x.desc?esc(firstSentence(x.desc))+'<br>':''}<span class="muted">Raises</span> ${x.abilities.join(', ')}<br><span class="muted">Feat</span> ${esc(x.feat?.name||'')}${x.feat?.note?' ('+esc(x.feat.note)+')':''}<br><span class="muted">Skills</span> ${esc(x.skills.map(s=>D.skills.find(k=>k.id===s)?.name).join(', '))}</div>`)).join('')}</div>
+    return `<div class="choices">${D.backgrounds.map(x=>crPick('cr-bg',`data-v="${x.id}"`,b.background===x.id,`<div class="cls">${esc(x.name)}${x.homebrew?' <span class="chip acc">Homebrew</span>':''}${({'phb-2024':'PHB',playtest:'Playtest',classic:'Classic, converted'})[x.source]?' <span class="chip">'+({'phb-2024':'PHB',playtest:'Playtest',classic:'Classic, converted'})[x.source]+'</span>':''}</div>`,`<div class="small">${x.desc?esc(firstSentence(x.desc))+'<br>':''}<span class="muted">Raises</span> ${x.abilities.join(', ')}<br><span class="muted">Feat</span> ${esc(x.feat?.name||'')}${x.feat?.note?' ('+esc(x.feat.note)+')':''}<br><span class="muted">Skills</span> ${esc(x.skills.map(s=>D.skills.find(k=>k.id===s)?.name).join(', '))}</div>`)).join('')}</div>
       ${bg?`<div class="card stack cr-detail"><fieldset class="cr-asi"><legend>Raise your abilities</legend><label><input type="radio" name="cr-boost" data-act="cr-boost" data-v="2-1" ${u.mode!=='1-1-1'?'checked':''}> +2 to one and +1 to another</label><label><input type="radio" name="cr-boost" data-act="cr-boost" data-v="1-1-1" ${u.mode==='1-1-1'?'checked':''}> +1 to all three (${bg.abilities.join(', ')})</label>
         ${u.mode!=='1-1-1'?`<div class="row"><select data-bind="creator.boostUI.plus2" data-rerender>${crOpt('','+2 to…',!u.plus2)}${bg.abilities.map(k=>crOpt(k,'+2 '+APPROACH[k].name+' ('+k+')',u.plus2===k)).join('')}</select><select data-bind="creator.boostUI.plus1" data-rerender>${crOpt('','+1 to…',!u.plus1)}${bg.abilities.filter(k=>k!==u.plus2).map(k=>crOpt(k,'+1 '+APPROACH[k].name+' ('+k+')',u.plus1===k)).join('')}</select></div>`:''}</fieldset>
         ${bg.feat?`<details open><summary><b>Origin feat: ${esc(bg.feat.name)}</b>${bg.feat.note?' ('+esc(bg.feat.note)+')':''}</summary><p class="small">${esc(D.feats.find(f=>f.id===bg.feat.id)?.desc||'')}</p></details>`:''}
@@ -117,7 +132,7 @@ function crStepBody(c,sheet){
   case 'spells': {
     const list=crSpells(); if(!list) return '<p>Loading the spell list…</p>';
     const sc=sheet.spellcasting, maxLevel=sc.slots.reduce((m,n,i)=>n?i+1:m,0), mine=list.filter(s=>s.classes.includes(QBHeroRules.spellList(b)));
-    const row=(k,s,max)=>crCheck(k,s.id,(b.spells[k]||[]).includes(s.id),`<b>${esc(s.name)}</b> <span class="small muted">${s.level?'level '+s.level:'cantrip'} · ${esc(s.school)}${s.conc?' · concentration':''}${s.ritual?' · ritual':''}</span>`,max,`<details><summary class="small">What it does</summary><p class="small">${esc(s.desc)}</p>${s.higher?`<p class="small">${esc(s.higher)}</p>`:''}<p class="small muted">${esc([s.time,s.range,s.duration].join(' · '))}</p></details>`);
+    const row=(k,s,max)=>crCheck(k,s.id,(b.spells[k]||[]).includes(s.id),`<b>${esc(s.name)}</b> <span class="small muted">${s.level?'level '+s.level:'cantrip'} · ${esc(s.school)}${s.conc?' · concentration':''}${s.ritual?' · ritual':''}${s.source==='phb-2024'?' · PHB':''}${s.unchecked?' · <span class="chip warn">check the book</span>':''}</span>`,max,`<details><summary class="small">What it does</summary><p class="small">${esc(s.desc)}</p>${s.higher?`<p class="small">${esc(s.higher)}</p>`:''}<p class="small muted">${esc([s.time,s.range,s.duration].join(' · '))}</p></details>`);
     return `<p class="small">Spell save DC <b>${sc.dc}</b> · spell attack <b>${fmt(sc.attack)}</b> · slots ${sc.slots.map((n,i)=>n?`${n}×${i+1}`:'').filter(Boolean).join(', ')||'none yet'}</p>
       ${sc.cantrips?`<section class="card stack"><h3>Cantrips</h3>${crCount(b.spells.cantrips.length,sc.cantrips,'cantrips')}<div class="cr-checks">${mine.filter(s=>s.level===0).map(s=>row('cantrips',s,sc.cantrips)).join('')}</div></section>`:''}
       <section class="card stack"><h3>Prepared spells (level 1–${maxLevel})</h3>${crCount(b.spells.prepared.length,sc.prepared,'spells')}<div class="cr-checks">${mine.filter(s=>s.level>=1&&s.level<=maxLevel).map(s=>row('prepared',s,sc.prepared)).join('')}</div></section>`; }
@@ -199,8 +214,7 @@ function creatorActions(){ const B=()=>crState().build, D=()=>crData();
   'cr-class':d=>{ const c=crState(), b=c.build; if(b.cls===d.v) return; Object.assign(b,{cls:d.v,skills:[],expertise:[],fightingStyle:'',mastery:[],asi:{},spells:{cantrips:[],prepared:[]},gear:{cls:0,bg:b.gear?.bg||0},equip:undefined}); c.asiUI={};
     if(b.abilities.method==='array') b.abilities.base=crRecommended(d.v); if(b.abilities.method==='roll'&&b.abilities.rolls) ACT['cr-order'](); },
   'cr-quick':d=>{ const c=crState(); crSpells(()=>{ const b=crState().build; if(b.cls===d.v&&!b.spells.cantrips.length&&!b.spells.prepared.length) QBHeroRules.fillDefaults(b); }); const q=QBHeroRules.quickBuild(d.v,c.build.name,c.build.level,c.build.species?c.build:{}); c.build={...c.build,...q,equip:undefined};
-    const bg=D().backgrounds.find(x=>x.id===q.background), two=Object.entries(q.boost); c.boostUI=two.length===3?{mode:'1-1-1',plus2:'',plus1:''}:{mode:'2-1',plus2:two.find(([,v])=>v===2)?.[0]||'',plus1:two.find(([,v])=>v===1)?.[0]||''};
-    c.asiUI=Object.fromEntries(Object.entries(q.asi||{}).map(([lv,x])=>[lv,{feat:x.feat,mode:'2',a:Object.keys(x.plus)[0]||''}]));
+    const bg=D().backgrounds.find(x=>x.id===q.background); crRestoreSelections(c);
     toast(`Quick build: ${D().species.find(x=>x.id===q.species)?.name}, ${bg.name} background, standard array. Change anything you like.`); },
   'cr-printsheet':()=>{ const c=crState(); crSheet(c); openSheet(c.build,{want:c.story?.want,fear:c.story?.fear}); },
   'sheet-print':d=>{ const p=pc(d.id); if(!p?.build){ toast('This hero was made before the hero creator. Rebuild them there to print a sheet.'); return; } openSheet({...p.build,name:p.name},{want:p.want}); },
@@ -214,7 +228,7 @@ function creatorActions(){ const B=()=>crState().build, D=()=>crData();
   'cr-order':()=>{ const a=B().abilities, idx=a.rolls.map((r,i)=>i).sort((x,y)=>QBHeroRules.rollTotal(a.rolls[y])-QBHeroRules.rollTotal(a.rolls[x])); a.order=Object.fromEntries(crPriority(B().cls).map((k,i)=>[k,idx[i]])); },
   'cr-swap':d=>{ const c=crState(), a=c.build.abilities, map=a.method==='roll'?a.order:a.base; if(!c.swap){c.swap=d.v;return;} if(c.swap!==d.v){const t=map[c.swap]; map[c.swap]=map[d.v]; map[d.v]=t;} c.swap=null; },
   'cr-pb':d=>{ const base=B().abilities.base; base[d.k]=Math.max(8,Math.min(15,base[d.k]+(+d.d))); },
-  'cr-bg':d=>{ const c=crState(), bg=D().backgrounds.find(x=>x.id===d.v); if(c.build.background===d.v) return; c.build.background=d.v; c.build.toolChoice='';
+  'cr-bg':d=>{ const c=crState(), bg=D().backgrounds.find(x=>x.id===d.v); if(c.build.background===d.v) return; c.build.background=d.v; c.build.toolChoice=''; { const sk=QBHeroRules.derive(c.build).skills; c.build.expertise=(c.build.expertise||[]).filter(k=>sk[k]?.prof); } /* expertise only in skills the hero still has */
     const top=crPriority(c.build.cls).filter(k=>bg.abilities.includes(k)); c.boostUI={mode:'2-1',plus2:top[0]||bg.abilities[0],plus1:top[1]||bg.abilities[1]}; },
   'cr-boost':d=>{ crState().boostUI.mode=d.v; },
   'cr-keen':d=>{ B().keenSense=d.v; },
