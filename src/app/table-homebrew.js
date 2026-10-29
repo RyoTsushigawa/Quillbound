@@ -1,6 +1,6 @@
 // Homebrew that ships with the app for this table (The Night Shift): added once to every browser that opens Quillbound,
 // already approved, so players can build their heroes straight away. The DM can still edit, unapprove or delete it.
-// Vampire is a species (all three heroes are vampires); Artificer is a class (Toxic's).
+// Vampire is a species (all three heroes are vampires); Artificer is a class (Toxik's).
 (function (root) {
   root.QB_TABLE_HOMEBREW = {
     id: 'night-shift-2', // raise this, and an item's version, to update copies browsers already have
