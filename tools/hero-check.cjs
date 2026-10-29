@@ -109,3 +109,12 @@ console.log('PASS: 2024 feats: all 75 outside the playtest, general ones at leve
 assert(bard.attacks.length>1&&bard.attacks.every(a=>typeof a.name==='string'&&Number.isFinite(a.bonus)&&typeof a.damage==='string'&&a.damage&&Number.isInteger(a.count)&&a.count>=1),'every attack keeps name, bonus, damage and count');
 const vm2=bard.attacks.find(a=>a.name==='Vicious Mockery');assert(vm2&&vm2.save==='WIS'&&vm2.kind==='cantrip'&&vm2.type==='Psychic','a saving-throw cantrip says so');}
 console.log('PASS: hero records keep the full attack list for combat (name, bonus, damage, count; type, save and kind too).');
+
+/* the 2024 Player's Handbook backgrounds (src/app/phb-backgrounds.js): all 16, each builds a complete hero */
+{const c3=vm.createContext({crypto:require('crypto').webcrypto});for(const f of ['srd-heroes','phb-feats','phb-backgrounds','hero-rules'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),c3);
+const H3=c3.QBHERO,R3=c3.QBHeroRules;assert.equal(H3.backgrounds.length,16,'4 SRD + 12 Player’s Handbook backgrounds');
+for(const bg of H3.backgrounds){assert.equal(bg.abilities.length,3);assert.equal(bg.skills.length,2);assert(H3.feats.some(f=>f.id===bg.feat.id&&f.type==='origin'),bg.name+': an origin feat');if(bg.source==='phb-2024')assert(bg.equipment.choices[0].items.every(i=>H3.equipment[i.id]),bg.name+': kit items exist');
+  const b={...R3.quickBuild('fighter','T',1),background:bg.id,boost:{[bg.abilities[0]]:2,[bg.abilities[1]]:1},toolChoice:''};R3.fillDefaults(b);assert.deepEqual(plain(R3.derive(b).open),[],bg.name+': nothing left open');}
+const base={...R3.quickBuild('fighter','T',4),boost:{STR:2,CON:1}},farmer=R3.derive({...base,background:'farmer'}),soldier=R3.derive({...base,background:'soldier'});
+assert.equal(farmer.scores.CON,soldier.scores.CON);assert.equal(farmer.hp.max-soldier.hp.max,8,'Farmer: Tough gives +2 HP per level');}
+console.log('PASS: all 16 backgrounds of the 2024 rules (12 from the Player’s Handbook as summaries) build complete heroes; Farmer’s Tough adds its hit points.');

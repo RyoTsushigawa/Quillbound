@@ -306,6 +306,7 @@
       if (sp.traits.some(t => t.id === 'versatile') && !b.speciesFeat) b.speciesFeat = 'skilled';
       if (sp.traits.some(t => t.id === 'skillful') && !b.speciesSkill) { const known = Object.entries(derive(b).skills).filter(([, v]) => v.prof).map(([k]) => k); b.speciesSkill = ['perception', 'insight', 'stealth', 'athletics', ...data.skills.map(k => k.id)].find(x => !known.includes(x)); }
     }
+    const bgo = byId(data.backgrounds, b.background); if (bgo?.toolChoice && !b.toolChoice) b.toolChoice = bgo.toolChoice.from[0]; // a background's tool of choice: the first
     const prio = [...new Set([...(c.primary || []), ...(c.spellAbility ? [c.spellAbility] : []), 'CON', 'DEX'])];
     if (STYLE[b.cls] && !b.fightingStyle) b.fightingStyle = STYLE[b.cls];
     b.asi = b.asi || {};

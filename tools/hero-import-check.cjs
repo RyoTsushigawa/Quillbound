@@ -18,8 +18,8 @@ let r=build(f);assert.deepEqual(diff(r),[],'Quinn imports with every number matc
 assert.deepEqual([r.sheet.scores.DEX,r.sheet.hp.max,r.sheet.ac],[18,38,16]);assert(r.build.expertise.includes('sleight-of-hand'),'expertise read from the bonus');
 assert(r.check.some(x=>/Studded Leather/.test(x)),'armor worked out from AC, and said so');
 /* English text, HP through per-level rolls, an unknown background and a weapon the class isn't trained in */
-f=I.fromText(['MIRA','Human · Fighter 4 · Sailor','STR | DEX | CON | INT | WIS | CHA','16 | 14 | 15 | 10 | 12 | 8','Armor Class | Hit Points | Speed','17 | 44 | 30 ft','● Athletics | +5','● Perception | +3'],data());
-r=build(f);assert.equal(r.sheet.hp.max,44,'HP 44 through rolls');assert.equal(r.build.hp.method,'roll');assert.equal(r.sheet.scores.STR,16);assert(r.check.some(x=>/Sailor/.test(x)),'unknown background named');
+f=I.fromText(['MIRA','Human · Fighter 4 · Lamplighter','STR | DEX | CON | INT | WIS | CHA','16 | 14 | 15 | 10 | 12 | 8','Armor Class | Hit Points | Speed','17 | 44 | 30 ft','● Athletics | +5','● Perception | +3'],data());
+r=build(f);assert.equal(r.sheet.hp.max,44,'HP 44 through rolls');assert.equal(r.build.hp.method,'roll');assert.equal(r.sheet.scores.STR,16);assert(r.check.some(x=>/Lamplighter/.test(x)),'unknown background named');
 /* a fillable PDF's fields */
 const fields={CharacterName:[{value:'Bryn'}],ClassLevel:[{value:'Wizard 3'}],'Race ':[{value:'Elf'}],Background:[{value:'Sage'}],STR:[{value:'8'}],DEX:[{value:'14'}],CON:[{value:'14'}],INT:[{value:'16'}],WIS:[{value:'12'}],CHA:[{value:'10'}],HPMax:[{value:'20'}],AC:[{value:'12'}],Arcana:[{value:'+5'}],History:[{value:'+5'}]};
 f=I.fromFields(fields,data());assert.deepEqual([f.name,f.cls,f.level,f.species],['Bryn','wizard',3,'elf']);r=build(f);assert.equal(r.sheet.background,'Sage');assert.equal(r.sheet.scores.INT,16);assert.equal(r.sheet.hp.max,20);
