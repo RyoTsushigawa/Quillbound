@@ -199,6 +199,7 @@ The SRD 5.1 is by Wizards of the Coast LLC and licensed under CC-BY 4.0. The att
 
 - Three or more of the same creature in a fight form a **group**: one card, each member with its own HP. **Group matching enemies** does the same by hand.
 - Most enemies have a **breaking point**, the gold mark on their HP bar: tougher enemies hold out longer. Compared with the party's average level, an enemy whose challenge rating is at most a quarter of it wavers at 30% HP, at most half at 25%, at most equal at 20%, and higher at 15%. A group wavers when half of it is down. Undead, constructs and other enemies without a breaking point fight until they drop.
+- Enemy statuses are validated consistently: down/dead foes have 0 HP, while fleeing, bargaining or surrendering preserves current HP. A pending roll must be resolved or cancelled before changing status. The combat board distinguishes ongoing, cleared and all-heroes-down scenarios (without automatically ending a fight). See [combat lifecycle](docs/COMBAT-LIFECYCLE.md).
 - When an enemy wavers, the fight pauses on its card and the DM decides: it **flees**, **surrenders**, **makes a deal** or **fights on**. It asks only once, and Undo reverses the decision.
 - So a fight can end without anyone going down. When you end it, enemies that fled, surrendered or made a deal become suggested leads on the DM desk.
 - **Status…** on an enemy card is for corrections by hand.
