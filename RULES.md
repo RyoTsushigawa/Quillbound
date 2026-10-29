@@ -135,7 +135,7 @@ Each attack is its own roll: d20 + attack bonus against the target's armor class
 
 Only the **first eligible graze or miss** in a hero's Attack action can cause a strike-back, while the target remains standing. Later rolls in the same Attack action cannot trigger additional strike-backs. A natural 1 causes a critical strike-back only if it is that first eligible response. A **strike-back** is one of the target's attacks; the app rolls its damage, with no extra roll to hit. If the target can't reach the hero, untick *can reach* and choose another consequence instead: become Exposed, or what was at risk happens (after a natural 1: separated and pinned, or the enemy achieves a major goal). A graze that drops the target draws no strike-back.
 
-A hero made in the hero creator attacks with the strongest attack on its sheet. Older heroes have a simple starter attack per class (for example Fighter greatsword 2d6, Rogue rapier 1d8 with Sneak Attack, Wizard Fire Bolt 1d10). Cantrip dice grow at levels 5, 11 and 17.
+A hero made in the hero creator starts with the strongest attack on its sheet. During combat, the DM may choose another valid attack for each roll in the same action (including different weapons with Extra Attack). A once-per-turn on-hit rider can add bonus damage to one qualifying hit; grazes do not qualify. See [mixed attacks](docs/COMBAT-MIXED-ATTACKS.md) and [on-hit riders](docs/COMBAT-ON-HIT-RIDERS.md) for the implemented rules and limits. Older heroes have a simple starter attack per class (for example Fighter greatsword 2d6, Rogue rapier 1d8 with Sneak Attack, Wizard Fire Bolt 1d10). Cantrip dice grow at levels 5, 11 and 17.
 
 ### Enemy moves
 
