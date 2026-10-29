@@ -123,7 +123,7 @@ Stakes is still being playtested. It keeps 5e character sheets, hit points and s
 
 ### Attack
 
-Each attack is its own roll: d20 + attack bonus against the target's armor class. Extra Attack means two (or more) rolls. The attack bonus is ability modifier + proficiency; heroes are always proficient with their own attack.
+Each attack is its own roll: d20 + attack bonus against the target's armor class. Extra Attack means two (or more) rolls. In a multiple-attack action, later rolls may choose another standing target. Enemy Multiattack likewise lets each attack choose its own defender and use that defender's AC. This never grants extra attacks. A single-attack thug uses the same default flow with no extra choice. See [Encounter foundation](docs/COMBAT-ENCOUNTER-FOUNDATION.md). The attack bonus is ability modifier + proficiency; heroes are always proficient with their own attack.
 
 | Roll | Result |
 |---|---|
