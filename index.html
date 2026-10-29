@@ -1422,6 +1422,11 @@ function combatResult(){
     const hit=enemy&&p.enemyEffect==='damage'&&!['crit','success'].includes(r.band)?`<label class="f">Damage to ${esc(t?.name||'the hero')}${r.band==='disaster'?' (critical)':''}<input type="number" min="0" max="999" step="1" data-bind="combat.lite.pending.rolls.${i}.damage" value="${r.damage}"></label>`:'';
     return `<div class="lt-rollrow ${r.band}">${head}${dmg}${strike}${hit}${push}</div></div>`;
   }).join('');
+  const riderChoices=attack?Stakes.riderCandidates(S,p).filter(i=>p.rolls[i].rider.id===p.riderId):[];
+  const riderHtml=riderChoices.length?`<div class="lt-dmg"><p class="small"><b>${esc(p.rolls[p.riderIndex].rider.name)}</b> · once per turn on a full hit (not a graze).</p>
+    ${riderChoices.length>1?`<label class="f">Apply bonus to<select data-act-change="lt-rider-hit">${riderChoices.map(i=>`<option value="${i}" ${i===p.riderIndex?'selected':''}>Attack ${i+1} · ${esc(p.rolls[i].attack)}${p.rolls[i].band==='crit'?' (critical)':''}</option>`).join('')}</select></label>`:''}
+    <label class="f">Bonus damage (${esc(p.rolls[p.riderIndex].rider.dice)}${p.rolls[p.riderIndex].band==='crit'?', critical dice doubled':''})<input type="number" min="0" max="999" step="1" data-bind="combat.lite.pending.riderDamage" value="${p.riderDamage??''}"></label>
+    <button class="btn sm" data-act="lt-rider-dmg">Reroll bonus die</button><p class="small muted">Edit this value for physical dice. Only one hit gains this rider.</p></div>`:'';
   const bad=['mixed','setback','disaster'].includes(p.band), disaster=attack&&responseIndex>=0?p.rolls[responseIndex].band==='disaster':p.band==='disaster';
   const unreachable=attack&&responseIndex>=0&&!p.rolls[responseIndex].strike.reach;
   const foes=S.combat.foes.filter(f=>Stakes.active(S,f)&&!Stakes.needs(S,f).length);
@@ -1438,7 +1443,7 @@ function combatResult(){
     :attack?`${a.name} attacks ${t?.name}.`:['crit','success','mixed'].includes(p.band)?(p.action==='defend'?`${t?.name} is covered: an opening on their next defense roll.`:p.action==='help'?`Give ${t?.name} an opening.`:p.action==='move'?`Reach ${l.zones[p.destination]}.`:p.intent):'Your intent does not land. The opposition changes the situation.';
   return `<section class="lt-result ${p.band}" aria-live="polite"><div class="eyebrow">2 · Resolve the roll</div><p class="lt-intent">${esc(effect)}</p>
     ${p.stakes&&!enemy?`<p class="small"><b>At risk:</b> ${esc(p.stakes)}</p>`:''}
-    <div class="lt-rolls">${rows}</div>
+    <div class="lt-rolls">${rows}</div>${riderHtml}
     ${consequences}${reward}${Stakes.contextPreview(p)?`<p><b>Automatic condition:</b> ${esc(Stakes.contextPreview(p).add||'Clear '+Stakes.contextPreview(p).remove.join(' / '))}. ${esc(Stakes.contextPreview(p).reason)}</p>`:''}${!enemy&&p.action==='move'&&p.destination==='cover'&&['crit','success','mixed'].includes(p.band)&&l.conditions[p.actor].includes('Exposed')?`<label><input type="checkbox" data-bind="combat.lite.pending.clearExposure" ${p.clearExposure?'checked':''}> DM judgment: this cover provides safety; clear Exposed if the character remains here after consequences.</label>`:''}
     ${p.cost.stamina||p.cost.hd?`<p class="small">On confirm, ${esc(a.name)} spends ${[p.cost.stamina&&p.cost.stamina+' stamina',p.cost.hd&&p.cost.hd+' Hit Die'].filter(Boolean).join(' and ')}.</p>`:''}
     <div class="row"><button class="btn primary" data-act="lt-confirm">Confirm result</button><button class="btn ghost" data-act="lt-cancel">Cancel roll</button></div><p class="small muted">Nothing changes until you confirm, and a cancelled push costs nothing. Undo can reverse a confirmed result.</p></section>`;
@@ -1489,6 +1494,8 @@ Object.assign(ACT,{
   'lt-undo':()=>combatRun(()=>Stakes.undo(S)),
   'lt-push':d=>combatRun(()=>Stakes.push(S,+d.i)),
   'lt-dmg':d=>combatRun(()=>Stakes.damage(S,+d.i)),
+  'lt-rider-hit':d=>combatRun(()=>Stakes.selectRider(S,+d.v)),
+  'lt-rider-dmg':()=>combatRun(()=>Stakes.rollRider(S)),
   'lt-round':()=>{const l=Stakes.init(S); const ready=[...S.party,...S.combat.foes].filter(a=>Stakes.active(S,a)&&!l.acted[a.id]);
     if(ready.length){ const dlg=openDialog('Start the next round?',`<p>${esc(ready.map(a=>a.name).join(', '))} can still act. Start a new round anyway?</p><button class="btn primary" id="round-confirm">Start next round</button>`); dlg.querySelector('#round-confirm').onclick=()=>{combatRun(()=>Stakes.nextRound(S)); dlg.close(); render();}; }
     else combatRun(()=>Stakes.nextRound(S));},
