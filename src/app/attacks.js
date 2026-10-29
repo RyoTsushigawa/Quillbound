@@ -85,6 +85,20 @@
   // total number of rolls (e.g. weapon Extra Attack versus a one-roll cantrip).
   // Later selections must use the same action count. This blocks extra spell
   // casts and never grants extra attacks simply because another weapon exists.
+  // Optional combat-only homebrew metadata; the hero creator remains untouched.
+  // A configured rider is {attack, id, name, dice, trigger:'hit', limit:'turn'}.
+  // Only small, bounded dice expressions are accepted.
+  function riderFor(p, a) {
+    const custom = (Array.isArray(p.combatRiders) ? p.combatRiders : [])
+      .find(x => x?.attack === a.name && x.trigger === 'hit' && x.limit === 'turn');
+    const builtin = p.cls === 'Artificer'
+      && /armorer/i.test(typeof p.subclass === 'string' ? p.subclass : p.subclass?.name || '')
+      && a.name === 'Lightning Launcher'
+      ? { id:'armorer-lightning-launcher', name:'Lightning Launcher bonus', dice:'1d6' } : null;
+    const r = custom || builtin;
+    if (!r || !/^(?:[1-9]|1[0-2])d(?:4|6|8|10|12)$/.test(String(r.dice || ''))) return null;
+    return { id: String(r.id || a.name).slice(0,80), name: String(r.name || 'On-hit bonus').slice(0,80), dice:r.dice, trigger:'hit', limit:'turn' };
+  }
   function heroAttackOptions(p) {
     const primary = heroAttack(p), seen = new Set();
     const matching = (p.attacks || []).filter(a => a && typeof a.name === 'string'
@@ -94,8 +108,8 @@
     const options = matching.filter(a => {
       if (seen.has(a.name)) return false;
       seen.add(a.name); return true;
-    }).map(a => ({ name: a.name, bonus: a.bonus, damage: a.damage, count: Number(a.count || 1) }));
-    return options.length ? options : [primary];
+    }).map(a => ({ name: a.name, bonus: a.bonus, damage: a.damage, count: Number(a.count || 1), rider: riderFor(p,a) }));
+    return options.length ? options : [{ ...primary, rider: riderFor(p,primary) }];
   }
   function heroAttackSequence(p, names = []) {
     const options = heroAttackOptions(p);
