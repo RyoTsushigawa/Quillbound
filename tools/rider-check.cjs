@@ -32,8 +32,24 @@ assert.equal(s.combat.foes[0].hpNow,100);
 assert.equal(!!R.init(s).riderUsed['toxik:armorer-lightning-launcher'],false);
 console.log('PASS: Toxik launcher gives exactly one 1d6 on hit; Undo restores availability.');
 
+s=state();R.init(s).draft.attackNames=['Lightning Launcher','Tesla-Faltschwert'];
+p=R.prepare(s,R.init(s).draft,[12,12]);
+assert.equal(p.rolls[0].attack,'Lightning Launcher');
+assert.equal(p.rolls[1].attack,'Tesla-Faltschwert');
+assert.deepEqual(Array.from(R.riderCandidates(s,p)),[0],'sword does not trigger launcher rider');
+R.damage(s,0,8);R.damage(s,1,8);const mixedBonus=p.riderDamage;R.apply(s);
+assert.equal(s.combat.foes[0].hpNow,100-16-mixedBonus);
+console.log('PASS: mixed launcher and sword use one rider, with no bonus on the sword.');
+
+
 s=state();p=R.prepare(s,R.init(s).draft,[12,20]);
+const originalBonus=p.riderDamage;
 R.selectRider(s,1);
+const critChoiceBonus=p.riderDamage;
+R.selectRider(s,0);
+assert.equal(p.riderDamage,originalBonus,'changing targets must not reroll the bonus');
+R.selectRider(s,1);
+assert.equal(p.riderDamage,critChoiceBonus,'returning to the critical hit reuses the original dice');
 assert.equal(p.riderIndex,1);assert(p.riderDamage>=2&&p.riderDamage<=12);
 R.damage(s,0,8);R.damage(s,1,8);
 const critBonus=p.riderDamage;R.apply(s);
