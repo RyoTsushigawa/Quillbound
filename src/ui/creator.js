@@ -21,6 +21,19 @@ function crNew(){return {v:2,step:'species',tab:'summary',swap:null,boostUI:{mod
   build:{name:'',level:1,abilities:{method:'array',base:null},boost:{},skills:[],expertise:[],mastery:[],asi:{},hp:{method:'average',rolls:{}},gear:{cls:0,bg:0},spells:{cantrips:[],prepared:[]},featPicks:{}},
   story:{left:'',want:'',fear:''}};}
 function crState(){ if(S.creator?.v!==2) S.creator=crNew(); return S.creator; }
+// Saved/exported heroes carry build choices, not the creator's temporary picker state.
+// Restore those pickers before crSheet/crSync can write their values back to the build.
+function crRestoreSelections(c){
+  const boost=Object.entries(c.build.boost||{});
+  c.boostUI=boost.length===3&&boost.every(([,n])=>n===1)
+    ?{mode:'1-1-1',plus2:'',plus1:''}
+    :{mode:'2-1',plus2:boost.find(([,n])=>n===2)?.[0]||'',plus1:boost.find(([,n])=>n===1)?.[0]||''};
+  c.asiUI=Object.fromEntries(Object.entries(c.build.asi||{}).map(([lv,x])=>{
+    const plus=Object.entries(x.plus||{}), split=x.feat==='ability-score-improvement'&&plus.length===2&&plus.every(([,n])=>n===1);
+    return [lv,{feat:x.feat,mode:split?'1-1':'2',a:plus[0]?.[0]||'',...(split?{b:plus[1][0]}:{})}];
+  }));
+  return c;
+}
 // Ability priority for a class: its primary abilities, its spellcasting ability, then Constitution and Dexterity.
 function crPriority(clsId){ const c=crData().classes.find(x=>x.id===clsId); return [...new Set([...(c?.primary||[]),...(c?.spellAbility?[c.spellAbility]:[]),'CON','DEX','WIS','STR','CHA','INT'])].slice(0,6); }
 function crRecommended(clsId){ return Object.fromEntries(crPriority(clsId).map((k,i)=>[k,QBHeroRules.ARRAY[i]])); }
@@ -199,8 +212,7 @@ function creatorActions(){ const B=()=>crState().build, D=()=>crData();
   'cr-class':d=>{ const c=crState(), b=c.build; if(b.cls===d.v) return; Object.assign(b,{cls:d.v,skills:[],expertise:[],fightingStyle:'',mastery:[],asi:{},spells:{cantrips:[],prepared:[]},gear:{cls:0,bg:b.gear?.bg||0},equip:undefined}); c.asiUI={};
     if(b.abilities.method==='array') b.abilities.base=crRecommended(d.v); if(b.abilities.method==='roll'&&b.abilities.rolls) ACT['cr-order'](); },
   'cr-quick':d=>{ const c=crState(); crSpells(()=>{ const b=crState().build; if(b.cls===d.v&&!b.spells.cantrips.length&&!b.spells.prepared.length) QBHeroRules.fillDefaults(b); }); const q=QBHeroRules.quickBuild(d.v,c.build.name,c.build.level,c.build.species?c.build:{}); c.build={...c.build,...q,equip:undefined};
-    const bg=D().backgrounds.find(x=>x.id===q.background), two=Object.entries(q.boost); c.boostUI=two.length===3?{mode:'1-1-1',plus2:'',plus1:''}:{mode:'2-1',plus2:two.find(([,v])=>v===2)?.[0]||'',plus1:two.find(([,v])=>v===1)?.[0]||''};
-    c.asiUI=Object.fromEntries(Object.entries(q.asi||{}).map(([lv,x])=>[lv,{feat:x.feat,mode:'2',a:Object.keys(x.plus)[0]||''}]));
+    const bg=D().backgrounds.find(x=>x.id===q.background); crRestoreSelections(c);
     toast(`Quick build: ${D().species.find(x=>x.id===q.species)?.name}, ${bg.name} background, standard array. Change anything you like.`); },
   'cr-printsheet':()=>{ const c=crState(); crSheet(c); openSheet(c.build,{want:c.story?.want,fear:c.story?.fear}); },
   'sheet-print':d=>{ const p=pc(d.id); if(!p?.build){ toast('This hero was made before the hero creator. Rebuild them there to print a sheet.'); return; } openSheet({...p.build,name:p.name},{want:p.want}); },

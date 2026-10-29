@@ -102,7 +102,7 @@ function campaignActions() { return {
   'hi-open': d => hiDialog(d.v === 'party' && isDm() ? 'party' : 'mine'), // src/ui/hero-import.js
   'cm-lock': () => { S.role = 'player'; S.tab = 'home'; toast('DM mode is locked.'); },
   'cm-newhero': () => { S.creator = crNew(); S.tab = 'create'; },
-  'cm-edit': d => { const h = cmHero(d.id); if (!h) return; S.creator = { ...crNew(), build: JSON.parse(JSON.stringify(h.build)), story: { ...crNew().story, ...h.story }, heroId: h.id, step: 'review' }; S.tab = 'create'; window.scrollTo(0, 0); },
+  'cm-edit': d => { const h = cmHero(d.id); if (!h) return; S.creator = crRestoreSelections({ ...crNew(), build: JSON.parse(JSON.stringify(h.build)), story: { ...crNew().story, ...h.story }, heroId: h.id, step: 'review' }); S.tab = 'create'; window.scrollTo(0, 0); },
   'cm-print': d => { const h = cmHero(d.id); if (h) openSheet(h.build, h.story); },
   'cm-send': d => { const h = cmHero(d.id); if (!h) return; const name = (h.build.name || 'hero').replace(/[^\w-]+/g, '-').toLowerCase(); saveFile(`${name}.quillbound-hero.json`, QBCampaigns.heroFile(h), `Saved ${h.build.name}. Send the file to your DM.`); },
   'cm-copy': d => { const h = cmHero(d.id); if (!h) return; const text = QBCampaigns.heroFile(h); (navigator.clipboard?.writeText(text) || Promise.reject()).then(() => toast('Copied. Paste it in a message to your DM.'), () => toast('Copying is blocked here. Use Send to DM instead.')); },

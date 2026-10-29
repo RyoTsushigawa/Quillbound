@@ -53,3 +53,9 @@ if(sheets.length&&pdfjs)(async()=>{const w=console.warn;console.warn=()=>{};cons
   console.warn=w;assert.deepEqual(got.Quinn,{hp:38,ac:16,diff:0});if(got.Toxic)assert.deepEqual([got.Toxic.hp,got.Toxic.ac],[43,17]);if(got.Camilla)assert.deepEqual([got.Camilla.hp,got.Camilla.ac],[38,15]);
   console.log(`PASS: the Night Shift PDFs import (${Object.entries(got).map(([n,v])=>`${n}: HP ${v.hp}, AC ${v.ac}, ${v.diff} differences`).join('; ')}).`);})().catch(e=>{console.error(e);process.exit(1);});
 else console.log('(The Night Shift PDFs aren’t on this computer: that part is skipped.)');
+
+/* opening an imported hero in the creator keeps its background increases and improvements (ChatGPT's restore step, #12) */
+{const html=fs.readFileSync(path.join(root,'index.html'),'utf8');const ui=fs.readFileSync(path.join(root,'src/ui/hero-import.js'),'utf8');
+assert(/S\.creator = crRestoreSelections\(\{ \.\.\.crNew\(\), build: JSON\.parse\(JSON\.stringify\(hero\.build\)\)/.test(ui),'Open in the creator restores the pickers');
+assert(html.includes('src/ui/hero-import.js'));}
+console.log('PASS: an imported hero opened in the creator keeps its ability increases and level-up choices.');
