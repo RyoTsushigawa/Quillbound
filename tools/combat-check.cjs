@@ -29,7 +29,7 @@ console.log('PASS: attacks hit at AC and graze up to 5 below; defense (beat 11 +
 /* hero attacks */
 let s=state(),l=R.init(s);
 R.prepare(s,draft(s),[10]);assert.equal(l.pending.rolls[0].total,15);assert.equal(l.pending.rolls[0].band,'success'); // +3 STR +2 always proficient vs AC 15
-assert.throws(()=>R.apply(s),/damage/);R.damage(s,0,8);assert.equal(foe(s).hpNow,30);R.apply(s);assert.equal(foe(s).hpNow,22);assert.equal(me(s).hpNow,12);
+assert(l.pending.rolls[0].damage>=2,'attack damage is rolled automatically');R.damage(s,0,8);assert.equal(foe(s).hpNow,30);R.apply(s);assert.equal(foe(s).hpNow,22);assert.equal(me(s).hpNow,12);
 assert(R.undo(s));assert.equal(foe(s).hpNow,30);
 s=state();l=R.init(s);R.prepare(s,draft(s),[6]);let r=l.pending.rolls[0];assert.equal(r.band,'mixed');R.damage(s,0,9);const back=r.strike.damage;R.apply(s);
 assert.equal(foe(s).hpNow,26,'a graze deals half');assert.equal(me(s).hpNow,12-back,'the target strikes back');
@@ -39,7 +39,7 @@ assert.equal(me(s).hpNow,12);assert(l.conditions.p1.includes('Exposed'),'out of 
 s=state([knight({hpNow:5})]);l=R.init(s);R.prepare(s,draft(s),[8]);R.damage(s,0,12);R.apply(s);assert.equal(foe(s).status,'down');assert.equal(me(s).hpNow,12,'a graze that drops the target draws no strike-back');
 s=state();s.party[0]={...hero('p1','Hero One'),level:5,abil:{STR:18,DEX:12,CON:14,INT:10,WIS:10,CHA:10},prof:3};l=R.init(s);
 assert.equal(R.rollsNeeded(s,draft(s)),2);assert.throws(()=>R.prepare(s,draft(s),[10]),/2 d20s/);R.prepare(s,draft(s),[15,15]);assert.equal(l.pending.rolls.length,2);
-console.log('PASS: one roll per attack (Extra Attack); hits need damage; grazes deal half and draw a strike-back; out of reach uses another consequence; Undo restores HP.');
+console.log('PASS: one roll per attack (Extra Attack); damage auto-rolls and can be overridden; grazes deal half and draw a strike-back; out of reach uses another consequence; Undo restores HP.');
 
 /* stamina */
 s=state();l=R.init(s);R.prepare(s,draft(s),[8]);r=l.pending.rolls[0];assert.equal(r.band,'mixed');assert.equal(R.pushInfo(s,0).pay,'stamina');
