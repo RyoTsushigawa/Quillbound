@@ -5,7 +5,11 @@
 const PLAYER_TABS = new Set(['home', 'create', 'heroes']);
 const isDm = () => S.role === 'dm';
 // Called once after the save loads: everyone starts as a player; the save becomes the first campaign.
-function cmInit() { S.role ??= 'player'; S.myHeroes ??= []; QBCampaigns.ensure(S); if (!isDm() && !PLAYER_TABS.has(S.tab)) S.tab = 'home'; }
+// Heroes made before player mode went into this browser's party; the first time, they're copied into My heroes.
+function cmInit() {
+  if (!S.myHeroes) S.myHeroes = (S.party || []).filter(p => p.build && !p.example).map(p => ({ id: 'ph-' + p.id, build: { ...JSON.parse(JSON.stringify(p.build)), name: p.name }, story: { want: p.want || '' }, saved: Date.now() }));
+  S.role ??= 'player'; QBCampaigns.ensure(S); if (!isDm() && !PLAYER_TABS.has(S.tab)) S.tab = 'home';
+}
 // Called by render(): show only the tabs this mode may use, and the mode switch.
 function cmShell() {
   if (!isDm() && !PLAYER_TABS.has(S.tab)) S.tab = 'home';

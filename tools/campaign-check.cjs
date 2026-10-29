@@ -49,6 +49,8 @@ run(`QBCampaigns.importCampaign(S,${JSON.stringify(back)})`);assert.equal(run('S
 assert.throws(()=>run(`QBCampaigns.remove(S,S.campaigns.current)`),/Switch to another/);
 /* reset keeps the lock, the heroes and the other campaigns */
 run(`ACT.reset()`);assert(run('S.dmLock&&S.myHeroes.length===1&&S.campaigns.list.length===3'));
+/* heroes made before player mode (in this browser's party) are copied into My heroes once */
+run(`delete S.myHeroes;S.party.push({id:'old1',name:'Camilla',build:{...S.party[0].build,name:'x'},want:'Fame'});cmInit();`);assert(run("S.myHeroes.some(h=>h.build.name==='Camilla'&&h.story.want==='Fame')"),'earlier heroes reach My heroes');
 /* locking returns to player mode */
 run(`ACT['cm-lock']();render();`);assert.equal(run('S.role'),'player');assert.deepEqual(shown(),['home','create','heroes']);
 console.log('PASS: player mode by default (DM tabs hidden); players save heroes and send hero files with their homebrew; the DM’s passphrase opens DM mode; campaigns switch, back up and restore without mixing data; hero files join (and update) the party with their attacks and story.');
