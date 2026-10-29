@@ -395,10 +395,33 @@
     log(s, `${members ? (members[0].groupName || 'The group') : f.name} ${BREAK_TEXT[choice]}.`, 'break');
   }
   // DM correction from the token's Status… menu
+  const FOE_STATUSES = ['fighting','down','dead','fled','surrendered','bargained'];
+  // Read-only encounter state, derived from actors rather than a second persistent flag.
+  // "Cleared" means no foe can fight; it does not imply every foe was killed.
+  function encounterStatus(s) {
+    if (!s?.combat) return { phase:'inactive', foes:0, activeFoes:0, activeHeroes:0, ready:0 };
+    const l=init(s), foes=s.combat.foes || [], participants=[...(s.party||[]),...foes];
+    const activeFoes=foes.filter(f=>active(s,f)).length;
+    const activeHeroes=(s.party||[]).filter(h=>active(s,h)).length;
+    return {phase:l.pending?'resolving':activeFoes===0?'cleared':activeHeroes===0?'party-down':'ongoing',
+      foes:foes.length,activeFoes,activeHeroes,
+      ready:participants.filter(a=>active(s,a)&&!l.acted[a.id]).length};
+  }
   function setStatus(s, id, status) {
-    const l = init(s), f = actor(s, id); if (!f) return;
-    remember(s); f.status = status; delete l.breaking[id]; if (status !== 'fighting') l.broke[id] = true;
-    if (status === 'fighting' && Number.isFinite(f.hpNow) && f.hpNow <= 0) f.hpNow = 1;
+    const l = init(s), f = actor(s, id);
+    if (!f || hero(s,id)) throw Error('Choose an enemy token.');
+    if (l.pending) throw Error('Finish or cancel the current roll before changing enemy status.');
+    if (!FOE_STATUSES.includes(status)) throw Error('Choose a valid enemy status.');
+    if (f.status===status) return;
+    remember(s);
+    f.status = status;
+    delete l.breaking[id];
+    if(status==='down' || status==='dead') f.hpNow=0;
+    if(status!=='fighting') l.broke[id]=true;
+    else {
+      delete l.broke[id];
+      if(Number.isFinite(f.hpNow)&&f.hpNow<=0) f.hpNow=1;
+    }
     log(s, `${f.name}: ${status}.`);
   }
 
@@ -504,5 +527,5 @@
   }
 
   root.Stakes = { contextEvents, contextPreview, actions, zones, init, actor, hero, active, needs, setStats, remember, undo, grade, attackBand, defenseBand, bonus, targets, configure,
-    rollsNeeded, rollFor, prepare, pushInfo, push, damage, rollDamage, attackResponseIndex, apply, nextRound, move, adjust, hurt, heal, deathSave, shortRest, longRest, condition, describe, log, d20, die, secret, resolveBreak, setStatus, groups, staminaMax };
+    rollsNeeded, rollFor, prepare, pushInfo, push, damage, rollDamage, attackResponseIndex, apply, nextRound, move, adjust, hurt, heal, deathSave, shortRest, longRest, condition, describe, log, d20, die, secret, resolveBreak, setStatus, encounterStatus, groups, staminaMax };
 })(globalThis);
