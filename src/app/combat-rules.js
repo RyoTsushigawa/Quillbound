@@ -82,7 +82,7 @@
     };
     const l = c.lite;
     l.conditionNotes ??= {}; l.secretRolls ??= []; l.breaking ??= {}; l.broke ??= {}; l.protected ??= {}; l.openings ??= {}; l.riderUsed ??= {};
-    l.draft.attackNames ??= []; l.draft.contextEvent ??= 'trapped'; l.draft.stakes ??= ''; l.draft.enemyOutcome ??= ''; l.draft.enemyCondition ??= 'Pinned';
+    l.draft.attackNames ??= []; l.draft.targets ??= []; l.draft.contextEvent ??= 'trapped'; l.draft.stakes ??= ''; l.draft.enemyOutcome ??= ''; l.draft.enemyCondition ??= 'Pinned';
     if (!l.draft.enemyEffect || l.draft.enemyEffect === 'wound') l.draft.enemyEffect = 'damage';
     if (l.draft.effect === 'wound') l.draft.effect = 'damage';
     if ((l.version || 1) < 3) convert(s, l);
@@ -192,6 +192,12 @@
     d.trained = typeof sheet?.trained === 'boolean' ? sheet.trained : (p.trained || []).includes(d.ability);
   }
   const enemyAttacks = f => (f.turn?.length ? f.turn : (f.attacks || []).slice(0, 1).map(a => a.name)).map(n => (f.attacks || []).find(a => a.name === n)).filter(Boolean);
+  // The first roll follows the primary target; later attacks may choose another.
+  // Ordinary thugs and other single-attack foes need no additional setup.
+  const rollTargetId = (d,i) => i > 0 && d.targets?.[i] || d.target;
+  const edgeFor = (l,d,i) => d.mode === 'enemy'
+    ? !!l.protected[rollTargetId(d,i)] && !Array.from({length:i},(_,j)=>rollTargetId(d,j)).includes(rollTargetId(d,i))
+    : i === 0 && !!l.openings[d.actor];
   // How many d20s this exchange needs: one per attack for Attack and for a damaging enemy move, otherwise one.
   function rollsNeeded(s, d) {
     if (d.mode === 'enemy') return (d.enemyEffect || 'damage') === 'damage' ? Math.max(1, enemyAttacks(actor(s, d.actor) || {}).length) : 1;
@@ -199,8 +205,8 @@
     return 1;
   }
   // The roller may roll twice on the first die: an opening from Help, or on defense the cover of a Defend.
-  const hasEdge = (l, d, roller) => !!(l.openings[roller] || (d.mode === 'enemy' && l.protected[roller]));
-  function rollFor(s, d) { const l = init(s), roller = d.mode === 'enemy' ? d.target : d.actor; return Array.from({ length: rollsNeeded(s, d) }, (_, i) => i === 0 && hasEdge(l, d, roller) ? [d20(), d20()] : d20()); }
+  function rollFor(s, d) { const l = init(s);
+    return Array.from({ length: rollsNeeded(s, d) }, (_, i) => edgeFor(l,d,i) ? [d20(), d20()] : d20()); }
   function prepare(s, d, rolls) {
     const l = init(s); configure(s, d);
     const a = actor(s, d.actor);
@@ -221,26 +227,37 @@
     if ((d.action === 'move' || (d.mode === 'enemy' && effect === 'position')) && !zones.includes(d.destination)) throw Error('Choose a destination.');
     const foe = d.mode === 'enemy' ? a : d.action === 'attack' ? t : null, missing = needs(s, foe);
     if (foe && missing.length) throw Error(`${foe.name} needs ${missing.join(', ')} before this roll. Add them on the enemy card.`);
+    const split = (d.mode === 'enemy' && effect === 'damage') || (d.mode !== 'enemy' && d.action === 'attack');
+    if (split) for (let i=0;i<rollsNeeded(s,d);i++) {
+      const id=rollTargetId(d,i), choice=targets(s,d).find(x=>x.id===id);
+      if (!choice) throw Error(`Attack ${i+1}: choose a standing target before rolling.`);
+      if (d.mode !== 'enemy') {
+        const gaps=needs(s,choice);
+        if (gaps.length) throw Error(`${choice.name} needs ${gaps.join(', ')} before this roll. Add them on the enemy card.`);
+      }
+    }
     rolls = Array.isArray(rolls) ? rolls : [rolls];
-    const roller = d.mode === 'enemy' ? t : a, edge = hasEdge(l, d, roller.id);
+    const roller = d.mode === 'enemy' ? t : a;
     if (rolls.length !== rollsNeeded(s, d)) throw Error(`This exchange needs ${rollsNeeded(s, d)} d20${rollsNeeded(s, d) > 1 ? 's' : ''}.`);
     const kept = rolls.map((r, i) => {
       const dice = Array.isArray(r) ? r : [r];
       if (!dice.every(v => Number.isInteger(v) && v >= 1 && v <= 20)) throw Error('Enter a whole number from 1 to 20.');
-      if (dice.length > (i === 0 && edge ? 2 : 1)) throw Error('Only an opening allows a second die, on the first roll.');
+      if (dice.length > (edgeFor(l,d,i) ? 2 : 1)) throw Error('Only an opening allows a second die on that roll.');
       return { dice, die: Math.max(...dice) };
     });
     const stakes = (d.stakes || '').trim();
-    const p = { ...clone(d), enemyEffect: effect || d.enemyEffect, stakes, roller: roller.id, edgeUsed: edge && kept[0].dice.length > 1, cost: { stamina: 0, hd: 0 }, consequence: stakes ? 'goal' : 'position', consequenceText: stakes || 'The enemy gains ground.', striker: s.combat.foes.find(f => active(s, f))?.id || '', reward: 'opening', rewardTarget: s.party.find(x => active(s, x))?.id || '', confirmed: false };
+    const p = { ...clone(d), enemyEffect: effect || d.enemyEffect, stakes, roller: roller.id, edgeUsed: kept.some((k,i)=>edgeFor(l,d,i)&&k.dice.length>1), edgeTargets: kept.flatMap((k,i)=>d.mode==='enemy'&&edgeFor(l,d,i)&&k.dice.length>1?[rollTargetId(d,i)]:[]), cost: { stamina: 0, hd: 0 }, consequence: stakes ? 'goal' : 'position', consequenceText: stakes || 'The enemy gains ground.', striker: s.combat.foes.find(f => active(s, f))?.id || '', reward: 'opening', rewardTarget: s.party.find(x => active(s, x))?.id || '', confirmed: false };
     if (d.mode === 'enemy') {
       const atks = effect === 'damage' ? enemyAttacks(a) : [enemyAttacks(a).reduce((x, y) => y.bonus > x.bonus ? y : x)];
-      p.rolls = kept.map((k, i) => { const atk = atks[i], b = Number(t.ac) - 10, total = k.die + b, band = defenseBand(k.die, total, atk.bonus);
-        return { ...k, bonus: b, total, band, against: 12 + atk.bonus, attack: atk.name, expr: atk.damage, damage: effect === 'damage' && FAILS.includes(band) ? rollDamage(atk.damage, band === 'disaster') : 0 }; });
+      p.rolls = kept.map((k, i) => { const atk = atks[i], defender = actor(s, effect==='damage'?rollTargetId(d,i):d.target);
+        const b = Number(defender.ac) - 10, total = k.die + b, band = defenseBand(k.die, total, atk.bonus);
+        return { ...k, target: defender.id, bonus: b, total, band, against: 12 + atk.bonus, attack: atk.name, expr: atk.damage, damage: effect === 'damage' && FAILS.includes(band) ? rollDamage(atk.damage, band === 'disaster') : 0 }; });
     } else if (d.action === 'attack') {
-      const selected = A().heroAttackSequence(a, d.attackNames || []), back = enemyAttacks(t)[0];
-      p.rolls = kept.map((k, i) => { const atk = selected[i], total = k.die + atk.bonus, band = attackBand(k.die, total, t.acNum);
-        return { ...k, bonus: atk.bonus, total, band, against: t.acNum, attack: atk.name, expr: atk.damage, rider: atk.rider || null, damage: LANDS.includes(band) ? rollDamage(atk.damage, band === 'crit') : null, push: null,
-          strike: { by: t.id, name: back?.name || 'Attack', damage: back ? rollDamage(back.damage, band === 'disaster') : 0, reach: true } }; });
+      const selected = A().heroAttackSequence(a, d.attackNames || []);
+      p.rolls = kept.map((k, i) => { const atk = selected[i], foe = actor(s,rollTargetId(d,i)), back = enemyAttacks(foe)[0];
+        const total = k.die + atk.bonus, band = attackBand(k.die, total, foe.acNum);
+        return { ...k, target: foe.id, bonus: atk.bonus, total, band, against: foe.acNum, attack: atk.name, expr: atk.damage, rider: atk.rider || null, damage: LANDS.includes(band) ? rollDamage(atk.damage, band === 'crit') : null, push: null,
+          strike: { by: foe.id, name: back?.name || 'Attack', damage: back ? rollDamage(back.damage, band === 'disaster') : 0, reach: true } }; });
     } else {
       const b = bonus(roller, d.ability, d.trained), k = kept[0], total = k.die + b, band = grade(k.die, total);
       const expr = d.action === 'improvise' && d.effect === 'damage' ? A().heroAttack(a).damage : null;
@@ -250,7 +267,7 @@
     if (d.mode !== 'enemy' && d.action === 'attack') refreshRider(s,p);
     // Player dice are public the moment they are rolled; Undo never removes them.
     s.publicRolls ??= [];
-    for (const r of p.rolls) s.publicRolls.push({ id: root.crypto.randomUUID?.() || String(Date.now()) + '-' + s.publicRolls.length, die: r.die, dice: r.dice.slice(), total: r.total, band: r.band, roller: roller.name || 'Hero' });
+    for (const r of p.rolls) s.publicRolls.push({ id: root.crypto.randomUUID?.() || String(Date.now()) + '-' + s.publicRolls.length, die: r.die, dice: r.dice.slice(), total: r.total, band: r.band, roller: (d.mode === 'enemy' ? actor(s, r.target)?.name : roller.name) || 'Hero' });
     while (s.publicRolls.length > 20) s.publicRolls.shift();
     l.pending = p;
     return p;
@@ -274,7 +291,7 @@
   function push(s, i = 0, d4 = die(4)) {
     const l = init(s), p = l.pending, info = pushInfo(s, i); if (!info.ok) throw Error(info.why);
     if (!Number.isInteger(d4) || d4 < 1 || d4 > 4) throw Error('Enter a d4 result from 1 to 4.');
-    const r = p.rolls[i], t = actor(s, p.target);
+    const r = p.rolls[i], t = actor(s, r.target || p.target);
     if (info.pay === 'stamina') p.cost.stamina++; else p.cost.hd++;
     r.push = { d4, pay: info.pay }; r.total += d4;
     r.band = p.action === 'attack' ? attackBand(r.die, r.total, t.acNum) : grade(r.die, r.total);
@@ -355,13 +372,16 @@
   // Called by both the result preview and confirmation, including after stamina Push.
   function attackResponseIndex(s, p) {
     if (!p || p.mode === 'enemy' || p.action !== 'attack') return -1;
-    const t = actor(s, p.target);
-    if (!active(s, t)) return -1;
-    let hp = Number.isFinite(t.hpNow) ? t.hpNow : Infinity;
+    const remaining = new Map();
     for (let i = 0; i < p.rolls.length; i++) {
-      const r = p.rolls[i];
-      if (LANDS.includes(r.band) && hp > 0) hp = Math.max(0, hp - attackDamage(r,p,i));
-      if (FAILS.includes(r.band) && hp > 0) return i;
+      const r = p.rolls[i], target = actor(s,r.target || p.target);
+      if (!target || !active(s,target)) continue;
+      const hp = remaining.has(target.id) ? remaining.get(target.id) : (Number.isFinite(target.hpNow) ? target.hpNow : Infinity);
+      if (hp <= 0) continue;
+      // Retaliation happens after the corresponding attack damage.
+      const after = LANDS.includes(r.band) ? Math.max(0,hp-attackDamage(r,p,i)) : hp;
+      remaining.set(target.id,after);
+      if (FAILS.includes(r.band) && after > 0) return i;
     }
     return -1;
   }
@@ -472,26 +492,28 @@
     remember(s);
     const lines = [];
     // The second die spends one edge: on defense the Defend cover first, otherwise the Help opening.
-    if (p.edgeUsed) { if (p.mode === 'enemy' && l.protected[p.roller]) delete l.protected[p.roller]; else delete l.openings[p.roller]; }
+    if (p.edgeUsed) { if (p.mode === 'enemy') for (const id of p.edgeTargets) delete l.protected[id]; else delete l.openings[p.roller]; }
     if (p.cost.stamina || p.cost.hd) { a.stamina -= p.cost.stamina; a.hitDice.left -= p.cost.hd; lines.push(`${a.name} pushes: ${[p.cost.stamina && p.cost.stamina + ' stamina', p.cost.hd && p.cost.hd + ' Hit Die (overexert)'].filter(Boolean).join(' and ')}${a.stamina === 0 ? '; now Winded' : ''}.`); }
     const fallback = band => { if (p.consequence === 'goal') lines.push(`${band === 'disaster' ? 'Major reversal' : 'Consequence'}: ${p.consequenceText}`); else { l.positions[a.id] = 'center'; condition(s, a.id, band === 'disaster' ? 'Separated and pinned' : 'Exposed'); lines.push(`${a.name} loses their safe position${band === 'disaster' ? ' and is separated and pinned' : ''}.`); } };
     if (p.mode === 'enemy') {
       p.rolls.forEach((r, i) => {
-        if (r.band === 'crit' || r.band === 'success') { lines.push(`${t.name} avoids ${r.attack}${p.rolls.length > 1 ? ' (' + (i + 1) + ')' : ''}.`); return; }
-        if (p.enemyEffect === 'damage') { if (!t.dead) lines.push(hurt(s, t.id, r.damage)); return; }
-        if (p.enemyEffect === 'position') { l.positions[t.id] = p.destination; lines.push(`${t.name} is moved to ${l.zones[p.destination]}.`); }
-        if (p.enemyEffect === 'condition') condition(s, t.id, p.enemyCondition, { description: p.enemyOutcome, clears: 'Resolve the cause in the fiction with the DM.' });
+        const defender=actor(s,r.target || p.target);
+        if (r.band === 'crit' || r.band === 'success') { lines.push(`${defender.name} avoids ${r.attack}${p.rolls.length > 1 ? ' (' + (i + 1) + ')' : ''}.`); return; }
+        if (p.enemyEffect === 'damage') { if (!defender.dead) lines.push(hurt(s, defender.id, r.damage)); return; }
+        if (p.enemyEffect === 'position') { l.positions[defender.id] = p.destination; lines.push(`${defender.name} is moved to ${l.zones[p.destination]}.`); }
+        if (p.enemyEffect === 'condition') condition(s, defender.id, p.enemyCondition, { description: p.enemyOutcome, clears: 'Resolve the cause in the fiction with the DM.' });
         lines.push(p.enemyOutcome);
       });
     } else if (p.action === 'attack') {
       p.rolls.forEach((r, i) => {
-        if (LANDS.includes(r.band) && active(s, t)) {
+        const foe=actor(s,r.target || p.target);
+        if (LANDS.includes(r.band) && active(s, foe)) {
           const addRider = eligibleRider && i===p.riderIndex;
-          lines.push((r.band === 'mixed' ? 'Graze: ' : r.band === 'crit' ? 'Critical hit: ' : '') + hurt(s, t.id, dealt(r) + (addRider ? p.riderDamage : 0)));
+          lines.push((r.band === 'mixed' ? 'Graze: ' : r.band === 'crit' ? 'Critical hit: ' : '') + hurt(s, foe.id, dealt(r) + (addRider ? p.riderDamage : 0)));
           if (addRider) { l.riderUsed[a.id + ':' + p.riderId] = true; lines.push(r.rider.name + ': +' + p.riderDamage + ' damage.'); }
         }
-        if (i !== responseIndex || !active(s, t)) return;
-        if (r.strike.reach) lines.push(`${t.name} strikes back${r.band === 'disaster' ? ' (critical)' : ''}: ` + hurt(s, a.id, r.strike.damage));
+        if (i !== responseIndex || !active(s, foe)) return;
+        if (r.strike.reach) lines.push(`${foe.name} strikes back${r.band === 'disaster' ? ' (critical)' : ''}: ` + hurt(s, a.id, r.strike.damage));
         else fallback(r.band);
       });
     } else if (LANDS.includes(p.band)) {
