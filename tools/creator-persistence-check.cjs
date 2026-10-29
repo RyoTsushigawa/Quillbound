@@ -57,10 +57,10 @@ input('creator.asiUI.4.feat','ability-score-improvement');input('creator.asiUI.4
 assert.deepEqual(plain(run('S.creator.build.asi[4].plus')),{CHA:2});
 
 // Cover the other background arrangement and a feat’s single +1, including later levels.
-for(const mode of ['triple','feat']){
+for(const mode of ['triple','feat','elemental']){
   bard();
   if(mode==='triple')run(`S.creator.boostUI.mode='1-1-1';render();`);
-  else {input('creator.asiUI.4.feat','war-caster');input('creator.asiUI.4.a','CHA');}
+  else {input('creator.asiUI.4.feat',mode==='elemental'?'elemental-adept':'war-caster');input('creator.asiUI.4.a','CHA');if(mode==='elemental'){run(`S.creator.step='class';render();`);input('creator.build.featureChoices.level-4.damageType','Lightning');}}
   const before=snapshot();run(`ACT['cr-savehero']();render();ACT['cm-edit']({id:S.myHeroes.at(-1).id});render();`);
   assert.deepEqual(snapshot(),before,mode+' choices survive reopening');
 }
@@ -71,4 +71,48 @@ input('creator.asiUI.8.feat','war-caster');input('creator.asiUI.8.a','CHA');
 input('creator.asiUI.12.feat','ability-score-improvement');input('creator.asiUI.12.a','CON');
 const higher=snapshot();run(`ACT['cr-savehero']();render();ACT['cm-edit']({id:S.myHeroes.at(-1).id});render();`);
 assert.deepEqual(snapshot(),higher,'each level retains its own choice and ability increases');
+// Unsupported details in old files must be requested, not invented or taken from class spells.
+bard();run(`delete S.creator.build.featureChoices;S.creator.asiUI[4]={feat:'elemental-adept',a:'CHA'};render();`);
+assert(run(`crSheet(S.creator).open.some(x=>/Elemental Adept damage type/.test(x.label))`));
+assert(run(`crSheet(S.creator).open.some(x=>/Magic Initiate two cantrips/.test(x.label))`));
+run(`S.creator.step='class';render();`);assert(node('#view').innerHTML.includes('Elemental Adept damage type'));
+input('creator.build.featureChoices.level-4.damageType','Cold');
+run(`S.creator.step='spells';render();`);assert(node('#view').innerHTML.includes('Two extra cantrips'));
+const classSpells=plain(run('S.creator.build.spells'));
+input('creator.build.featureChoices.background.ability','INT');
+run(`ACT['cr-feat-cantrip']({source:'background',v:'sacred-flame'});ACT['cr-feat-cantrip']({source:'background',v:'guidance'});render();`);
+input('creator.build.featureChoices.background.spell','cure-wounds');
+assert.deepEqual(plain(run('S.creator.build.spells')),classSpells,'bonus spells do not consume or overwrite class selections');
+assert.equal(run('crSheet(S.creator).open.length'),0);
+assert.equal(run(`crSheet(S.creator).attacks.find(a=>a.name==='Sacred Flame (Magic Initiate)').bonus`),2,'feat cantrip uses chosen INT, not Bard CHA');
+run(`S.creator.tab='spells';render();`);assert(node('#view').innerHTML.includes('Cure Wounds'));
+const extra=snapshot();run(`ACT['cr-savehero']();render();ACT['cm-edit']({id:S.myHeroes.at(-1).id});render();`);
+assert.deepEqual(snapshot(),extra,'damage type and all bonus-spell choices survive edit');
+const printed=ctx.QBSheet.html(run('crSheet(S.creator)'),{lang:'en'});
+assert(printed.includes('Damage type: Cold')&&printed.includes('Sacred Flame')&&printed.includes('Cure Wounds'),'printed sheet includes actual feat choices');
+run(`ACT['cr-savehero']();render();`);assert.deepEqual(exportSaved().hero.build,extra,'feat choices survive JSON export');
+// Only two distinct, on-list cantrips and a level-1 spell are accepted.
+run(`ACT['cm-edit']({id:S.myHeroes.at(-1).id});render();S.creator.build.featureChoices.background.cantrips=['fire-bolt','fire-bolt'];`);
+assert(run(`crSheet(S.creator).open.some(x=>/two cantrips/.test(x.label))`));
+run(`S.creator.build.featureChoices.background=JSON.parse(${JSON.stringify(JSON.stringify(extra.featureChoices.background))});S.creator.build.featureChoices.background.spell='fireball';`);
+assert(run(`crSheet(S.creator).open.some(x=>/level-1 spell/.test(x.label))`));
+// A noncaster with Magic Initiate still gets the Spells step and an independent casting ability.
+run(`S.creator=crNew();S.creator.build=QBHeroRules.quickBuild('fighter','Feat-only caster',1);S.creator.build.background='acolyte';S.creator.build.featureChoices={background:{feat:'magic-initiate',list:'cleric',ability:'WIS',cantrips:['guidance','sacred-flame'],spell:'cure-wounds'}};S.creator.step='spells';render();`);
+assert(run(`crSteps(crSheet(S.creator)).some(([k])=>k==='spells')`));assert(node('#view').innerHTML.includes('Two extra cantrips'));
+// Optional local-only user export: never commit the file or print its story.
+if(process.argv[2]){
+  const file=fs.readFileSync(process.argv[2],'utf8');
+  const parsed=ctx.QBCampaigns.parseHero(file,run('cmSheet'));
+  assert(!parsed.error,parsed.error);
+  ctx.localHero=parsed.hero;
+  const before=plain(parsed.hero.build),scores=plain(run('cmSheet(localHero.build).scores'));
+  run(`S.myHeroes=[{id:localHero.id,build:localHero.build,story:localHero.story}];S.creator=crNew();ACT['cm-edit']({id:localHero.id});render();`);
+  assert.deepEqual(snapshot(),before,'user export: opening and rendering preserves every build field');
+  assert.deepEqual(plain(run('crSheet(S.creator).scores')),scores,'user export: final scores are unchanged');
+  assert.equal(run('crSheet(S.creator).open.length'),run('QBHeroRules.featChoiceChecks(S.creator.build).length'),'user export: only the previously unsupported feat details need completion');
+  run(`ACT['cr-savehero']();render();`);
+  assert.deepEqual(exportSaved().hero.build,before,'user export: edit/save/export is lossless');
+  console.log('PASS: supplied local hero JSON retains existing choices; previously unsupported feat details are explicitly requested without guessing them.');
+  console.log(JSON.stringify({boost:before.boost,levelChoices:before.asi,lore:before.featPicks?.lore,expertise:before.expertise,finalScores:scores}));
+}
 console.log('PASS: fresh Bard save/reload/export, imported and local edit round trips, split ASI, feat +1, all-three background boosts, Lore skills, Expertise, and deliberate changes.');

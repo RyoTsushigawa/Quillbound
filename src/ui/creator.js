@@ -54,9 +54,9 @@ function crSync(c){
   for(const lv of Object.keys(b.asi)) if(!QBHeroRules.asiLevels(b).includes(+lv)) delete b.asi[lv];
   if(b.equip){ if(b.equip.armor==='') b.equip.armor=null; }
 }
-function crSheet(c){ QBHeroRules.setHomebrew(QBHomebrew.forCreator(S.homebrew,c.build)); crSync(c); return QBHeroRules.derive({...c.build,name:c.build.name||'Your hero'}); }
+function crSheet(c){ QBHeroRules.setHomebrew(QBHomebrew.forCreator(S.homebrew,c.build)); crSync(c); const sheet=QBHeroRules.derive({...c.build,name:c.build.name||'Your hero'});sheet.open.push(...QBHeroRules.featChoiceChecks(c.build));return sheet; }
 const crOpenIn=(sheet,c,k)=>k==='story'?(c.build.name.trim()?0:1):sheet.open.filter(o=>o.step===k).reduce((n,o)=>n+o.left,0);
-const crSteps=sheet=>CR_STEPS.filter(([k])=>k!=='spells'||sheet.spellcasting);
+const crSteps=sheet=>CR_STEPS.filter(([k])=>k!=='spells'||sheet.spellcasting||sheet.featSpellcasting?.length);
 // Spells are a large file: load them only when needed (the check loads them directly).
 function crSpells(then){ if(globalThis.QBSPELLS) return globalThis.QBSPELLS; if(then) (crSpells.waiting||=[]).push(then);
   if(!crSpells.loading&&typeof document.createElement==='function'){ crSpells.loading=true; const s=document.createElement('script'); s.src='src/app/srd-spells.js'; s.onload=()=>{ (crSpells.waiting||[]).splice(0).forEach(f=>f()); render(); }; document.head.appendChild(s); } return null; }
@@ -129,6 +129,7 @@ function crStepBody(c,sheet){
       <p class="small muted">From your background: ${esc([...fromBg].map(name).join(', ')||'none yet')}.</p></div>`; }
   case 'spells': {
     const list=crSpells(); if(!list) return '<p>Loading the spell list…</p>';
+    if(!sheet.spellcasting)return '<p>Your feat grants spells independently of your class. Choose them below.</p>';
     const sc=sheet.spellcasting, maxLevel=sc.slots.reduce((m,n,i)=>n?i+1:m,0), mine=list.filter(s=>s.classes.includes(QBHeroRules.spellList(b)));
     const row=(k,s,max)=>crCheck(k,s.id,(b.spells[k]||[]).includes(s.id),`<b>${esc(s.name)}</b> <span class="small muted">${s.level?'level '+s.level:'cantrip'} · ${esc(s.school)}${s.conc?' · concentration':''}${s.ritual?' · ritual':''}</span>`,max,`<details><summary class="small">What it does</summary><p class="small">${esc(s.desc)}</p>${s.higher?`<p class="small">${esc(s.higher)}</p>`:''}<p class="small muted">${esc([s.time,s.range,s.duration].join(' · '))}</p></details>`);
     return `<p class="small">Spell save DC <b>${sc.dc}</b> · spell attack <b>${fmt(sc.attack)}</b> · slots ${sc.slots.map((n,i)=>n?`${n}×${i+1}`:'').filter(Boolean).join(', ')||'none yet'}</p>
@@ -167,7 +168,7 @@ function crStepBody(c,sheet){
 }
 // The live sheet: every number calculated from the choices so far.
 function crSheetPanel(c,sheet){
-  const tabs=[['summary','Summary'],['combat','Combat'],['skills','Skills'],...(sheet.spellcasting?[['spells','Spells']]:[]),['features','Features'],['gear','Gear']], t=tabs.some(([k])=>k===c.tab)?c.tab:'summary';
+  const tabs=[['summary','Summary'],['combat','Combat'],['skills','Skills'],...(sheet.spellcasting||sheet.featSpellcasting?.length?[['spells','Spells']]:[]),['features','Features'],['gear','Gear']], t=tabs.some(([k])=>k===c.tab)?c.tab:'summary';
   const D=crData(), name=id=>D.skills.find(k=>k.id===id)?.name||id, list=globalThis.QBSPELLS||[];
   let body='';
   if(t==='summary') body=`<div class="stats"><div class="stat"><b>${sheet.hp.max}</b><span>Hit points</span></div><div class="stat"><b>${sheet.ac}</b><span>Armor class</span></div><div class="stat"><b>${sheet.speed}</b><span>Speed (ft)</span></div><div class="stat"><b>${fmt(sheet.prof)}</b><span>Proficiency</span></div><div class="stat"><b>${fmt(sheet.initiative)}</b><span>Initiative</span></div><div class="stat"><b>${sheet.passive}</b><span>Passive Perception</span></div></div>
@@ -176,7 +177,7 @@ function crSheetPanel(c,sheet){
   if(t==='combat') body=`<table class="cr-table"><tr><th>Attack</th><th>Bonus</th><th>Damage</th><th>Per action</th></tr>${sheet.attacks.map(a=>`<tr><td>${esc(a.name)}${a.note?' <span class="small lt-warning">'+esc(a.note)+'</span>':''}</td><td>${fmt(a.bonus)}</td><td>${esc(a.damage)} ${esc(a.type||'')}</td><td>${a.count}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">Choose weapons or attack cantrips.</td></tr>'}</table>
     <p class="small">In Stakes combat: HP ${sheet.hp.max}, AC ${sheet.ac}, stamina ${sheet.stamina}, Hit Dice ${sheet.hitDice.count} × d${sheet.hitDice.die}. The first attack in this list is the one the Combat tab uses.</p>${sheet.spellcasting?`<p class="small">Spell save DC ${sheet.spellcasting.dc} · spell attack ${fmt(sheet.spellcasting.attack)}</p>`:''}`;
   if(t==='skills') body=`${sheet.tools.length?`<p class="small"><b>Tools:</b> ${esc(sheet.tools.join(', '))}</p>`:''}<ul class="cr-skills">${Object.entries(sheet.skills).map(([id,s])=>`<li class="${s.prof?'on':''}"><span>${s.expert?'◆':s.prof?'●':'○'} ${esc(s.name)} <span class="small muted">${s.ability}</span></span><b>${fmt(s.bonus)}</b></li>`).join('')}</ul><p class="small muted">● trained · ◆ expertise</p>`;
-  if(t==='spells'){ const sc=sheet.spellcasting, nm=id=>list.find(s=>s.id===id)?.name||id; body=`<p>DC ${sc.dc} · attack ${fmt(sc.attack)} · ${esc(sc.ability)}</p><p class="small">Slots: ${sc.slots.map((n,i)=>n?`level ${i+1} × ${n}`:'').filter(Boolean).join(', ')||'none yet'}</p><p class="small"><b>Cantrips:</b> ${esc((c.build.spells.cantrips||[]).map(nm).join(', ')||'none')}</p><p class="small"><b>Prepared:</b> ${esc((c.build.spells.prepared||[]).map(nm).join(', ')||'none')}</p>`; }
+  if(t==='spells'){ const sc=sheet.spellcasting, nm=id=>list.find(s=>s.id===id)?.name||id; body=(sc?`<p>DC ${sc.dc} · attack ${fmt(sc.attack)} · ${esc(sc.ability)}</p><p class="small">Slots: ${sc.slots.map((n,i)=>n?`level ${i+1} × ${n}`:'').filter(Boolean).join(', ')||'none yet'}</p><p class="small"><b>Cantrips:</b> ${esc((c.build.spells.cantrips||[]).map(nm).join(', ')||'none')}</p><p class="small"><b>Prepared:</b> ${esc((c.build.spells.prepared||[]).map(nm).join(', ')||'none')}</p>`:'')+(sheet.featSpellcasting||[]).map(f=>`<h4>Magic Initiate · ${esc(f.list)}</h4><p class="small">${esc(f.ability||'Ability not chosen')} · DC ${f.dc??'—'} · attack ${f.attack==null?'—':fmt(f.attack)}<br>Cantrips: ${esc(f.cantrips.map(nm).join(', ')||'not chosen')}<br>Level-1 spell: ${esc(nm(f.spell)||'not chosen')} · once free per long rest; also with spell slots. Track uses manually.</p>`).join(''); }
   if(t==='features') body=sheet.features.map(f=>`<details><summary><b>${esc(f.name)}</b> <span class="small muted">${esc(f.source)}${f.level>1?' · level '+f.level:''}</span></summary><p class="small">${esc(f.desc)}</p></details>`).join('')||'<p class="muted">Choose a species and class.</p>';
   if(t==='gear') body=`<p class="small">${esc(sheet.gear.items.map(x=>(x.count>1?x.count+' × ':'')+x.name+(x.from==='Granted by the DM'?' (granted)':'')).join(', ')||'Nothing yet')} · ${sheet.gear.gp} GP left</p><p class="small muted">Wearing: ${esc(D.equipment[sheet.gear.equipped.armor]?.name||'no armor')}${sheet.gear.equipped.shield?', shield':''}.</p>`;
   return `<aside class="cr-sheet" aria-label="Live character sheet"><div class="eyebrow">Live sheet</div><h3>${esc(c.build.name||'Your hero')}</h3><p class="small muted">${sheet.cls?`Level ${sheet.level} ${esc(sheet.species||'')} ${esc(sheet.cls)}${sheet.subclass?' · '+esc(sheet.subclass):''}`:'Choose a species and class'}${sheet.background?' · '+esc(sheet.background):''}</p>
@@ -189,8 +190,30 @@ function vCreate(){
   const stepper=`<div class="cr-steps" role="list">${steps.map(([k,l])=>{const n=crOpenIn(sheet,c,k);return `<button role="listitem" data-act="cr-step" data-v="${k}" ${k===c.step?'aria-current="step"':''} class="${n?'':'done'}">${l}${k==='review'?'':n?` <span class="badge">${n}</span>`:' ✓'}</button>`;}).join('')}</div>`;
   const foot=`<div class="cr-foot"><button class="btn" data-act="cr-step" data-v="${steps[i-1]?.[0]||''}" ${i===0?'disabled':''}>Back</button>${i<steps.length-1?`<button class="btn primary" data-act="cr-step" data-v="${steps[i+1][0]}">Next: ${steps[i+1][1]}</button>`:''}</div>`;
   return `<div class="pagehead"><div><div class="eyebrow">Character creator · SRD 5.2 rules</div><h2>${head[0]}</h2><p>${head[1]}</p></div></div>
-    <div class="cr-layout"><div class="cr-main">${stepper}${crStepBody(c,sheet)}${foot}</div>
+    <div class="cr-layout"><div class="cr-main">${stepper}${crStepBody(c,sheet)}${crFeatChoices(c,c.step)}${foot}</div>
     <details class="cr-sheet-wrap" open><summary>View sheet</summary>${crSheetPanel(c,sheet)}</details></div>`;
+}
+function crFeatChoices(c,step){
+  const b=c.build, choices=QBHeroRules.featChoices(b).filter(x=>x.step===step);
+  if(!choices.length)return '';
+  const spells=step==='spells'?crSpells():[];
+  if(step==='spells'&&!spells)return '<p>Loading feat spell choices…</p>';
+  return choices.map(x=>{
+    b.featureChoices||={};let p=b.featureChoices[x.key];
+    if(p?.feat!==x.feat)p=b.featureChoices[x.key]={feat:x.feat};
+    const label=x.key==='background'?'Background':x.key==='species'?'Species':`Level ${x.level}`;
+    const binding=k=>`creator.build.featureChoices.${x.key}.${k}`;
+    if(x.feat==='elemental-adept')return `<section class="card stack"><h3>${label}: Elemental Adept</h3><label class="f">Damage type<select aria-label="Elemental Adept damage type" data-bind="${binding('damageType')}" data-rerender>${crOpt('','Choose a damage type…',!p.damageType)}${['Acid','Cold','Fire','Lightning','Thunder'].map(k=>crOpt(k,k,p.damageType===k)).join('')}</select></label><p class="small muted">This selection is saved with the feat. Resolve resistance and damage-die effects manually.</p></section>`;
+    p.cantrips||=[];
+    if(x.lockedList)p.list=x.lockedList;
+    const list=x.lockedList||p.list,mine=spells.filter(s=>s.classes.includes(list));
+    return `<section class="card stack"><h3>${label}: Magic Initiate</h3>
+      ${x.lockedList?`<p>Spell list: <b>${esc(x.lockedList)}</b> (from your background)</p>`:`<label class="f">Spell list<select aria-label="Magic Initiate spell list" data-act-change="cr-feat-list" data-source="${x.key}">${crOpt('','Choose…',!p.list)}${['cleric','druid','wizard'].map(k=>crOpt(k,k,p.list===k)).join('')}</select></label>`}
+      <label class="f">Spellcasting ability<select aria-label="Magic Initiate spellcasting ability" data-bind="${binding('ability')}" data-rerender>${crOpt('','Choose…',!p.ability)}${['INT','WIS','CHA'].map(k=>crOpt(k,k,p.ability===k)).join('')}</select></label>
+      <h4>Two extra cantrips</h4><p class="small muted">These do not use your class’s cantrip choices.</p><div class="cr-checks">${mine.filter(s=>s.level===0).map(s=>`<label><input type="checkbox" data-act="cr-feat-cantrip" data-source="${x.key}" data-v="${esc(s.id)}" ${p.cantrips.includes(s.id)?'checked':''}> ${esc(s.name)}</label>`).join('')}</div>
+      <label class="f">Extra level-1 spell<select aria-label="Magic Initiate level-1 spell" data-bind="${binding('spell')}" data-rerender>${crOpt('','Choose…',!p.spell)}${mine.filter(s=>s.level===1).map(s=>crOpt(s.id,s.name,p.spell===s.id)).join('')}</select></label>
+      <p class="small muted">Always prepared; one free casting per long rest, and may also use your spell slots. Track the free use manually.</p></section>`;
+  }).join('');
 }
 // Creator actions; spread into ACT where it is defined.
 // A hero keeps copies of the homebrew it uses (background, species, class, feats), so it still works after the DM
@@ -229,6 +252,8 @@ function creatorActions(){ const B=()=>crState().build, D=()=>crData();
   'cr-bg':d=>{ const c=crState(), bg=D().backgrounds.find(x=>x.id===d.v); if(c.build.background===d.v) return; c.build.background=d.v; c.build.toolChoice='';
     const top=crPriority(c.build.cls).filter(k=>bg.abilities.includes(k)); c.boostUI={mode:'2-1',plus2:top[0]||bg.abilities[0],plus1:top[1]||bg.abilities[1]}; },
   'cr-boost':d=>{ crState().boostUI.mode=d.v; },
+  'cr-feat-list':d=>{const p=B().featureChoices?.[d.source];if(!p||p.list===d.v)return;p.list=d.v;p.cantrips=[];p.spell='';},
+  'cr-feat-cantrip':d=>{const p=B().featureChoices?.[d.source];if(!p)return;const list=p.cantrips||=[],i=list.indexOf(d.v);if(i>=0)list.splice(i,1);else if(list.length<2)list.push(d.v);else toast('Choose two cantrips. Untick one first.');},
   'cr-keen':d=>{ B().keenSense=d.v; },
   'cr-toggle':d=>{ const b=B(), k=d.k, list=k==='cantrips'||k==='prepared'?(b.spells[k]||=[]):k==='skilled'||k==='lore'?(b.featPicks[k]||=[]):(b[k]||=[]); const i=list.indexOf(d.v);
     if(i>=0) list.splice(i,1); else if(list.length<(+d.max||99)) list.push(d.v); else toast(`You can choose ${d.max}. Untick one first.`); },

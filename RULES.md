@@ -26,6 +26,8 @@ The **Create a hero** tab builds 2024 (SRD 5.2) heroes from level 1 to 20.
 
 **Editing a saved hero:** My heroes → Edit restores the background ability increases and every level's feat/Ability Score Improvement selections before recalculating the sheet. This also applies to hero files received from another player. Simply opening or navigating a saved hero must not clear those choices; saving an edit keeps the same hero ID.
 
+**Feat selections:** Elemental Adept has a saved damage-type choice. Magic Initiate has its own spell list, Intelligence/Wisdom/Charisma choice, two cantrips and one always-prepared level-1 spell. Acolyte fixes the list to Cleric and Sage to Wizard; these bonus spells do not use class cantrip/preparation choices. Selections live in `build.featureChoices`, keyed by their source (`background`, `species`, or `level-4`, etc.), and are included in hero files, the live sheet and printed sheets. Feat cantrips use their chosen casting ability. Resistance/damage-die effects and the free casting once per long rest remain manual. Older heroes missing these details are prompted to finish them rather than given guessed selections. Quick build may supply recommended defaults.
+
 **Choices**
 - **Quick build:** choose a class card and press it, and every remaining choice is filled with a recommended default you can change.
   - It keeps a species you already picked.

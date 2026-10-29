@@ -46,10 +46,13 @@
     const gear = (s.gear?.items || []).map(i => esc(i.name) + (i.count > 1 ? ' ×' + i.count : '')).join(', ');
     const sc = s.spellcasting;
     const spellList = (opts.spells || []).slice().sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
-    const spells = sc ? `<section class="ps-box"><h3>${L.spells}</h3><div class="ps-row">${stat(L.spellAbility, L.abil[sc.ability] || sc.ability)}${stat(L.dc, sc.dc)}${stat(L.spellAtk, sign(sc.attack))}</div>
+    const spells = (sc ? `<section class="ps-box"><h3>${L.spells}</h3><div class="ps-row">${stat(L.spellAbility, L.abil[sc.ability] || sc.ability)}${stat(L.dc, sc.dc)}${stat(L.spellAtk, sign(sc.attack))}</div>
       <p><b>${L.slots}:</b> ${sc.slots.map((n, i) => n ? `${i + 1}. ${boxes(n, L.slots)}` : '').filter(Boolean).join('  ') || L.none}</p>
       ${spellList.length ? `<p><b>${L.cantrips}:</b> ${esc(spellList.filter(x => !x.level).map(x => x.name).join(', ') || L.none)}</p><p><b>${L.prepared}:</b> ${esc(spellList.filter(x => x.level).map(x => `${x.name} (${x.level})`).join(', ') || L.none)}</p>`
-        : `<p class="ps-muted">${L.cantrips} ${sc.cantrips} · ${L.prepared} ${sc.prepared}</p>`}</section>` : '';
+        : `<p class="ps-muted">${L.cantrips} ${sc.cantrips} · ${L.prepared} ${sc.prepared}</p>`}</section>` : '')+(s.featSpellcasting||[]).map(f=>{
+          const nm=id=>(root.QBSPELLS||[]).find(x=>x.id===id)?.name||id||L.none;
+          return `<section class="ps-box"><h3>Magic Initiate · ${esc(f.list)}</h3><p>${L.spellAbility}: ${esc(f.ability||L.none)} · ${L.dc}: ${f.dc??L.none} · ${L.spellAtk}: ${f.attack==null?L.none:sign(f.attack)}</p><p><b>${L.cantrips}:</b> ${esc(f.cantrips.map(nm).join(', ')||L.none)}</p><p><b>${L.prepared}:</b> ${esc(nm(f.spell))} (1)</p><p>${boxes(1,'Magic Initiate')} ${de?'Einmal ohne Zauberplatz pro langer Rast; zusätzlich mit Zauberplätzen.':'Once without a slot per long rest; also with spell slots.'}</p></section>`;
+        }).join('');
     const feats = (s.features || []).map(f => `<li><b>${esc(f.name)}</b>${f.level > 1 ? ` <span class="ps-muted">(${L.level} ${f.level})</span>` : ''}${f.desc ? ': ' + esc(brief(f.desc)) : ''}</li>`).join('');
     const st = opts.story || {};
     const head = n => `<header class="ps-head"><div><h1>${esc(s.name || 'Hero')}</h1><p>${esc(title)}</p></div><div class="ps-page">${L.page} ${n}</div></header>`;

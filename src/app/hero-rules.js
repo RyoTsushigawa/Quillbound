@@ -140,6 +140,33 @@
   }
 
   /* ---- the sheet ---- */
+  // Choices belong to the source of a feat, so repeated feats retain distinct selections.
+  function featChoices(b) {
+    const bg=byId(H().backgrounds,b.background), sources=[{key:'background',feat:bg?.feat?.id,note:bg?.feat?.note,background:bg?.id},{key:'species',feat:b.speciesFeat},
+      ...asiLevels(b).map(lv=>({key:'level-'+lv,feat:b.asi?.[lv]?.feat,level:lv}))];
+    return sources.filter(x=>['elemental-adept','magic-initiate'].includes(x.feat)).map(x=>{
+      const saved=b.featureChoices?.[x.key], selection=saved?.feat===x.feat?saved:{};
+      const lockedList=x.feat==='magic-initiate'?((x.note||'').match(/\b(cleric|druid|wizard)\b/i)?.[1]?.toLowerCase()||({acolyte:'cleric',sage:'wizard'}[x.background])||''):'';
+      return {...x,selection,lockedList,step:x.feat==='magic-initiate'?'spells':x.key==='background'?'background':x.key==='species'?'species':'class'};
+    });
+  }
+  function featChoiceChecks(b) {
+    const list=root.QBSPELLS, checks=[];
+    for(const x of featChoices(b)){
+      const p=x.selection, label=x.key==='background'?'Background':x.key==='species'?'Species':`Level ${x.level}`;
+      if(x.feat==='elemental-adept'){
+        if(!['Acid','Cold','Fire','Lightning','Thunder'].includes(p.damageType))checks.push({step:x.step,label:`${label}: Elemental Adept damage type`,left:1});
+      }else{
+        const spellList=x.lockedList||p.list, selected=p.cantrips||[];
+        if(!['cleric','druid','wizard'].includes(spellList)||x.lockedList&&p.list!==x.lockedList)checks.push({step:'spells',label:`${label}: Magic Initiate spell list`,left:1});
+        if(!['INT','WIS','CHA'].includes(p.ability))checks.push({step:'spells',label:`${label}: Magic Initiate spellcasting ability`,left:1});
+        const valid=(id,level)=>!list||list.some(s=>s.id===id&&s.level===level&&s.classes.includes(spellList));
+        if(selected.length!==2||new Set(selected).size!==2||!selected.every(id=>valid(id,0)))checks.push({step:'spells',label:`${label}: Magic Initiate two cantrips`,left:Math.max(1,2-selected.filter(id=>valid(id,0)).length)});
+        if(!p.spell||!valid(p.spell,1))checks.push({step:'spells',label:`${label}: Magic Initiate level-1 spell`,left:1});
+      }
+    }
+    return checks;
+  }
   function derive(b) {
     const data = H(), c = cls(b), sp = byId(data.species, b.species), sub = byId(sp?.sub, b.sub), bg = byId(data.backgrounds, b.background);
     const level = Math.max(1, Math.min(20, Number(b.level) || 1)), prof = profFor(level), s = scores(b), m = Object.fromEntries(ABIL.map(k => [k, mod(s[k])]));
@@ -220,14 +247,20 @@
     // attacks a (homebrew) class grants, such as an Armorer's Lightning Launcher: the chosen ability plus proficiency
     for (const a of c?.attacksFrom || []) if (a.level <= level) attacks.push({ name: a.name, bonus: m[a.ability] + prof, damage: a.dice + (a.addMod !== false && m[a.ability] ? fmt(m[a.ability]) : ''), count, type: a.type, kind: 'class' });
     if (martial) attacks.push({ name: 'Unarmed Strike', bonus: Math.max(m.STR, m.DEX) + prof, damage: '1d' + martial + fmt(Math.max(m.STR, m.DEX)), count, kind: 'unarmed' });
-    if (spellcasting) for (const id of b.spells?.cantrips || []) {
+    const featSpellcasting=featChoices(b).filter(x=>x.feat==='magic-initiate').map(x=>{
+      const p=x.selection, ability=['INT','WIS','CHA'].includes(p.ability)?p.ability:null;
+      return {key:x.key,name:'Magic Initiate',list:x.lockedList||p.list||'',ability,dc:ability?8+prof+m[ability]:null,attack:ability?prof+m[ability]:null,cantrips:p.cantrips||[],spell:p.spell||''};
+    });
+    const cantripSources=[...(spellcasting?(b.spells?.cantrips||[]).map(id=>({id,casting:spellcasting,feat:false})):[]),
+      ...featSpellcasting.filter(f=>f.ability).flatMap(f=>f.cantrips.map(id=>({id,casting:f,feat:true})))];
+    for (const {id,casting,feat} of cantripSources) {
       const sp0 = (root.QBSPELLS || []).find(x => x.id === id); if (!sp0?.damage) continue;
       // Some saving-throw cantrips (Sacred Flame) carry no save field in the data: read it from the text. Stakes rolls them like attacks.
       const save = sp0.save || ({ Strength: 'STR', Dexterity: 'DEX', Constitution: 'CON', Intelligence: 'INT', Wisdom: 'WIS', Charisma: 'CHA' })[(sp0.desc.match(/(Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma) saving throw/) || [])[1]] || '';
       if (!sp0.attack && !save) continue;
       const base = String(sp0.damage['0'] || sp0.damage['1'] || Object.values(sp0.damage)[0] || ''), steps = 1 + (level >= 5) + (level >= 11) + (level >= 17);
       const beams = id === 'eldritch-blast';
-      attacks.push({ name: sp0.name, bonus: spellcasting.attack, damage: beams ? base : base.replace(/^(\d+)d/, (_, n) => `${n * steps}d`), count: beams ? steps : 1, type: sp0.damageType, save, kind: 'cantrip' });
+      attacks.push({ name: sp0.name+(feat?' (Magic Initiate)':''), bonus: casting.attack, damage: beams ? base : base.replace(/^(\d+)d/, (_, n) => `${n * steps}d`), count: beams ? steps : 1, type: sp0.damageType, save, kind: 'cantrip' });
     }
 
     // strongest first (average damage per action, then attack bonus): the Combat tab uses the first one
@@ -240,6 +273,12 @@
     for (const f of c?.subclass?.features || []) if (f.level <= level) features.push({ name: f.name, level: f.level, source: c.subclass.name, desc: f.desc });
     for (const t of [...(sp?.traits || []), ...(sub?.traits || [])]) features.push({ name: t.name, level: 1, source: sub ? `${sp.name} (${sub.name})` : sp.name, desc: t.desc });
     for (const id of feats) { const f = byId(data.feats, id); if (f) features.push({ name: f.name, level: 1, source: 'Feat', desc: f.desc }); }
+    for(const x of featChoices(b)){
+      const p=x.selection, name=id=>(root.QBSPELLS||[]).find(s=>s.id===id)?.name||id;
+      const detail=x.feat==='elemental-adept'?`Damage type: ${p.damageType||'not chosen'}.`:
+        `List: ${x.lockedList||p.list||'not chosen'}; ability: ${p.ability||'not chosen'}; cantrips: ${(p.cantrips||[]).map(name).join(', ')||'not chosen'}; level-1 spell: ${name(p.spell)||'not chosen'}. One free casting per long rest; may also use spell slots. Track uses manually.`;
+      features.push({name:(x.feat==='elemental-adept'?'Elemental Adept':'Magic Initiate')+' selections',level:x.level||1,source:x.key,desc:detail});
+    }
 
     // choices still open (the creator shows these as counters)
     const open = [];
@@ -274,7 +313,7 @@
       size: sp?.size || b.size || '', scores: s, mods: m, saves, skills, passive: 10 + skills.perception.bonus, initiative: m.DEX + (hasFeat('alert') ? prof : 0), speed,
       senses: (sp?.traits || []).filter(t => /^darkvision/.test(t.id)).map(t => t.name),
       hp: { max: hpMax, perLevel }, hitDice: { die: c?.hitDie || 8, count: level }, ac: ac.ac, acFrom: ac.from, attacks, spellcasting, features, feats,
-      gear: { ...gear, equipped: eq }, open, warnings: [...new Set(warn)], stamina: prof };
+      gear: { ...gear, equipped: eq }, featSpellcasting, open, warnings: [...new Set(warn)], stamina: prof };
   }
 
   // The fields the Stakes engine and the rest of the app read from a hero, built from the sheet.
@@ -328,6 +367,16 @@
     if (spc && list) { const mine = list.filter(x => x.classes.includes(spellList(b))), max = spc.slots.reduce((n, v, i) => v ? i + 1 : n, 0);
       b.spells = { cantrips: mine.filter(x => x.level === 0).sort((x, y) => (!!y.damage * 2 + !!y.attack) - (!!x.damage * 2 + !!x.attack)).slice(0, spc.cantrips).map(x => x.id), // damaging cantrips first (attack or saving throw)
         prepared: mine.filter(x => x.level >= 1 && x.level <= max).sort((x, y) => y.level - x.level).slice(0, spc.prepared).map(x => x.id) }; }
+    // Only Quick build chooses defaults; opening/importing an existing hero never guesses missing selections.
+    for(const x of featChoices(b)){
+      b.featureChoices||={};const p=b.featureChoices[x.key]?.feat===x.feat?b.featureChoices[x.key]:{feat:x.feat};
+      if(x.feat==='elemental-adept')p.damageType||='Fire';
+      else if(list){
+        p.list=x.lockedList||p.list||'wizard';p.ability||=[...['INT','WIS','CHA']].sort((a,z)=>scores(b)[z]-scores(b)[a])[0];
+        const mine=list.filter(s=>s.classes.includes(p.list));p.cantrips||=mine.filter(s=>s.level===0).slice(0,2).map(s=>s.id);p.spell||=mine.find(s=>s.level===1)?.id||'';
+      }
+      b.featureChoices[x.key]=p;
+    }
     return b;
   }
   function quickBase(clsId, name = '', level = 1) {
@@ -344,5 +393,5 @@
     return b;
   }
 
-  root.QBHeroRules = { featAllowed, featBlockers, getHomebrew, spellList, classProfs, TRAINING, priceOf, setHomebrew, data: () => H(), ABIL, ARRAY, POINT_COST, POINTS, mod, profFor, die, rollAbilities, rollTotal, rollHp, derive, toHero, quickBuild, fillDefaults, inventory, equipped, proficientWith, asiLevels, expertiseCount, abilityChecks, boostCheck };
+  root.QBHeroRules = { featChoices, featChoiceChecks, featAllowed, featBlockers, getHomebrew, spellList, classProfs, TRAINING, priceOf, setHomebrew, data: () => H(), ABIL, ARRAY, POINT_COST, POINTS, mod, profFor, die, rollAbilities, rollTotal, rollHp, derive, toHero, quickBuild, fillDefaults, inventory, equipped, proficientWith, asiLevels, expertiseCount, abilityChecks, boostCheck };
 })(globalThis);
