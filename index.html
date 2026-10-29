@@ -255,6 +255,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/app/phb-feats.js"></script>
 <script src="src/app/hero-rules.js"></script>
 <script src="src/app/homebrew.js"></script>
+<script src="src/app/sheet-export.js"></script>
 <script src="src/app/table-homebrew.js"></script>
 <script src="src/app/combat-rules.js"></script>
 <script src="src/app/encounter-design.js"></script>
@@ -718,7 +719,7 @@ function crStepBody(c,sheet){
     return `<div class="card stack"><h3>${esc(b.name||'Your hero')}</h3><p>Level ${sheet.level} ${esc(sheet.species)} ${esc(sheet.cls)}${sheet.subclass?' ('+esc(sheet.subclass)+')':''} · ${esc(sheet.background)}</p>
       ${open.length?`<div class="cl-error" role="alert"><b>Still to choose:</b><ul>${open.map(o=>`<li><button class="linklike" data-act="cr-step" data-v="${o.step}">${esc(o.label)}${o.left>1?' ('+o.left+')':''}</button></li>`).join('')}</ul></div>`:'<p class="cr-count done">✓ Every choice is made.</p>'}
       ${sheet.warnings.length?`<ul class="small lt-warning">${sheet.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:''}
-      <div class="row"><button class="btn discord" data-act="discord" data-v="sheet">Preview Discord message</button><button class="btn" data-act="cr-new">Start another</button><button class="btn primary" data-act="cr-add" ${open.length?'disabled':''}>Add to party</button></div></div>`; }
+      <div class="row"><button class="btn discord" data-act="discord" data-v="sheet">Preview Discord message</button><button class="btn" data-act="cr-printsheet">Character sheet (print / PDF)</button><button class="btn" data-act="cr-new">Start another</button><button class="btn primary" data-act="cr-add" ${open.length?'disabled':''}>Add to party</button></div></div>`; }
   }
 }
 // The live sheet: every number calculated from the choices so far.
@@ -761,6 +762,8 @@ function creatorActions(){ const B=()=>crState().build, D=()=>crData();
     const bg=D().backgrounds.find(x=>x.id===q.background), two=Object.entries(q.boost); c.boostUI=two.length===3?{mode:'1-1-1',plus2:'',plus1:''}:{mode:'2-1',plus2:two.find(([,v])=>v===2)?.[0]||'',plus1:two.find(([,v])=>v===1)?.[0]||''};
     c.asiUI=Object.fromEntries(Object.entries(q.asi||{}).map(([lv,x])=>[lv,{feat:x.feat,mode:'2',a:Object.keys(x.plus)[0]||''}]));
     toast(`Quick build: ${D().species.find(x=>x.id===q.species)?.name}, ${bg.name} background, standard array. Change anything you like.`); },
+  'cr-printsheet':()=>{ const c=crState(); crSheet(c); openSheet(c.build,{want:c.story?.want,fear:c.story?.fear}); },
+  'sheet-print':d=>{ const p=pc(d.id); if(!p?.build){ toast('This hero was made before the hero creator. Rebuild them there to print a sheet.'); return; } openSheet({...p.build,name:p.name},{want:p.want}); },
   'cr-featview':d=>{ const c=crState(); c[d.v]=!c[d.v]; },
   'cr-level':d=>{ B().level=Number(d.v)||1; },
   'cr-hp':d=>{ B().hp.method=d.v; },
@@ -944,6 +947,21 @@ function hbFeatEditor(){
       <p class="small muted">There is no power score for feats: compare it with the SRD feats above and decide when you approve it.</p>
       <h4>Design tips</h4><ul class="small">${QBHomebrew.featAdvice(e).map(x=>`<li>${esc(x)}</li>`).join('')}</ul><p class="small muted">From the D&amp;D Wiki feat design guides. Tips never block approval.</p></aside></div>`;
 }
+// Printable character sheet (src/app/sheet-export.js): an overlay over the app that the browser prints, or saves as PDF.
+// The language switch is remembered in this browser only.
+function sheetSpells(b){ const all=globalThis.QBSPELLS||[]; return [...(b.spells?.cantrips||[]),...(b.spells?.prepared||[])].map(id=>all.find(x=>x.id===id)).filter(Boolean).map(x=>({name:x.name,level:x.level})); }
+function openSheet(build,story){
+  if((build.spells?.cantrips?.length||build.spells?.prepared?.length)&&!crSpells(()=>openSheet(build,story))) return; // spell names load first
+  QBHeroRules.setHomebrew(QBHomebrew.forCreator(S.homebrew,build)); const s=QBHeroRules.derive({...build,name:build.name||'Hero'});
+  let lang='de'; try{ lang=localStorage.getItem('qb-sheet-lang')||'de'; }catch{}
+  const show=()=>{ let o=document.getElementById('print-sheet'); if(!o){ o=document.createElement('div'); o.id='print-sheet'; document.body.appendChild(o); } document.body.classList.add('ps-open');
+    o.innerHTML=`<div class="ps-bar" role="toolbar" aria-label="Character sheet"><div class="ps-seg" role="group" aria-label="Language">${[['de','Deutsch'],['en','English']].map(([k,l])=>`<button class="btn sm ${lang===k?'primary':''}" data-l="${k}" aria-pressed="${lang===k}">${l}</button>`).join('')}</div>
+      <button class="btn primary" data-p>Print / save as PDF</button><button class="btn" data-x>Close</button><span class="small">In the print dialog, choose “Save as PDF” to get a file.</span></div>${QBSheet.html(s,{lang,spells:sheetSpells(build),story})}`;
+    o.querySelectorAll('[data-l]').forEach(b=>b.onclick=()=>{ lang=b.dataset.l; try{ localStorage.setItem('qb-sheet-lang',lang); }catch{} show(); });
+    o.querySelector('[data-p]').onclick=()=>{ try{ window.print(); }catch{ toast('Printing is blocked here. Open Quillbound in its own tab to print.'); } };
+    o.querySelector('[data-x]').onclick=()=>{ o.remove(); document.body.classList.remove('ps-open'); };
+    o.scrollTop=0; };
+  show(); }
 function vHomebrew(){
   QBHeroRules.setHomebrew(QBHomebrew.forCreator(hbState())); // approved homebrew feats can be chosen and required here too
   const hb=hbState(), kind=S.hbKind||'backgrounds', one=kind==='species'?'species':kind==='classes'?'class':kind==='feats'?'feat':'background';
@@ -1753,7 +1771,7 @@ function rdValue(d,id){return d.querySelector('#'+id).value.trim();}
 function rdField(id,title,value='',type='input'){return `<label class="f">${esc(title)}${type==='textarea'?`<textarea id="${id}" rows="3">${esc(value)}</textarea>`:`<input id="${id}" value="${esc(value)}">`}</label>`;}
 Object.assign(ACT,{
  'rd-group':()=>{if(rdBusy())return;rdDialog('Group matching enemies','<p>Three or more matching, unhurt enemies in the same area become one group card. Each keeps its own hit points, and the group breaks when half of it is down. Use Undo to separate them again.</p>',()=>EncounterDesign.groupMinions(S));},
- 'rd-sheets':()=>{const dlg=openDialog('Awareness & subclass sheets',`<p>Perception bonus includes Wisdom, skill proficiency or expertise, and other applicable modifiers. Blank uses Wisdom only. This is separate from the tracker’s ability training.</p>${S.party.map(p=>`<article class="card"><h4>${esc(p.name)} · ${esc(p.cls)}</h4><button class="btn sm" data-act="rd-sheet" data-id="${esc(p.id)}">Edit sheet</button><p>Passive Perception ${EncounterDesign.passive(p)}${p.perceptionBonus===undefined?' · Wisdom only, check skill proficiency':''}</p><p>${esc(p.subclass?.name||'No subclass attached')}</p>${(p.subclass?.features||[]).map((f,i)=>`<details><summary>${esc(f.name)}${f.level?' · level '+f.level:''}${f.level>p.level?' · not yet available':''}</summary><p>${esc(f.text)}</p><p class="small muted">${esc(p.subclass.source)} · PDF page ${f.page} · manual resolution</p><button class="btn sm" data-act="rd-feature-use" data-id="${esc(p.id)}" data-index="${i}" ${f.level>p.level?'disabled':''}>Record use (${Number(p.featureUses?.[i])||0})</button></details>`).join('')}</article>`).join('')}<button class="btn sm" data-act="rd-feature-reset">Reset feature use reminders after a rest</button><p class="small muted">Use counts are a manual reminder. Resolve saves, damage, spell slots, reactions and recharge with the DM; importing a feature does not automate or rebalance it.</p>`);},
+ 'rd-sheets':()=>{const dlg=openDialog('Awareness & subclass sheets',`<p>Perception bonus includes Wisdom, skill proficiency or expertise, and other applicable modifiers. Blank uses Wisdom only. This is separate from the tracker’s ability training.</p>${S.party.map(p=>`<article class="card"><h4>${esc(p.name)} · ${esc(p.cls)}</h4><button class="btn sm" data-act="rd-sheet" data-id="${esc(p.id)}">Edit sheet</button>${p.build?`<button class="btn sm" data-act="sheet-print" data-id="${esc(p.id)}">Character sheet (print / PDF)</button>`:''}<p>Passive Perception ${EncounterDesign.passive(p)}${p.perceptionBonus===undefined?' · Wisdom only, check skill proficiency':''}</p><p>${esc(p.subclass?.name||'No subclass attached')}</p>${(p.subclass?.features||[]).map((f,i)=>`<details><summary>${esc(f.name)}${f.level?' · level '+f.level:''}${f.level>p.level?' · not yet available':''}</summary><p>${esc(f.text)}</p><p class="small muted">${esc(p.subclass.source)} · PDF page ${f.page} · manual resolution</p><button class="btn sm" data-act="rd-feature-use" data-id="${esc(p.id)}" data-index="${i}" ${f.level>p.level?'disabled':''}>Record use (${Number(p.featureUses?.[i])||0})</button></details>`).join('')}</article>`).join('')}<button class="btn sm" data-act="rd-feature-reset">Reset feature use reminders after a rest</button><p class="small muted">Use counts are a manual reminder. Resolve saves, damage, spell slots, reactions and recharge with the DM; importing a feature does not automate or rebalance it.</p>`);},
  'rd-sheet':d=>{const p=pc(d.id);rdDialog('Edit '+p.name,rdField('rd-level','Character level',p.level)+rdField('rd-per','Total Wisdom (Perception) check bonus',p.perceptionBonus??'')+`<label class="f">Perception circumstances<select id="rd-per-state">${['normal','advantage','disadvantage'].map(x=>`<option ${p.perceptionState===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="f">Subclass<select id="rd-option"><option value="">None</option>${(S.characterOptions||[]).filter(o=>o.baseClass===p.cls).map(o=>`<option value="${esc(o.id)}" ${p.subclass?.id===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</select></label>`,dlg=>{const level=Number(rdValue(dlg,'rd-level')),bonus=rdValue(dlg,'rd-per');if(!Number.isInteger(level)||level<1||level>20||bonus!==''&&(!Number.isInteger(Number(bonus))||Math.abs(Number(bonus))>100))throw Error('Use a level from 1 to 20 and a whole-number Perception bonus.');p.level=level;p.prof=2+Math.floor((level-1)/4);p.perceptionBonus=bonus===''?undefined:Number(bonus);p.perceptionState=rdValue(dlg,'rd-per-state');const option=(S.characterOptions||[]).find(o=>o.id===rdValue(dlg,'rd-option'));if(p.subclass?.id!==option?.id)p.featureUses={};p.subclass=option?JSON.parse(JSON.stringify(option)):null;});},
  'rd-feature-reset':()=>{for(const p of S.party)p.featureUses={};ACT['rd-sheets']();},
  'rd-feature-use':d=>{const p=pc(d.id);p.featureUses??={};p.featureUses[d.index]=(Number(p.featureUses[d.index])||0)+1;ACT['rd-sheets']();},

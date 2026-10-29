@@ -54,6 +54,8 @@ The **Create a hero** tab builds 2024 (SRD 5.2) heroes from level 1 to 20.
 - Heroes made before this creator keep their simple starter attack. A "Rebuild in the new creator" button for them comes later.
 - Homebrew species, backgrounds and classes come later too.
 
+**Character sheet (print / PDF):** the creator's last step and the DM desk's Character sheets show a two-page sheet: abilities, saves, skills (proficiency and expertise marked), attacks, AC, HP, speed, initiative, passive Perception, boxes for stamina, Hit Dice and death saves, equipment and tools, the Quillbound table rules, spells with slots, every feature and feat (summarised), and lines for notes. A switch shows it in German or English (rules text from the data stays English). **Print / save as PDF** opens the browser's print dialog; choose "Save as PDF" for a file. Heroes made before the hero creator have no sheet until they're rebuilt there.
+
 ### Homebrew
 
 The **Homebrew** tab (DM only) builds your own backgrounds, species, classes and feats.
