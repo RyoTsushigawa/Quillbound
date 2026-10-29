@@ -230,7 +230,8 @@
   }
 
   /* ---- export and import ---- */
-  /* ---- feats: a name, a kind, a level, an optional +1 and the text; the DM approves what it does ---- */
+  /* ---- feats: a name, a kind, an optional +1 and the text; the DM approves what it does ---- */
+  // The kind sets the level, as in the 2024 rules: every general feat is Level 4+, every Epic Boon Level 19+.
   const FEAT_TYPES = { origin: { label: 'Origin feat (from a background or the Human)', minLevel: 1 }, general: { label: 'General feat (level 4 and up)', minLevel: 4 },
     'fighting-style': { label: 'Fighting Style feat', minLevel: 1 }, 'epic-boon': { label: 'Epic Boon (level 19)', minLevel: 19 } };
   const ABIL_NAME = { STR: 'Strength', DEX: 'Dexterity', CON: 'Constitution', INT: 'Intelligence', WIS: 'Wisdom', CHA: 'Charisma' };
@@ -245,7 +246,6 @@
     add(String(f.name || '').trim(), 'A name', 'Give the feat a name.');
     add(!H().feats.some(x => x.id !== f.id && x.name.toLowerCase() === String(f.name || '').trim().toLowerCase()), 'A name of its own', 'Another feat already has this name.');
     add(T, 'A kind of feat', 'Choose origin, general, Fighting Style or Epic Boon.');
-    if (T) add(Number(f.minLevel) >= T.minLevel && Number(f.minLevel) <= 20, `From level ${T.minLevel} or later`, `${T.label.split(' (')[0]}s start at level ${T.minLevel}.`);
     const needsPlus = f.type === 'general' || f.type === 'epic-boon', n = (f.abilities || []).length;
     add(needsPlus ? n >= 1 : n === 0, needsPlus ? 'A +1 to an ability' : 'No ability increase', needsPlus ? 'In the 2024 rules every general feat and Epic Boon also raises an ability by 1: choose which abilities it may raise.' : 'Origin and Fighting Style feats don’t raise abilities in the 2024 rules.');
     add(String(f.desc || '').trim().length >= 20, 'What it does', 'Describe what the feat does in your own words (at least a sentence).');
@@ -273,7 +273,7 @@
     const p = f.prereq || {}, parts = [(p.abilities || []).length ? p.abilities.map(k => ABIL_NAME[k]).join(' or ') + ' ' + (Number(p.score) || 13) + '+' : '', p.spellcasting ? 'the Spellcasting or Pact Magic feature' : '',
       p.feat ? 'the ' + ([...H().feats].find(x => x.id === p.feat)?.name || p.feat) + ' feat' : '', p.cls ? 'levels in ' + (H().classes.find(c => c.id === p.cls)?.name || p.cls) : '', p.text || ''].filter(Boolean);
     const pre = parts.length ? `**Prerequisite:** ${parts.join('; ')}.\n` : '';
-    return { id: f.id, name: String(f.name || '').trim() || 'Unnamed feat', type: FEAT_TYPES[f.type] ? f.type : 'general', minLevel: Number(f.minLevel) || 1, repeatable: !!f.repeatable,
+    return { id: f.id, name: String(f.name || '').trim() || 'Unnamed feat', type: FEAT_TYPES[f.type] ? f.type : 'general', minLevel: (FEAT_TYPES[f.type] || FEAT_TYPES.general).minLevel, repeatable: !!f.repeatable,
       prereq: { abilities: (p.abilities || []).filter(k => ABIL.includes(k)), score: Number(p.score) || 13, spellcasting: !!p.spellcasting, feat: p.feat || '', cls: p.cls || '' }, desc: pre + plus + (f.desc || ''), homebrew: true };
   }
 
@@ -297,7 +297,7 @@
     expertise: textList(c.expertise, ['level', 'count']), attacks: textList(c.attacks, ['level', 'name', 'dice', 'ability', 'type', 'ranged']), features: textList(c.features, ['level', 'name', 'desc']),
     subclass: { name: str(c.subclass?.name, 80), summary: str(c.subclass?.summary, 500), training: (c.subclass?.training || []).filter(a => ARMOR_NAME[a] || a === 'martial'), tools: (c.subclass?.tools || []).map(x => str(x, 60)).filter(Boolean), features: textList(c.subclass?.features, ['level', 'name', 'desc']) },
     kit: { items: (c.kit?.items || []).map(i => ({ id: String(i.id), count: Number(i.count) || 1 })), gp: Number(c.kit?.gp) || 0 }, kind: 'class', approved: false }; };
-  const cleanFeat = f => ({ ...newFeat(), id: str(f.id, 60) || uid('hb-ft'), name: str(f.name, 80), desc: str(f.desc, 3000), type: FEAT_TYPES[f.type] ? f.type : 'general', minLevel: Number(f.minLevel) || 4,
+  const cleanFeat = f => ({ ...newFeat(), id: str(f.id, 60) || uid('hb-ft'), name: str(f.name, 80), desc: str(f.desc, 3000), type: FEAT_TYPES[f.type] ? f.type : 'general', minLevel: (FEAT_TYPES[f.type] || FEAT_TYPES.general).minLevel,
     abilities: (f.abilities || []).filter(k => ABIL.includes(k)), repeatable: !!f.repeatable, kind: 'feat', approved: false,
     prereq: { abilities: (f.prereq?.abilities || []).filter(k => ABIL.includes(k)), score: Number(f.prereq?.score) || 13, spellcasting: !!f.prereq?.spellcasting, feat: str(f.prereq?.feat, 60), cls: str(f.prereq?.cls, 60), text: str(f.prereq?.text, 300) } });
   // Read a file: returns what it contains and anything that needs a decision. Nothing is changed here.

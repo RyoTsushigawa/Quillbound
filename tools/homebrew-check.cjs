@@ -110,8 +110,8 @@ console.log('PASS: homebrew feats follow the 2024 structure (+1 for general feat
 {const later={...B.newFeat(),id:'hb-ft-later',name:'Old Hand',type:'general',minLevel:8,abilities:['WIS'],desc:'Once per long rest you can reroll a failed Wisdom save.',prereq:{...B.newPrereq(),abilities:['WIS'],score:13}};
 R.setHomebrew({feats:[plain(B.featToSrd(later))]});const f=plain(R.data().feats.find(x=>x.id==='hb-ft-later'));
 const b={name:'X',species:'human',cls:'wizard',level:4,abilities:{method:'set',base:{STR:8,DEX:14,CON:14,INT:15,WIS:10,CHA:10}},background:'sage',boost:{INT:2,CON:1}};
-assert.deepEqual(plain(R.featBlockers(b,f,4)),['from level 8','needs Wisdom 13'],'future feats say what is missing');R.setHomebrew(null);}
-console.log('PASS: future feats list what a hero still needs (a later level, an ability score).');
+assert.equal(f.minLevel,4,'every general feat is Level 4+, whatever the form said');assert.deepEqual(plain(R.featBlockers(b,f,4)),['needs Wisdom 13'],'future feats say what is missing');R.setHomebrew(null);}
+console.log('PASS: a feat’s kind sets its level (general feats are Level 4+); future feats list what a hero still needs.');
 
 /* the homebrew that ships with the app for The Night Shift */
 vm.runInContext(fs.readFileSync(path.join(root,'src/app/table-homebrew.js'),'utf8'),ctx);const T=plain(ctx.QB_TABLE_HOMEBREW);

@@ -36,7 +36,7 @@ The **Create a hero** tab builds 2024 (SRD 5.2) heroes from level 1 to 20.
 - **Background increases:** the background raises two of its three abilities by +2 and +1, or all three by +1. Scores can't go above 20.
 - **Hit points after level 1:** the average (die ÷ 2 + 1 + Constitution) or a fair roll per level. Rolls are kept.
 - **Levels 4, 8, 12, 16** (and the Fighter's and Rogue's extra levels): an Ability Score Improvement or a feat. **Level 19:** an Epic Boon. A feat that raises an ability by 1 (Grappler: Strength or Dexterity; Epic Boons: any ability) asks which one.
-- **Feat choices** have two toggles: **Only recommended feats** narrows the menu to Ability Score Improvement and feats whose +1 can raise one of the class's main abilities (marked ★), and **Show future feats** lists the feats the hero can't take yet with what's missing (a later level, an ability score, another feat, a class). Homebrew feats only appear once the hero meets their prerequisites.
+- **Feat choices** have two toggles: **Only recommended feats** narrows the menu to Ability Score Improvement and feats whose +1 can raise one of the class's main abilities (marked ★), and **Show future feats** lists the feats the hero can't take yet with what's missing (an ability score, another feat, a class, spellcasting). Homebrew feats only appear once the hero meets their prerequisites.
 - **Other choices,** each counted on its step: fighting styles, expertise, weapon masteries, the Skilled and Versatile feats, cantrips and prepared spells.
 
 **Equipment.** You take the class's and the background's starting kit.
@@ -87,7 +87,7 @@ The **Homebrew** tab (DM only) builds your own backgrounds, species, classes and
 - **Test in fights…** runs 150 Stakes fights at level 5 for parties of four identical heroes (yours, Fighter, Rogue, Wizard) against a pack of CR level/4 monsters, a pair of CR level/2 and one tough enemy of CR level. It reports rounds, how often a hero drops, and how often the party is wiped. Healing, stamina and breaking points are left out, so it compares classes rather than tactics.
 
 **Feats** are written by you; Quillbound checks their structure and enforces their prerequisites, but doesn't calculate what they do.
-- **Kind and level:** origin (level 1, from a background or the Human), general (level 4 and up), Fighting Style (level 1) or Epic Boon (level 19). Each appears in the creator wherever a feat of that kind is chosen.
+- **Kind sets the level,** as in the 2024 rules: origin and Fighting Style feats at level 1, every general feat at level 4 ("Level 4+"), every Epic Boon at level 19. Each appears in the creator wherever a feat of that kind is chosen.
 - **The +1:** in the 2024 rules every general feat and Epic Boon also raises an ability by 1, and origin and Fighting Style feats don't. You tick which abilities the player may choose from; the creator then asks, as for Grappler.
 - **Prerequisites the creator enforces:** an ability score of 13 (usual) to 17 (stricter), counted from before the level the feat is taken; the Spellcasting or Pact Magic feature; another feat taken earlier; or a class. Anything else (a class feature, a spell) is free text the sheet shows. A hero only sees feats they qualify for.
 - **Chains:** a feat may need a feat that needs a feat, but no longer than three.

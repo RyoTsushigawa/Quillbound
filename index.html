@@ -924,7 +924,6 @@ function hbFeatEditor(){
   return `<div class="cr-layout"><div class="cr-main">
     <section class="card stack"><h3>The feat</h3><label class="f">Name<input data-bind="hbEdit.name" value="${esc(e.name)}" placeholder="Tough Hide, Night Hunter…" maxlength="80"></label>
       <label class="f">Kind<select data-act-change="hb-feattype">${Object.entries(T).map(([k,x])=>crOpt(k,x.label,e.type===k)).join('')}</select></label>
-      <label class="f">From level<select data-bind="hbEdit.minLevel" data-rerender>${Array.from({length:20},(_,i)=>i+1).filter(l=>l>=T[e.type].minLevel).map(l=>crOpt(l,'Level '+l,Number(e.minLevel)===l)).join('')}</select></label>
       <label><input type="checkbox" data-act="hb-cflag" data-p="repeatable" ${e.repeatable?'checked':''}> A hero may take it more than once</label></section>
     <section class="card stack"><h3>Ability increase</h3><p class="small muted">${needsPlus?'2024 general feats and Epic Boons raise one ability by 1. Tick the abilities a player may choose from (all six means any).':'Origin and Fighting Style feats don’t raise abilities in the 2024 rules.'}</p>
       ${needsPlus?`<div class="cr-checks">${ABIL.map(k=>`<label class="cr-check ${e.abilities.includes(k)?'on':''}"><input type="checkbox" data-act="hb-ctoggle" data-p="abilities" data-v="${k}" ${e.abilities.includes(k)?'checked':''}> ${APPROACH[k].name} (${k})</label>`).join('')}</div>`:''}</section>
@@ -953,7 +952,7 @@ function vHomebrew(){
     ?`<div class="pagehead"><div><div class="eyebrow">Homebrew · species</div><h2>${esc(S.hbEdit.name||'New species')}</h2><p>Pick traits from building blocks. Each has a weight; the panel on the right places your species among the SRD ones.</p></div></div>${hbSpeciesEditor()}`
     :`<div class="pagehead"><div><div class="eyebrow">Homebrew · background</div><h2>${esc(S.hbEdit.name||'New background')}</h2><p>Build inside the 2024 structure. The panel on the right checks each part and compares it with the SRD backgrounds.</p></div></div>${hbEditor()}`;
   const list=hb[kind]||[], fits=b=>kind==='species'?QBHomebrew.speciesFits(b):kind==='classes'?QBHomebrew.classFits(b):kind==='feats'?QBHomebrew.featFits(b,hb.feats.filter(y=>y.id!==b.id)):QBHomebrew.fits(b);
-  const line=b=>kind==='feats'?`${esc(QBHomebrew.FEAT_TYPES[b.type]?.label.split(' (')[0]||'')} · from level ${Number(b.minLevel)||1}${b.abilities.length?' · +1 '+esc(b.abilities.length===6?'any ability':b.abilities.join(' or ')):''}${b.repeatable?' · repeatable':''}`
+  const line=b=>kind==='feats'?`${esc(QBHomebrew.FEAT_TYPES[b.type]?.label.split(' (')[0]||'')} · level ${QBHomebrew.FEAT_TYPES[b.type]?.minLevel||1}+${b.abilities.length?' · +1 '+esc(b.abilities.length===6?'any ability':b.abilities.join(' or ')):''}${b.repeatable?' · repeatable':''}`
     :kind==='classes'?`d${b.hitDie} · ${esc(b.primary.join(', '))} · saves ${esc(b.saves.join(', '))} · ${b.caster==='none'?'no spells':esc(b.caster)+' caster'}${b.extraAttack?' · Extra Attack':''} · subclass ${esc(b.subclass.name||'?')}`
     :kind==='species'
     ?`${esc(b.size)} · ${Number(b.speed)+(b.traits.some(t=>t.block==='speed')?5:0)} ft · score ${QBHomebrew.speciesScore(b)} (SRD ${QBHomebrew.BAND.min}–${QBHomebrew.BAND.max}) · ${esc(QBHomebrew.speciesToSrd(b).traits.map(t=>t.name).join(', '))}`
@@ -985,7 +984,7 @@ function homebrewActions(){ const find=id=>{const hb=hbState(); for(const k of [
   'hb-save':()=>{ const hb=hbState(), src=S.hbEdit, e={...src,name:String(src.name||'').trim(),updated:Date.now()};
     if(e.kind==='species') Object.assign(e,{speed:Number(e.speed)||30});
     if(e.kind==='class') for(const k of ['hitDie','cantrips','fightingStyle','mastery','sneakFrom','martialArtsFrom']) e[k]=Number(e[k])||0;
-    if(e.kind==='feat'){ e.minLevel=Math.max(QBHomebrew.FEAT_TYPES[e.type]?.minLevel||1,Number(e.minLevel)||1); if(!['general','epic-boon'].includes(e.type)) e.abilities=[]; }
+    if(e.kind==='feat'){ e.minLevel=QBHomebrew.FEAT_TYPES[e.type]?.minLevel||4; if(!['general','epic-boon'].includes(e.type)) e.abilities=[]; }
     if(e.kind!=='species'&&e.kind!=='feat') e.kit={items:src.kit.items.map(i=>({id:i.id,count:Math.max(1,Math.round(Number(i.count)||1))})),gp:Math.max(0,Math.round(Number(src.kit.gp)||0))};
     if(!e.name){ toast('Give it a name first.'); return; }
     const list=e.kind==='species'?hb.species:e.kind==='class'?hb.classes:e.kind==='feat'?hb.feats:hb.backgrounds, i=list.findIndex(b=>b.id===e.id); if(i>=0) list[i]=e; else list.push(e);
@@ -996,8 +995,8 @@ function homebrewActions(){ const find=id=>{const hb=hbState(); for(const k of [
   'hb-delitem':d=>{ S.hbEdit.kit.items.splice(+d.v,1); },
   'hb-addtrait':d=>{ if(!d.v) return; const t={block:d.v}; if(d.v==='darkvision') t.range='60'; if(d.v==='natural') Object.assign(t,{name:'Claws',dice:'1d6',type:'Slashing',finesse:false}); if(d.v==='spell') t.level='3'; if(d.v==='custom'||d.v==='drawback') t.weight='1'; S.hbEdit.traits.push(t); },
   'hb-deltrait':d=>{ S.hbEdit.traits.splice(+d.v,1); },
-  // feat editor: a new kind moves the level up to where that kind starts, and drops a +1 it can't have
-  'hb-feattype':d=>{ const e=S.hbEdit, min=QBHomebrew.FEAT_TYPES[d.v]?.minLevel||1; e.type=d.v; if(Number(e.minLevel)<min||d.v==='epic-boon') e.minLevel=min; if(d.v==='origin'||d.v==='fighting-style') e.abilities=[]; },
+  // feat editor: the kind sets the level (origin and Fighting Style 1, general 4, Epic Boon 19) and drops a +1 it can't have
+  'hb-feattype':d=>{ const e=S.hbEdit, min=QBHomebrew.FEAT_TYPES[d.v]?.minLevel||1; e.type=d.v; e.minLevel=min; if(d.v==='origin'||d.v==='fighting-style') e.abilities=[]; },
   // class editor: toggles in nested lists ("skills.from"), flags, and rows (features, attacks, expertise)
   'hb-ctoggle':d=>{ const path=d.p.split('.'); let o=S.hbEdit; for(const k of path.slice(0,-1)) o=o[k]; const list=o[path[path.length-1]], i=list.indexOf(d.v); if(i>=0) list.splice(i,1); else if(list.length<(+d.max||99)) list.push(d.v); else toast(`Choose ${d.max}. Untick one first.`); },
   'hb-cflag':d=>{ const path=d.p.split('.'); let o=S.hbEdit; for(const k of path.slice(0,-1)) o=o[k]; const k=path.at(-1); o[k]=!o[k]; },
