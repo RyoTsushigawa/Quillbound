@@ -128,7 +128,7 @@ Stakes is still being playtested. It keeps 5e character sheets, hit points and s
 2. **Choose an action**: Attack, Defend, Help, Move or Improvise, and a target where needed.
 3. **Say what's at risk** before rolling ("If it goes wrong, I end up in the open"). It's optional. It becomes the suggested consequence when the roll goes wrong and the enemy can't strike back, and it is written into the fight log.
 4. **Roll**, on screen or at the table. Bonuses come from the sheet and the stat block automatically.
-5. **Confirm the result.** Enter or roll damage for each hit first. Nothing changes until you confirm, and **Undo** reverses a confirmed exchange (the last 20 are kept).
+5. **Confirm the result.** Damage is rolled automatically for hits and grazes; you can edit or reroll it before confirming. Nothing changes until you confirm, and **Undo** reverses a confirmed exchange (the last 20 are kept).
 
 ### Attack
 
@@ -142,7 +142,7 @@ Each attack is its own roll: d20 + attack bonus against the target's armor class
 | 6 or more below | **Miss**: the target strikes back. |
 | Natural 1 | Miss, and the target strikes back with a critical. |
 
-A **strike-back** is one of the target's attacks; the app rolls its damage, with no extra roll to hit. If the target can't reach the hero, untick *can reach* and choose another consequence instead: become Exposed, or what was at risk happens (after a natural 1: separated and pinned, or the enemy achieves a major goal). A graze that drops the target draws no strike-back.
+Only the **first eligible graze or miss** in a hero's Attack action can cause a strike-back, while the target remains standing. Later rolls in the same Attack action cannot trigger additional strike-backs. A natural 1 causes a critical strike-back only if it is that first eligible response. A **strike-back** is one of the target's attacks; the app rolls its damage, with no extra roll to hit. If the target can't reach the hero, untick *can reach* and choose another consequence instead: become Exposed, or what was at risk happens (after a natural 1: separated and pinned, or the enemy achieves a major goal). A graze that drops the target draws no strike-back.
 
 A hero made in the hero creator attacks with the strongest attack on its sheet. Older heroes have a simple starter attack per class (for example Fighter greatsword 2d6, Rogue rapier 1d8 with Sneak Attack, Wizard Fire Bolt 1d10). Cantrip dice grow at levels 5, 11 and 17.
 

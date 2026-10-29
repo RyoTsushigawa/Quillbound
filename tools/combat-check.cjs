@@ -29,7 +29,7 @@ console.log('PASS: attacks hit at AC and graze up to 5 below; defense (beat 11 +
 /* hero attacks */
 let s=state(),l=R.init(s);
 R.prepare(s,draft(s),[10]);assert.equal(l.pending.rolls[0].total,15);assert.equal(l.pending.rolls[0].band,'success'); // +3 STR +2 always proficient vs AC 15
-assert.throws(()=>R.apply(s),/damage/);R.damage(s,0,8);assert.equal(foe(s).hpNow,30);R.apply(s);assert.equal(foe(s).hpNow,22);assert.equal(me(s).hpNow,12);
+assert(l.pending.rolls[0].damage>=2,'attack damage is rolled automatically');R.damage(s,0,8);assert.equal(foe(s).hpNow,30);R.apply(s);assert.equal(foe(s).hpNow,22);assert.equal(me(s).hpNow,12);
 assert(R.undo(s));assert.equal(foe(s).hpNow,30);
 s=state();l=R.init(s);R.prepare(s,draft(s),[6]);let r=l.pending.rolls[0];assert.equal(r.band,'mixed');R.damage(s,0,9);const back=r.strike.damage;R.apply(s);
 assert.equal(foe(s).hpNow,26,'a graze deals half');assert.equal(me(s).hpNow,12-back,'the target strikes back');
@@ -39,7 +39,7 @@ assert.equal(me(s).hpNow,12);assert(l.conditions.p1.includes('Exposed'),'out of 
 s=state([knight({hpNow:5})]);l=R.init(s);R.prepare(s,draft(s),[8]);R.damage(s,0,12);R.apply(s);assert.equal(foe(s).status,'down');assert.equal(me(s).hpNow,12,'a graze that drops the target draws no strike-back');
 s=state();s.party[0]={...hero('p1','Hero One'),level:5,abil:{STR:18,DEX:12,CON:14,INT:10,WIS:10,CHA:10},prof:3};l=R.init(s);
 assert.equal(R.rollsNeeded(s,draft(s)),2);assert.throws(()=>R.prepare(s,draft(s),[10]),/2 d20s/);R.prepare(s,draft(s),[15,15]);assert.equal(l.pending.rolls.length,2);
-console.log('PASS: one roll per attack (Extra Attack); hits need damage; grazes deal half and draw a strike-back; out of reach uses another consequence; Undo restores HP.');
+console.log('PASS: one roll per attack (Extra Attack); damage auto-rolls and can be overridden; grazes deal half and draw a strike-back; out of reach uses another consequence; Undo restores HP.');
 
 /* stamina */
 s=state();l=R.init(s);R.prepare(s,draft(s),[8]);r=l.pending.rolls[0];assert.equal(r.band,'mixed');assert.equal(R.pushInfo(s,0).pay,'stamina');
@@ -91,7 +91,7 @@ console.log('PASS: 0 HP means dying with fair death saves (20 revives, 1 counts 
 s=state();l=R.init(s);R.prepare(s,draft(s,{action:'move',ability:'DEX',destination:'objective'}),[9]);assert.equal(l.pending.band,'mixed');l.pending.consequence='strike';l.pending.striker='f';l.pending.strikeDamage=4;R.apply(s);
 assert.equal(me(s).hpNow,8);assert.equal(l.positions.p1,'objective');
 s=state();l=R.init(s);R.prepare(s,draft(s,{action:'improvise',effect:'context',contextEvent:'trapped',intent:'Pin the sword arm'}),[15]);R.apply(s);assert(l.conditions.f.includes('Pinned'));
-s=state();l=R.init(s);R.prepare(s,draft(s,{action:'improvise',effect:'damage',intent:'Drop the chandelier'}),[16]);assert.throws(()=>R.apply(s),/damage/);R.damage(s,0,7);R.apply(s);assert.equal(foe(s).hpNow,23);
+s=state();l=R.init(s);R.prepare(s,draft(s,{action:'improvise',effect:'damage',intent:'Drop the chandelier'}),[16]);assert(l.pending.rolls[0].damage>=2,'Improvise damage is rolled automatically');R.damage(s,0,7);R.apply(s);assert.equal(foe(s).hpNow,23);
 s=state();R.init(s);const before=s.publicRolls?.length||0;R.prepare(s,draft(s),[12]);R.damage(s,0,3);R.apply(s);R.undo(s);assert.equal(s.publicRolls.length,before+1,'public dice survive Undo');
 console.log('PASS: Help, Move, Improvise and Defend keep the Stakes bands (15+ / 8–14 / 7−); a failure can call an enemy strike; context conditions and public dice still work.');
 
@@ -103,3 +103,19 @@ l=R.init(s);assert.equal(l.version,3);assert.equal(s.party[0].hpNow,6);assert.eq
 const lookouts=s.combat.foes.filter(f=>f.group==='mob');assert.equal(lookouts.length,4);assert.deepEqual([...lookouts.map(f=>f.hpNow)],[0,11,11,11]);assert(lookouts.every(f=>l.conditions[f.id].includes('Distracted')&&l.positions[f.id]==='center'));
 assert.equal(s.combat.foes.find(f=>f.id==='k').hpNow,39);assert.equal(l.draft.enemyEffect,'damage');assert(s.combat.log[0].text.includes('converted'));
 console.log('PASS: wound-rule fights convert by share (heroes, enemies, mobs into members with stat-block HP); stamina starts full; Undo history starts fresh.');
+
+
+/* Strike-back balance: once per Attack action, not once per failed attack roll. */
+s=state([knight({hpMax:100,hpNow:100})]);s.party[0]=hero('p1','Extra Attacker',{level:5,prof:3,hp:90,hpNow:90});l=R.init(s);
+R.prepare(s,draft(s),[7,1]);assert.equal(R.attackResponseIndex(s,l.pending),0);
+const firstCounter=l.pending.rolls[0].strike.damage;
+R.damage(s,0,8);R.apply(s);assert.equal(me(s).hpNow,90-firstCounter,'second miss/natural 1 cannot retaliate again');
+assert.equal((s.combat.log[0].text.match(/strikes back/g)||[]).length,1);
+assert(R.undo(s));assert.equal(me(s).hpNow,90,'Undo restores strike-back HP');
+s=state([knight({hpMax:100,hpNow:100})]);s.party[0]=hero('p1','Extra Attacker',{level:5,prof:3,hp:90,hpNow:90});l=R.init(s);
+R.prepare(s,draft(s),[15,1]);R.damage(s,0,8);assert.equal(R.attackResponseIndex(s,l.pending),1);
+R.apply(s);assert.equal((s.combat.log[0].text.match(/strikes back/g)||[]).length,1,'natural 1 can be first eligible counter');
+s=state([knight({hpMax:5,hpNow:5})]);s.party[0]=hero('p1','Extra Attacker',{level:5,prof:3,hp:90,hpNow:90});l=R.init(s);
+R.prepare(s,draft(s),[15,1]);R.damage(s,0,8);assert.equal(R.attackResponseIndex(s,l.pending),-1,'defeated enemies cannot respond');
+R.apply(s);assert.equal(me(s).hpNow,90);
+console.log('PASS: one strike-back per Attack action, natural 1, fallen targets and Undo.');
