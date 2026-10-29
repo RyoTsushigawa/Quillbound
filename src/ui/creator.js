@@ -84,7 +84,7 @@ function crStepBody(c,sheet){
     return `<div class="row cr-quick"><span class="small muted">New to D&D? Choose a class card, then <b>Quick build</b> fills every other choice with a sensible default you can change.</span>${cls?`<button class="btn sm" data-act="cr-quick" data-v="${cls.id}">Quick build: ${esc(cls.name)}</button>`:''}</div>
       <div class="choices">${D.classes.map(x=>{const p=CLASS_PITCH[x.name]||{pitch:firstSentence(x.desc),blurb:''};return crPick('cr-class',`data-v="${x.id}"`,b.cls===x.id,`<div class="meta"><span class="eyebrow">${esc(x.name)}</span>${x.homebrew?'<span class="chip acc">Homebrew</span>':''}${p.diff?`<span class="chip ${p.diff.startsWith('Eas')?'ok':p.diff==='Medium'?'warn':'bad'}">${p.diff}</span>`:''}</div><div class="pitch">${esc(p.pitch||'')}</div>`,`<div class="desc">${esc(p.blurb||'')}</div><div class="small muted">Hit die d${x.hitDie} · ${esc(x.primary.join(' or '))}</div>`);}).join('')}</div>
       ${cls?`<div class="card stack cr-detail"><label class="f">Level<select data-act-change="cr-level">${Array.from({length:20},(_,i)=>crOpt(i+1,'Level '+(i+1),b.level===i+1)).join('')}</select><span class="small muted">Use the level your DM asked for. New adventures usually start at level 1.</span></label>
-        ${b.level>=3&&cls.subclasses?.length>1?(()=>{ const cur=QBHeroRules.subOf(b); return `<label class="f">Subclass (level 3)<select data-bind="creator.build.subclass" data-rerender>${cls.subclasses.map(s=>crOpt(s.id,s.name+(s.source==='srd'?'':s.source==='phb-2024'?' · Player’s Handbook':' · fan-made'),cur?.id===s.id)).join('')}</select></label><p class="small">${esc(cur?.summary||'')}${cur?.source&&cur.source!=='srd'?' <span class="muted">Summary; the full rules are in the book.</span>':''}</p>`; })()
+        ${b.level>=3&&cls.subclasses?.length>1?(()=>{ const cur=QBHeroRules.subOf(b); return `<label class="f">Subclass (level 3)<select data-bind="creator.build.subclass" data-rerender>${cls.subclasses.map(s=>crOpt(s.id,s.name+(s.source==='srd'?'':s.source==='phb-2024'?' · Player’s Handbook':s.homebrew?' · homebrew':' · fan-made'),cur?.id===s.id)).join('')}</select></label><p class="small">${esc(cur?.summary||'')}${cur?.source&&cur.source!=='srd'&&!cur.homebrew?' <span class="muted">Summary; the full rules are in the book.</span>':''}</p>`; })()
           :b.level>=3&&cls.subclass?`<p><b>Subclass at level 3:</b> ${esc(cls.subclass.name)} · ${esc(cls.subclass.summary)}</p>`:''}
         ${({fighter:1,paladin:2,ranger:2})[b.cls]<=b.level?`<label class="f">Fighting Style feat<select data-bind="creator.build.fightingStyle" data-rerender>${crOpt('','Choose…',!b.fightingStyle)}${styles.map(f=>crOpt(f.id,f.name,b.fightingStyle===f.id)).join('')}</select><span class="small muted">${esc(firstSentence(styles.find(f=>f.id===b.fightingStyle)?.desc||'Defense adds 1 to armor class while you wear armor; Archery adds 2 to ranged attack rolls.'))}</span></label>`:''}
         ${asi.length?`<div class="row small"><label><input type="checkbox" data-act="cr-featview" data-v="featRec" ${c.featRec?'checked':''}> Only recommended feats (★: the +1 suits ${/^[AEIOU]/i.test(cls?.name||'')?'an':'a'} ${esc(cls?.name||'class')})</label><label><input type="checkbox" data-act="cr-featview" data-v="featFuture" ${c.featFuture?'checked':''}> Show future feats (not available yet, and why)</label></div>`:''}
@@ -196,9 +196,11 @@ function vCreate(){
 }
 // "Make your own": the steps with things players may invent open the matching Homebrew editor (src/ui/homebrew.js).
 const CR_OWN={species:['species','species'],class:['classes','class'],background:['backgrounds','background']};
-function crOwnIdea(step){ const k=CR_OWN[step], feat=step==='class'||step==='background';
-  if(!k&&!feat) return '';
-  return `<p class="small muted cr-own">Missing something? ${k?`<button class="linklike" data-act="hb-start" data-v="${k[0]}">Make your own ${k[1]}</button>`:''}${k&&feat?' or ':''}${feat?'<button class="linklike" data-act="hb-start" data-v="feats">a feat</button>':''}${S.role==='dm'?'.':' and send it to your DM.'}</p>`; }
+function crOwnIdea(step){ const k=CR_OWN[step], cls=crState().build.cls, link=(v,label,c)=>`<button class="linklike" data-act="hb-start" data-v="${v}"${c?` data-c="${esc(c)}"`:''}>${label}</button>`;
+  // a subclass only for the existing classes (a homebrew class has its own)
+  const links=[k&&link(k[0],'Make your own '+k[1]), step==='class'&&cls&&!QBHeroRules.data().classes.find(x=>x.id===cls)?.homebrew&&link('subclasses','a subclass',cls), (step==='class'||step==='background')&&link('feats','a feat')].filter(Boolean);
+  if(!links.length) return '';
+  return `<p class="small muted cr-own">Missing something? ${links.length>1?links.slice(0,-1).join(', ')+' or '+links.at(-1):links[0]}${S.role==='dm'?'.':' and send it to your DM.'}</p>`; }
 // Creator actions; spread into ACT where it is defined.
 // A hero keeps copies of the homebrew it uses (background, species, class, feats), so it still works after the DM
 // edits or deletes that homebrew, or in another browser (a hero file sent to the DM).
@@ -206,8 +208,8 @@ function crKeepHomebrew(build){
   const D=crData(), copy=x=>x?[JSON.parse(JSON.stringify(x))]:[], used=D.backgrounds.find(x=>x.id===build.background&&x.homebrew),
     usedSp=D.species.find(x=>x.id===build.species&&x.homebrew), usedCl=D.classes.find(x=>x.id===build.cls&&x.homebrew),
     featIds=new Set([D.backgrounds.find(x=>x.id===build.background)?.feat?.id,build.speciesFeat,build.fightingStyle,...Object.values(build.asi||{}).map(x=>x.feat)].filter(Boolean)),
-    usedFt=D.feats.filter(x=>x.homebrew&&featIds.has(x.id)).map(x=>JSON.parse(JSON.stringify(x)));
-  if(used||usedSp||usedCl||usedFt.length) build.hbData={backgrounds:copy(used),species:copy(usedSp),classes:copy(usedCl),feats:usedFt};
+    usedFt=D.feats.filter(x=>x.homebrew&&featIds.has(x.id)).map(x=>JSON.parse(JSON.stringify(x))), usedSc=QBHeroRules.subOf(build)?.homebrew?QBHeroRules.subOf(build):null;
+  if(used||usedSp||usedCl||usedFt.length||usedSc) build.hbData={backgrounds:copy(used),species:copy(usedSp),classes:copy(usedCl),feats:usedFt,subclasses:copy(usedSc)};
   return build;
 }
 function creatorActions(){ const B=()=>crState().build, D=()=>crData();

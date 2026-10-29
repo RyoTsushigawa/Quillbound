@@ -44,7 +44,8 @@
   // What the creator offers: approved homebrew, plus copies the hero being built already uses (so a choice never vanishes).
   function forCreator(hb, build) {
     const pick = (kind, conv) => { const approved = (hb?.[kind] || []).filter(b => b.approved).map(conv); return [...approved, ...(build?.hbData?.[kind] || []).filter(b => !approved.some(a => a.id === b.id))]; };
-    return { backgrounds: pick('backgrounds', backgroundToSrd), species: pick('species', speciesToSrd), classes: pick('classes', classToSrd), feats: pick('feats', featToSrd) };
+    // subclasses carry functions (a third-caster's slots), so a hero's plain copy is converted again
+    return { backgrounds: pick('backgrounds', backgroundToSrd), species: pick('species', speciesToSrd), classes: pick('classes', classToSrd), feats: pick('feats', featToSrd), subclasses: pick('subclasses', subclassToSrd).map(subclassToSrd) };
   }
 
   /* ---- species: a base plus traits from building blocks, each with a weight ---- */
@@ -165,6 +166,59 @@
       levels, features, desc: hc.desc || '', homebrew: true };
   }
 
+  /* ---- subclasses for the existing classes: features at the class's subclass levels, measured against its subclasses ---- */
+  // Calculated parts (the sheet and combat use them): training at level 3, Extra Attack, +1 HP per level (like Draconic
+  // Resilience), and a third-caster's own spellcasting (like the Eldritch Knight). Everything else is written features.
+  const SUB_TRAINING = { medium: 'Medium Armor', heavy: 'Heavy Armor', shields: 'Shields', martial: 'Martial Weapons' };
+  const THIRD_SLOTS = l => l >= 19 ? [4, 3, 3, 1] : l >= 16 ? [4, 3, 3] : l >= 13 ? [4, 3, 2] : l >= 10 ? [4, 3] : l >= 7 ? [4, 2] : l >= 4 ? [3] : l >= 3 ? [2] : [];
+  const THIRD_PREPARED = [0, 0, 3, 4, 4, 4, 5, 6, 6, 7, 8, 8, 9, 10, 10, 11, 11, 11, 12, 13];
+  function newSubclass(cls = '') { return { id: uid('hb-sc'), kind: 'subclass', cls, name: '', summary: '', features: [], training: [], tools: [], extraAttackAt: 0, hpPerLevel: false, caster: false, spellAbility: 'INT', spellList: 'wizard', approved: false, updated: Date.now() }; }
+  const baseClass = id => (root.QBHERO?.classes || []).find(c => c.id === id && !c.homebrew);
+  // The levels a class gains subclass features at, from its SRD subclass (Fighter 3/7/10/15/18, Cleric 3/6/17 …).
+  const subLevels = id => [...new Set((baseClass(id)?.subclass?.features || []).map(f => f.level))].sort((a, b) => a - b);
+  function subclassToSrd(sc) {
+    const third = sc.caster && !baseClass(sc.cls)?.spellAbility ? { ability: ABIL.includes(sc.spellAbility) ? sc.spellAbility : 'INT', list: sc.spellList || 'wizard', from: 3, cantrips: l => 2 + (l >= 10 ? 1 : 0), prepared: l => THIRD_PREPARED[l - 1], slots: THIRD_SLOTS } : null;
+    return { ...sc, id: sc.id, name: String(sc.name || '').trim() || 'Unnamed subclass', summary: sc.summary || '', desc: sc.summary || '', source: 'homebrew', homebrew: true,
+      features: (sc.features || []).map(f => ({ level: Number(f.level) || 3, name: f.name, desc: f.desc || '' })).sort((a, b) => a.level - b.level),
+      profsAt: [...(sc.training || []).filter(k => SUB_TRAINING[k]).map(k => ({ level: 3, prof: SUB_TRAINING[k] })), ...(sc.tools || []).map(t => ({ level: 3, prof: t }))],
+      extraAttackAt: Number(sc.extraAttackAt) || 0, hpPerLevel: !!sc.hpPerLevel, spell: third };
+  }
+  function checkSubclass(sc, others = []) {
+    const r = [], add = (ok, label, detail = '') => r.push({ ok, label, detail: ok ? '' : detail }), c = baseClass(sc.cls), name = String(sc.name || '').trim().toLowerCase();
+    add(!!c, 'A class', 'Choose the class this subclass belongs to.');
+    add(!!name, 'A name', 'Give the subclass a name.');
+    add(!c || !(c.subclasses || [c.subclass]).some(s => s.name.toLowerCase() === name) && !others.some(o => o.id !== sc.id && o.cls === sc.cls && String(o.name).trim().toLowerCase() === name), 'A name of its own', 'This class already has a subclass with this name.');
+    add(!!String(sc.summary || '').trim(), 'A one-line summary', 'Say in one line what it is about; the creator shows it.');
+    if (c) { const lv = subLevels(c.id), at = new Set((sc.features || []).map(f => Number(f.level))), miss = lv.filter(l => !at.has(l)), off = [...at].filter(l => !lv.includes(l));
+      add(!miss.length, `Features at levels ${lv.join(', ')}`, `The ${c.name}'s subclasses gain features at ${lv.join(', ')}; missing: ${miss.join(', ')}.`);
+      add(!off.length, 'No features at other levels', `${c.name} subclasses get nothing at level ${off.join(', ')}; move those features to a subclass level.`); }
+    add((sc.features || []).every(f => String(f.name || '').trim()), 'Every feature named', 'A feature is missing its name.');
+    if (sc.caster) add(!!c && !c.spellAbility, 'Spellcasting only for a class without it', 'This class casts spells already; a third-caster subclass is for Barbarians, Fighters, Monks and Rogues.');
+    return r;
+  }
+  // Measured like the class comparison: the class's Quick build hero with each of its subclasses at levels 3/5/11/17.
+  const SUB_LEVELS = [3, 5, 11, 17];
+  function measureSub(clsId, subId, level) {
+    const R = root.QBHeroRules, s = R.derive({ ...R.quickBuild(clsId, 'Test', level), subclass: subId }), a = s.attacks[0];
+    return { hp: s.hp.max, ac: s.ac, dpa: a ? Math.round(avgDice(a.damage) * a.count * hitShare(a.bonus, 15) * 10) / 10 : 0, slots: (s.spellcasting?.slots || []).reduce((n, x) => n + x, 0), attack: a ? `${a.name} ${a.bonus >= 0 ? '+' : ''}${a.bonus}, ${a.damage}${a.count > 1 ? ' ×' + a.count : ''}` : '' };
+  }
+  function compareSubclass(sc) {
+    const R = root.QBHeroRules, keep = R.getHomebrew(), c = baseClass(sc.cls); if (!c) return [];
+    const subs = (c.subclasses || [c.subclass]).filter(s => !s.homebrew);
+    R.setHomebrew({ ...(keep || {}), subclasses: [...((keep && keep.subclasses) || []).filter(x => x.id !== sc.id), subclassToSrd(sc)] });
+    let mine, theirs; try { mine = SUB_LEVELS.map(lv => measureSub(c.id, sc.id, lv)); theirs = subs.map(s => SUB_LEVELS.map(lv => measureSub(c.id, s.id, lv))); } finally { R.setHomebrew(keep); }
+    const counts = subs.map(s => s.features.length), feats = (sc.features || []).length;
+    return SUB_LEVELS.map((level, i) => { const col = k => theirs.map(t => t[i][k]), max = k => Math.max(...col(k)), min = k => Math.min(...col(k)), m = mine[i];
+      const flags = [m.hp > max('hp') * 1.1 && `HP ${m.hp} (${c.name} subclasses up to ${max('hp')})`, m.ac > max('ac') && `AC ${m.ac} (up to ${max('ac')})`, m.dpa > max('dpa') * 1.1 && `damage ${m.dpa} per action (up to ${max('dpa')})`,
+        m.slots > max('slots') && `${m.slots} spell slots (up to ${max('slots')})`].filter(Boolean);
+      if (i === 0 && feats > Math.max(...counts)) flags.push(`${feats} features (${c.name} subclasses have ${Math.min(...counts)}–${Math.max(...counts)})`);
+      return { level, mine: m, min: { hp: min('hp'), ac: min('ac'), dpa: min('dpa') }, max: { hp: max('hp'), ac: max('ac'), dpa: max('dpa') }, flags }; });
+  }
+  function subclassPowerCheck(sc) { let rows; try { rows = compareSubclass(sc); } catch (e) { rows = []; }
+    const c = baseClass(sc.cls), over = rows.filter(r => r.flags.length);
+    return { ok: !!c && !over.length, label: `Within the range of the ${c ? c.name : 'class'}'s subclasses`, detail: over.length ? `Stronger than every one: ${over.map(r => `level ${r.level}: ${r.flags.join(', ')}`).join('; ')}.` : c ? '' : 'Choose a class first.', rows }; }
+  const subclassFits = (sc, others = []) => checkSubclass(sc, others).every(x => x.ok) && subclassPowerCheck(sc).ok;
+
   // Measured like every SRD class: its Quick build hero at levels 1/5/11/17 (HP, AC, best attack, expected damage per
   // action against AC 15 with Stakes grazes). Weapons and cantrips only: spell slots and limited features aren't counted.
   const LEVELS = [1, 5, 11, 17];
@@ -235,12 +289,59 @@
   const FEAT_TYPES = { origin: { label: 'Origin feat (from a background or the Human)', minLevel: 1 }, general: { label: 'General feat (level 4 and up)', minLevel: 4 },
     'fighting-style': { label: 'Fighting Style feat', minLevel: 1 }, 'epic-boon': { label: 'Epic Boon (level 19)', minLevel: 19 } };
   const ABIL_NAME = { STR: 'Strength', DEX: 'Dexterity', CON: 'Constitution', INT: 'Intelligence', WIS: 'Wisdom', CHA: 'Charisma' };
-  function newFeat() { return { id: uid('hb-ft'), kind: 'feat', name: '', desc: '', type: 'general', minLevel: 4, abilities: [], repeatable: false, prereq: newPrereq(), approved: false, updated: Date.now() }; }
+  function newFeat() { return { id: uid('hb-ft'), kind: 'feat', name: '', desc: '', type: 'general', minLevel: 4, abilities: [], blocks: [], repeatable: false, prereq: newPrereq(), approved: false, updated: Date.now() }; }
   // Prerequisites the creator enforces (an ability score, spellcasting, another feat, a class) plus free text it only shows.
   function newPrereq() { return { abilities: [], score: 13, spellcasting: false, feat: '', cls: '', text: '' }; }
   // How many feats a feat needs in a row (itself included): the guide keeps chains to three at most.
   function chainLength(f, others) { let n = 1, cur = f; const seen = new Set([f.id]);
     while (cur?.prereq?.feat && n < 10) { const next = [...others, ...H().feats].find(x => x.id === cur.prereq.feat); if (!next || seen.has(next.id)) break; seen.add(next.id); n++; cur = next; } return n; }
+  /* ---- feat power: what a feat gives, as weighted building blocks (like species traits) ---- */
+  // A +1 to an ability counts 1 (an Ability Score Improvement's +2 counts 2). The weights are calibrated so the 2024 feats
+  // of each kind form a range (FEAT_REFERENCE below); a homebrew feat has to land inside the range of its kind.
+  const FEAT_BLOCKS = {
+    skill: { label: 'A skill proficiency (each)', weight: 0.5, count: true }, expertise: { label: 'Expertise in a skill', weight: 1 }, tool: { label: 'A tool proficiency (each)', weight: 0.25, count: true },
+    savingThrow: { label: 'Proficiency in a saving throw', weight: 1.5 }, lightArmor: { label: 'Light armor and shield training', weight: 1 }, mediumArmor: { label: 'Medium armor training', weight: 1 },
+    heavyArmor: { label: 'Heavy armor training', weight: 1.5 }, martialWeapons: { label: 'Martial weapon training', weight: 1 }, hpPerLevel: { label: '+2 hit points per level', weight: 2 },
+    speed: { label: 'More speed, or a climb/swim speed', weight: 0.5 }, sense: { label: 'A sense (darkvision, blindsight)', weight: 0.5 }, resistance: { label: 'Resistance or damage reduction', weight: 0.5 },
+    advantage: { label: 'Advantage on one kind of roll', weight: 0.5 }, initiative: { label: 'A big Initiative bonus', weight: 1.5 }, cantrip: { label: 'A cantrip', weight: 0.5 },
+    spell1: { label: 'A level 1 spell, once per long rest', weight: 0.5 }, spell2: { label: 'A level 2 spell, once per long rest', weight: 1 }, rituals: { label: 'Ritual spells', weight: 1 },
+    reaction: { label: 'A new Reaction', weight: 1 }, bonusAction: { label: 'A new Bonus Action option', weight: 0.5 }, bonusAttack: { label: 'An extra attack as a Bonus Action', weight: 1 },
+    extraDamage: { label: 'Extra damage now and then', weight: 0.5 }, damageBonus: { label: 'A big damage bonus (like +Proficiency)', weight: 1.5 }, attackBonus: { label: '+2 to hit or +1 AC', weight: 1 },
+    reroll: { label: 'A reroll or a d4 boost', weight: 0.5 }, luck: { label: 'Several uses of Advantage per day (like Lucky)', weight: 2 }, ignore: { label: 'Ignore a drawback (cover, loading, resistance…)', weight: 0.5 },
+    healing: { label: 'Healing or temporary hit points', weight: 1 }, utility: { label: 'A small trick or utility', weight: 0.5 }, big: { label: 'A capstone benefit (Epic Boon)', weight: 2 },
+    custom: { label: 'Something else (you rate it)', weight: null }, drawback: { label: 'A drawback (you rate it)', weight: null }
+  };
+  const fb = (k, n = 1) => ({ block: k, n });
+  // The 2024 feats broken into blocks: the calibration. (Ability Score Improvement is the baseline for general feats: 2.)
+  const FEAT_REFERENCE = {
+    alert: [fb('initiative'), fb('utility')], 'magic-initiate': [fb('cantrip', 2), fb('spell1')], 'savage-attacker': [fb('reroll'), fb('extraDamage')], skilled: [fb('skill', 3)],
+    crafter: [fb('tool', 3), fb('utility'), fb('utility')], healer: [fb('healing'), fb('reroll')], lucky: [fb('luck')], musician: [fb('tool', 3), fb('healing')], 'tavern-brawler': [fb('extraDamage'), fb('reroll'), fb('utility')], tough: [fb('hpPerLevel')],
+    archery: [fb('attackBonus')], defense: [fb('attackBonus')], 'great-weapon-fighting': [fb('reroll'), fb('extraDamage')], 'two-weapon-fighting': [fb('extraDamage'), fb('extraDamage')], 'blind-fighting': [fb('sense')], dueling: [fb('extraDamage'), fb('extraDamage')],
+    interception: [fb('reaction')], protection: [fb('reaction')], 'thrown-weapon-fighting': [fb('extraDamage'), fb('utility')], 'unarmed-fighting': [fb('extraDamage'), fb('extraDamage')],
+    grappler: [fb('bonusAttack'), fb('advantage'), fb('utility')], actor: [fb('advantage'), fb('utility')], athlete: [fb('speed'), fb('utility')], charger: [fb('speed'), fb('extraDamage')], chef: [fb('tool'), fb('healing'), fb('utility')],
+    'crossbow-expert': [fb('ignore'), fb('ignore'), fb('extraDamage')], crusher: [fb('utility'), fb('advantage')], 'defensive-duelist': [fb('reaction')], 'dual-wielder': [fb('bonusAttack')], durable: [fb('advantage'), fb('healing')],
+    'elemental-adept': [fb('ignore'), fb('extraDamage')], 'fey-touched': [fb('spell2'), fb('spell1')], 'great-weapon-master': [fb('damageBonus'), fb('bonusAttack')], 'heavily-armored': [fb('heavyArmor')], 'heavy-armor-master': [fb('resistance'), fb('resistance')],
+    'inspiring-leader': [fb('healing')], 'keen-mind': [fb('expertise'), fb('bonusAction')], 'lightly-armored': [fb('lightArmor')], 'mage-slayer': [fb('utility'), fb('reroll')], 'martial-weapon-training': [fb('martialWeapons')],
+    'medium-armor-master': [fb('attackBonus')], 'moderately-armored': [fb('mediumArmor')], 'mounted-combatant': [fb('advantage'), fb('reaction')], observant: [fb('expertise'), fb('bonusAction')], piercer: [fb('reroll'), fb('extraDamage')],
+    poisoner: [fb('ignore'), fb('tool'), fb('extraDamage')], 'polearm-master': [fb('bonusAttack'), fb('reaction')], resilient: [fb('savingThrow')], 'ritual-caster': [fb('rituals'), fb('utility')], sentinel: [fb('reaction'), fb('utility')],
+    'shadow-touched': [fb('spell2'), fb('spell1')], sharpshooter: [fb('ignore'), fb('ignore'), fb('ignore')], 'shield-master': [fb('bonusAction'), fb('resistance')], 'skill-expert': [fb('skill'), fb('expertise')], skulker: [fb('sense'), fb('advantage'), fb('utility')],
+    slasher: [fb('utility'), fb('advantage')], speedy: [fb('speed'), fb('utility'), fb('utility')], 'spell-sniper': [fb('ignore'), fb('ignore'), fb('utility')], telekinetic: [fb('cantrip'), fb('bonusAction')], telepathic: [fb('utility'), fb('spell2')],
+    'war-caster': [fb('advantage'), fb('reaction'), fb('utility')], 'weapon-master': [fb('utility')],
+    'boon-of-combat-prowess': [fb('big')], 'boon-of-dimensional-travel': [fb('big')], 'boon-of-fate': [fb('big')], 'boon-of-irresistible-offense': [fb('big')], 'boon-of-spell-recall': [fb('big')], 'boon-of-the-night-spirit': [fb('big')],
+    'boon-of-truesight': [fb('big')], 'boon-of-energy-resistance': [fb('big')], 'boon-of-fortitude': [fb('big')], 'boon-of-recovery': [fb('big')], 'boon-of-skill': [fb('big')], 'boon-of-speed': [fb('big')]
+  };
+  // A feat's score: its blocks plus its +1 (general feats and boons). Custom blocks and drawbacks carry the DM's own weight.
+  function featScore(f) {
+    if (f.id === 'ability-score-improvement') return 2;
+    const plus = (f.abilities || []).length || /Ability Score Increase/.test(f.desc || '') ? 1 : 0;
+    return plus + (f.blocks || []).reduce((s, x) => { const B = FEAT_BLOCKS[x.block]; if (!B) return s; const w = B.weight ?? (Number(x.weight) || 0) * (x.block === 'drawback' ? -1 : 1); return s + w * (B.count ? Math.max(1, Number(x.n) || 1) : 1); }, 0);
+  }
+  // The range per kind, from the 2024 feats themselves (needs the merged feat list; the SRD and Player's Handbook feats).
+  function featBand(type) {
+    const ref = H().feats.filter(x => x.type === type && (FEAT_REFERENCE[x.id] || x.id === 'ability-score-improvement')).map(x => featScore({ ...x, blocks: FEAT_REFERENCE[x.id] }));
+    if (!ref.length) return null; let min = Math.min(...ref), max = Math.max(...ref); if (max - min < 1) { const mid = (min + max) / 2; min = mid - 0.5; max = mid + 0.5; } // a narrow range (Epic Boons) gets half a point each way
+    return { min, max, n: ref.length };
+  }
   function checkFeat(f, others = []) {
     const r = [], add = (ok, label, detail) => r.push({ ok: !!ok, label, detail: ok ? '' : detail }), T = FEAT_TYPES[f.type];
     add(String(f.name || '').trim(), 'A name', 'Give the feat a name.');
@@ -253,6 +354,8 @@
     if ((p.abilities || []).length) add(Number(p.score) >= 13 && Number(p.score) <= 17, 'An ability prerequisite of 13–17', 'Use 13 (a +1 modifier); go up to 17 only for a stricter feat.');
     if (p.feat) add(p.feat !== f.id && [...others, ...H().feats].some(x => x.id === p.feat), 'The required feat exists', 'The feat it requires was deleted; choose another.');
     if (p.feat) add(chainLength(f, others) <= 3, 'A feat chain of three at most', 'Feats that need feats that need feats: keep a chain to three.');
+    const band = featBand(f.type), score = featScore(f), strict = p.feat || p.cls ? 0.5 : 0;
+    if (band) add(score >= band.min && score <= band.max + strict, `Power in the range of the 2024 ${T?.label.split(' (')[0].toLowerCase() || 'feat'}s`, score < band.min ? `It scores ${score}; the ${band.n} 2024 ones score ${band.min}–${band.max}. Add what the feat gives under “What it gives” (or it gives too little).` : `It scores ${score}; the 2024 ones score at most ${band.max}${strict ? ' (+0.5 for its stricter prerequisite)' : ''}. Take something away or add a drawback.`);
     return r;
   }
   const featFits = (f, others) => checkFeat(f, others).every(x => x.ok);
@@ -283,7 +386,7 @@
   function exportJson(hb, ids, opts = {}) {
     const pick = list => (list || []).filter(x => (!ids || ids.includes(x.id)) && (!opts.approved || x.approved)).map(x => ({ ...x, approved: !!opts.approved, fromPlayer: undefined }));
     return JSON.stringify({ format: FORMAT, version: 3, exported: new Date().toISOString(), ...(opts.from === 'player' ? { from: 'player' } : {}), ...(opts.approved ? { approvedByDm: true } : {}),
-      backgrounds: pick(hb?.backgrounds), species: pick(hb?.species), classes: pick(hb?.classes), feats: pick(hb?.feats) }, null, 2);
+      backgrounds: pick(hb?.backgrounds), species: pick(hb?.species), classes: pick(hb?.classes), feats: pick(hb?.feats), subclasses: pick(hb?.subclasses) }, null, 2);
   }
   const str = (v, n) => String(v ?? '').slice(0, n);
   const cleanBackground = b => ({ ...newBackground(), ...b, kind: 'background', approved: false, name: str(b.name, 80), desc: str(b.desc, 2000),
@@ -302,7 +405,11 @@
     kit: { items: (c.kit?.items || []).map(i => ({ id: String(i.id), count: Number(i.count) || 1 })), gp: Number(c.kit?.gp) || 0 }, kind: 'class', approved: false }; };
   const cleanFeat = f => ({ ...newFeat(), id: str(f.id, 60) || uid('hb-ft'), name: str(f.name, 80), desc: str(f.desc, 3000), type: FEAT_TYPES[f.type] ? f.type : 'general', minLevel: (FEAT_TYPES[f.type] || FEAT_TYPES.general).minLevel,
     abilities: (f.abilities || []).filter(k => ABIL.includes(k)), repeatable: !!f.repeatable, kind: 'feat', approved: false,
+    blocks: (Array.isArray(f.blocks) ? f.blocks : []).filter(x => FEAT_BLOCKS[x?.block]).map(x => ({ block: x.block, n: Math.max(1, Math.min(9, Number(x.n) || 1)), ...(FEAT_BLOCKS[x.block].weight === null ? { weight: Math.max(0.5, Math.min(3, Number(x.weight) || 0.5)) } : {}) })),
     prereq: { abilities: (f.prereq?.abilities || []).filter(k => ABIL.includes(k)), score: Number(f.prereq?.score) || 13, spellcasting: !!f.prereq?.spellcasting, feat: str(f.prereq?.feat, 60), cls: str(f.prereq?.cls, 60), text: str(f.prereq?.text, 300) } });
+  const cleanSubclass = s => ({ ...newSubclass(), id: str(s.id, 60) || uid('hb-sc'), cls: str(s.cls, 40), name: str(s.name, 80), summary: str(s.summary, 500), features: textList(s.features, ['level', 'name', 'desc']),
+    training: (s.training || []).filter(k => SUB_TRAINING[k]), tools: (s.tools || []).map(x => str(x, 60)).filter(Boolean), extraAttackAt: [5, 6].includes(Number(s.extraAttackAt)) ? Number(s.extraAttackAt) : 0, hpPerLevel: !!s.hpPerLevel,
+    caster: !!s.caster, spellAbility: ['INT', 'WIS', 'CHA'].includes(s.spellAbility) ? s.spellAbility : 'INT', spellList: str(s.spellList, 30) || 'wizard', kind: 'subclass', approved: false });
   // Read a file: returns what it contains and anything that needs a decision. Nothing is changed here.
   function parseImport(text, hb) {
     let data; try { data = JSON.parse(text); } catch { return { error: 'This file is not readable homebrew (not JSON).' }; }
@@ -310,8 +417,8 @@
     const ok = x => x && typeof x === 'object' && typeof x.name === 'string';
     // a DM's shared file keeps its approvals; a player's submission is marked as one; anything else starts unapproved
     const mark = clean => x => ({ ...clean(x), updated: Number(x.updated) || 0, approved: !!data.approvedByDm && x.approved === true, ...(data.from === 'player' ? { fromPlayer: true } : {}) });
-    const items = [...(data.backgrounds || []).filter(ok).map(mark(cleanBackground)), ...(data.species || []).filter(ok).map(mark(cleanSpecies)), ...(data.classes || []).filter(ok).map(mark(cleanClass)), ...(data.feats || []).filter(ok).map(mark(cleanFeat))];
-    const listOf = it => it.kind === 'species' ? hb?.species : it.kind === 'class' ? hb?.classes : it.kind === 'feat' ? hb?.feats : hb?.backgrounds;
+    const items = [...(data.backgrounds || []).filter(ok).map(mark(cleanBackground)), ...(data.species || []).filter(ok).map(mark(cleanSpecies)), ...(data.classes || []).filter(ok).map(mark(cleanClass)), ...(data.feats || []).filter(ok).map(mark(cleanFeat)), ...(data.subclasses || []).filter(ok).map(mark(cleanSubclass))];
+    const listOf = it => it.kind === 'subclass' ? hb?.subclasses : it.kind === 'species' ? hb?.species : it.kind === 'class' ? hb?.classes : it.kind === 'feat' ? hb?.feats : hb?.backgrounds;
     const clashes = items.filter(b => (listOf(b) || []).some(x => x.id === b.id || x.name.toLowerCase() === b.name.toLowerCase())).map(b => b.id);
     return { items, clashes, approvedByDm: !!data.approvedByDm, fromPlayer: data.from === 'player' };
   }
@@ -325,9 +432,9 @@
     if (data?.format !== FORMAT || !data.approvedByDm) return 0;
     const parsed = parseImport(text, hb); if (parsed.error) return 0;
     let n = 0; const onTable = new Set(parsed.items.filter(x => x.approved).map(x => x.id)), dismissed = new Set(hb.tableDismissed || []);
-    for (const kind of ['backgrounds', 'species', 'classes', 'feats']) { const before = (hb[kind] || []).length; hb[kind] = (hb[kind] || []).filter(x => !x.fromTable || onTable.has(x.id)); n += before - hb[kind].length; }
+    for (const kind of ['backgrounds', 'species', 'classes', 'feats', 'subclasses']) { const before = (hb[kind] || []).length; hb[kind] = (hb[kind] || []).filter(x => !x.fromTable || onTable.has(x.id)); n += before - hb[kind].length; }
     for (const it of parsed.items) { if (!it.approved || dismissed.has(it.id)) continue;
-      const kind = it.kind === 'species' ? 'species' : it.kind === 'class' ? 'classes' : it.kind === 'feat' ? 'feats' : 'backgrounds';
+      const kind = it.kind === 'subclass' ? 'subclasses' : it.kind === 'species' ? 'species' : it.kind === 'class' ? 'classes' : it.kind === 'feat' ? 'feats' : 'backgrounds';
       hb[kind] ??= []; const list = hb[kind], i = list.findIndex(x => x.id === it.id), copy = { ...it, fromTable: true, updated: Number(it.updated) || 0 };
       if (i >= 0) { if (list[i].fromTable && (Number(list[i].updated) || 0) < copy.updated) { list[i] = copy; n++; } continue; }
       if (list.some(x => String(x.name).trim().toLowerCase() === it.name.trim().toLowerCase())) continue;
@@ -336,17 +443,17 @@
   }
   // Apply an import. decisions[id] = 'replace' | 'copy' | 'skip' for clashes; everything else is added. Imported homebrew starts unapproved.
   function applyImport(hb, parsed, decisions = {}) {
-    const out = { ...hb, backgrounds: [...(hb.backgrounds || [])], species: [...(hb.species || [])], classes: [...(hb.classes || [])], feats: [...(hb.feats || [])] }, done = { added: 0, replaced: 0, skipped: 0 };
+    const out = { ...hb, backgrounds: [...(hb.backgrounds || [])], species: [...(hb.species || [])], classes: [...(hb.classes || [])], feats: [...(hb.feats || [])], subclasses: [...(hb.subclasses || [])] }, done = { added: 0, replaced: 0, skipped: 0 };
     for (const b of parsed.items) {
-      const list = b.kind === 'species' ? out.species : b.kind === 'class' ? out.classes : b.kind === 'feat' ? out.feats : out.backgrounds;
+      const list = b.kind === 'subclass' ? out.subclasses : b.kind === 'species' ? out.species : b.kind === 'class' ? out.classes : b.kind === 'feat' ? out.feats : out.backgrounds;
       if (!parsed.clashes.includes(b.id)) { list.push(b); done.added++; continue; }
       const how = decisions[b.id] || 'skip';
       if (how === 'skip') { done.skipped++; continue; }
-      if (how === 'copy') { list.push({ ...b, id: uid(b.kind === 'species' ? 'hb-sp' : b.kind === 'class' ? 'hb-cl' : b.kind === 'feat' ? 'hb-ft' : 'hb-bg'), name: b.name + ' (imported)' }); done.added++; continue; }
+      if (how === 'copy') { list.push({ ...b, id: uid(b.kind === 'subclass' ? 'hb-sc' : b.kind === 'species' ? 'hb-sp' : b.kind === 'class' ? 'hb-cl' : b.kind === 'feat' ? 'hb-ft' : 'hb-bg'), name: b.name + ' (imported)' }); done.added++; continue; }
       const i = list.findIndex(x => x.id === b.id || x.name.toLowerCase() === b.name.toLowerCase()); list[i] = { ...b, id: list[i].id }; done.replaced++;
     }
     return { hb: out, done };
   }
 
-  root.QBHomebrew = { mergeTable, FEAT_TYPES, newFeat, newPrereq, checkFeat, featFits, featAdvice, featToSrd, CASTER, CLASS_KIT, newClass, checkClass, classToSrd, compareClass, classPowerCheck, classFits, srdClassTable, fightTest, encountersFor, ABIL, KIT_MIN, KIT_MAX, BAND, BLOCKS, newBackground, kitValue, tools, checkBackground, fits, backgroundToSrd, newSpecies, speciesScore, traitWeight, checkSpecies, speciesFits, speciesToSrd, srdSpeciesScores, forCreator, exportJson, parseImport, applyImport };
+  root.QBHomebrew = { SUB_TRAINING, SUB_LEVELS, newSubclass, subLevels, subclassToSrd, checkSubclass, compareSubclass, subclassPowerCheck, subclassFits, FEAT_BLOCKS, FEAT_REFERENCE, featScore, featBand, mergeTable, FEAT_TYPES, newFeat, newPrereq, checkFeat, featFits, featAdvice, featToSrd, CASTER, CLASS_KIT, newClass, checkClass, classToSrd, compareClass, classPowerCheck, classFits, srdClassTable, fightTest, encountersFor, ABIL, KIT_MIN, KIT_MAX, BAND, BLOCKS, newBackground, kitValue, tools, checkBackground, fits, backgroundToSrd, newSpecies, speciesScore, traitWeight, checkSpecies, speciesFits, speciesToSrd, srdSpeciesScores, forCreator, exportJson, parseImport, applyImport };
 })(globalThis);

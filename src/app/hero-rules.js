@@ -13,10 +13,12 @@
   // SRD data plus the homebrew the creator may offer right now (set by the app with setHomebrew).
   let extra = null, merged = null, mergedFrom = null;
   const H = () => {
-    const d = root.QBHERO; if (!extra?.backgrounds?.length && !extra?.species?.length && !extra?.classes?.length && !extra?.feats?.length) return d;
+    const d = root.QBHERO; if (!extra?.backgrounds?.length && !extra?.species?.length && !extra?.classes?.length && !extra?.feats?.length && !extra?.subclasses?.length) return d;
     if (merged && mergedFrom === d) return merged;
     const add = (base, more) => [...base, ...(more || []).filter(b => !base.some(x => x.id === b.id))];
-    mergedFrom = d; merged = { ...d, backgrounds: add(d.backgrounds, extra.backgrounds), species: add(d.species, extra.species), classes: add(d.classes, extra.classes), feats: add(d.feats, extra.feats),
+    // homebrew subclasses join copies of their class (the shared data stays untouched)
+    const withSubs = c => { const mine = (extra.subclasses || []).filter(s => s.cls === c.id); return mine.length ? { ...c, subclasses: add(c.subclasses || [{ ...c.subclass, source: 'srd' }], mine) } : c; };
+    mergedFrom = d; merged = { ...d, backgrounds: add(d.backgrounds, extra.backgrounds), species: add(d.species, extra.species), classes: add(d.classes, extra.classes).map(withSubs), feats: add(d.feats, extra.feats),
       features: Object.assign({}, d.features, ...(extra.classes || []).map(c => c.features || {})) };
     return merged;
   };
@@ -159,7 +161,7 @@
     let hpMax = perLevel.reduce((a, x) => a + x, 0);
     if (sp?.traits.some(t => t.id === 'dwarven-toughness')) hpMax += level;
     for (const f of featsOf(b)) hpMax += (f.effects?.hpPerLevel || 0) * level + (f.effects?.hpFlat || 0); // Tough, Boon of Fortitude
-    if (b.cls === 'sorcerer' && level >= 3 && subOf(b)?.id === 'draconic-sorcery') hpMax += level; // Draconic Resilience: +3 at 3, +1 per level after
+    if (level >= 3 && (b.cls === 'sorcerer' && subOf(b)?.id === 'draconic-sorcery' || subOf(b)?.hpPerLevel)) hpMax += level; // Draconic Resilience (or a homebrew subclass like it): +3 at 3, +1 per level after
 
     // armor class: the best of what applies
     const eq = equipped(b), armor = item(eq.armor), shieldAc = eq.shield ? 2 : 0, options = [];
