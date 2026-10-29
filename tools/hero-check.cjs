@@ -157,8 +157,8 @@ console.log('PASS: the Aasimar builds a complete hero with its traits.');
 
 /* Player's Handbook spells beyond the free rules (src/app/phb-spells.js, loaded after the SRD list) */
 {const c8=vm.createContext({crypto:require('crypto').webcrypto});for(const f of ['srd-heroes','srd-spells','phb-spells','hero-rules'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),c8);
-const L=c8.QBSPELLS,R8=c8.QBHeroRules,extra=L.filter(s=>s.source==='phb-2024');assert.equal(extra.length,33);assert.equal(new Set(L.map(s=>s.id)).size,L.length,'no spell twice');
+const L=c8.QBSPELLS,R8=c8.QBHeroRules,extra=L.filter(s=>s.source==='phb-2024');assert.equal(extra.length,52);assert.equal(extra.filter(s=>s.unchecked).length,19,'19 entered from memory, marked');assert(extra.filter(s=>s.unchecked).every(s=>/check it against/.test(s.desc)));assert.equal(new Set(L.map(s=>s.id)).size,L.length,'no spell twice');
 assert(extra.every(s=>s.level>=0&&s.level<=9&&s.classes.length&&s.time&&s.range&&s.duration&&s.desc&&(!s.damage||s.damageType)),'every field set');
 const w={...R8.quickBuild('warlock','W',5)};w.spells.cantrips=['toll-the-dead','mind-sliver'];const at=plain(R8.derive(w).attacks).filter(a=>a.kind==='cantrip');
 assert.deepEqual(at.map(a=>[a.name,a.save,a.damage]),[['Toll the Dead','WIS','2d8'],['Mind Sliver','INT','2d6']],'save cantrips scale at level 5');}
-console.log('PASS: 33 Player’s Handbook spells (summaries) join the 339 SRD spells; their attack cantrips calculate.');
+console.log('PASS: 52 Player’s Handbook spells (summaries; 19 entered from memory and marked for checking) join the 339 SRD spells; their attack cantrips calculate.');
