@@ -303,16 +303,30 @@
       r.rider && ['success','crit'].includes(r.band)
       && !used[p.actor + ':' + r.rider.id]).map(({i})=>i);
   }
+  // Pre-roll enough unbiased dice for either a normal hit or a critical hit.
+  // Reassigning a bonus to another eligible hit never generates fresh dice.
+  function riderTotal(p,i) {
+    const match = p.rolls[i].rider.dice.match(/^(\d+)d(\d+)$/);
+    const count = +match[1] * (p.rolls[i].band === 'crit' ? 2 : 1);
+    return p.riderFaces.slice(0,count).reduce((sum,face)=>sum+face,0);
+  }
+  function makeRiderDice(p,i) {
+    const match = p.rolls[i].rider.dice.match(/^(\d+)d(\d+)$/);
+    p.riderFaces = Array.from({length:2*Number(match[1])},()=>die(Number(match[2])));
+    p.riderDamage = riderTotal(p,i);
+  }
   function refreshRider(s,p) {
     const candidates = riderCandidates(s,p);
-    if (!candidates.length) { p.riderIndex = -1; p.riderDamage = null; p.riderId = ''; return; }
+    if (!candidates.length) { p.riderIndex = -1; p.riderDamage = null; p.riderId = ''; p.riderFaces = []; return; }
     const id = candidates.some(i=>p.rolls[i].rider.id===p.riderId) ? p.riderId : p.rolls[candidates[0]].rider.id;
     const allowed = candidates.filter(i=>p.rolls[i].rider.id===id);
     const chosen = allowed.includes(p.riderIndex) ? p.riderIndex : allowed[0];
-    if (p.riderIndex !== chosen || p.riderId !== id) {
+    const newRider = p.riderId !== id || !Array.isArray(p.riderFaces) || !p.riderFaces.length;
+    if (p.riderIndex !== chosen || newRider) {
       p.riderIndex = chosen;
       p.riderId = id;
-      p.riderDamage = rollDamage(p.rolls[chosen].rider.dice, p.rolls[chosen].band === 'crit');
+      if (newRider) makeRiderDice(p,chosen);
+      else p.riderDamage = riderTotal(p,chosen);
     }
   }
   function selectRider(s,i) {
@@ -321,14 +335,14 @@
     if (p.rolls[i].rider.id !== p.riderId) throw Error('Only one selected bonus feature may be used in this action.');
     if (p.riderIndex !== i) {
       p.riderIndex = i;
-      p.riderDamage = rollDamage(p.rolls[i].rider.dice, p.rolls[i].band === 'crit');
+      p.riderDamage = riderTotal(p,i);
     }
     return p.riderDamage;
   }
   function rollRider(s) {
     const p = init(s).pending;
     if (!p || !riderCandidates(s,p).includes(p.riderIndex)) throw Error('No eligible on-hit bonus to reroll.');
-    p.riderDamage = rollDamage(p.rolls[p.riderIndex].rider.dice, p.rolls[p.riderIndex].band === 'crit');
+    makeRiderDice(p,p.riderIndex);
     return p.riderDamage;
   }
   function attackDamage(r,p,i) {
