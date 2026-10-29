@@ -65,7 +65,7 @@ console.log('PASS: enemy moves roll defense per attack and deal stat-block damag
 
 /* Defend and Help */
 s=state();l=R.init(s);R.prepare(s,draft(s,{actor:'p2',action:'defend',target:'p1',ability:'DEX'}),[15]);R.apply(s);assert(l.protected.p1);
-const ed=draft(s,{mode:'enemy',actor:'f',target:'p1'});assert(Array.isArray(R.rollFor(s,ed)[0]));assert.throws(()=>R.prepare(s,ed,[10,[3,4]]),/first roll/);
+const ed=draft(s,{mode:'enemy',actor:'f',target:'p1'});assert(Array.isArray(R.rollFor(s,ed)[0]));assert.throws(()=>R.prepare(s,ed,[10,[3,4]]),/opening/);
 R.prepare(s,ed,[[3,18],18]);assert.equal(l.pending.rolls[0].die,18);R.apply(s);assert(!l.protected.p1,'cover is spent on the defense roll');
 s=state();l=R.init(s);l.openings.p1=true;R.prepare(s,draft(s),[[4,16]]);assert.equal(l.pending.rolls[0].die,16);R.damage(s,0,5);R.apply(s);assert(!l.openings.p1);
 console.log('PASS: Defend gives an opening on the next defense roll; Help gives an opening on the next roll; both are spent when used.');
