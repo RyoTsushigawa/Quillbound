@@ -81,7 +81,7 @@
       positions: {}, conditions: {}, protected: {}, openings: {}, acted: { ...(c.acted || {}) }, history: [], pending: null, lastRoll: null
     };
     const l = c.lite;
-    l.conditionNotes ??= {}; l.secretRolls ??= []; l.breaking ??= {}; l.broke ??= {}; l.protected ??= {}; l.openings ??= {};
+    l.conditionNotes ??= {}; l.secretRolls ??= []; l.breaking ??= {}; l.broke ??= {}; l.protected ??= {}; l.openings ??= {}; l.riderUsed ??= {};
     l.draft.attackNames ??= []; l.draft.contextEvent ??= 'trapped'; l.draft.stakes ??= ''; l.draft.enemyOutcome ??= ''; l.draft.enemyCondition ??= 'Pinned';
     if (!l.draft.enemyEffect || l.draft.enemyEffect === 'wound') l.draft.enemyEffect = 'damage';
     if (l.draft.effect === 'wound') l.draft.effect = 'damage';
@@ -239,7 +239,7 @@
     } else if (d.action === 'attack') {
       const selected = A().heroAttackSequence(a, d.attackNames || []), back = enemyAttacks(t)[0];
       p.rolls = kept.map((k, i) => { const atk = selected[i], total = k.die + atk.bonus, band = attackBand(k.die, total, t.acNum);
-        return { ...k, bonus: atk.bonus, total, band, against: t.acNum, attack: atk.name, expr: atk.damage, damage: LANDS.includes(band) ? rollDamage(atk.damage, band === 'crit') : null, push: null,
+        return { ...k, bonus: atk.bonus, total, band, against: t.acNum, attack: atk.name, expr: atk.damage, rider: atk.rider || null, damage: LANDS.includes(band) ? rollDamage(atk.damage, band === 'crit') : null, push: null,
           strike: { by: t.id, name: back?.name || 'Attack', damage: back ? rollDamage(back.damage, band === 'disaster') : 0, reach: true } }; });
     } else {
       const b = bonus(roller, d.ability, d.trained), k = kept[0], total = k.die + b, band = grade(k.die, total);
@@ -247,6 +247,7 @@
       p.rolls = [{ ...k, bonus: b, total, band, push: null, expr, damage: expr && LANDS.includes(band) ? rollDamage(expr) : null }];
     }
     sync(p);
+    if (d.mode !== 'enemy' && d.action === 'attack') refreshRider(s,p);
     // Player dice are public the moment they are rolled; Undo never removes them.
     s.publicRolls ??= [];
     for (const r of p.rolls) s.publicRolls.push({ id: root.crypto.randomUUID?.() || String(Date.now()) + '-' + s.publicRolls.length, die: r.die, dice: r.dice.slice(), total: r.total, band: r.band, roller: roller.name || 'Hero' });
@@ -279,7 +280,7 @@
     r.band = p.action === 'attack' ? attackBand(r.die, r.total, t.acNum) : grade(r.die, r.total);
     // A Push turning a miss into a graze/hit needs damage; upgrading a graze keeps its rolled damage.
     if (r.expr && LANDS.includes(r.band) && (r.damage === null || r.damage === undefined)) r.damage = rollDamage(r.expr, r.band === 'crit');
-    sync(p); return r;
+    sync(p); if (p.action === 'attack') refreshRider(s,p); return r;
   }
 
   /* ---- damage ---- */
@@ -291,6 +292,50 @@
     r.damage = n; return n;
   }
   const dealt = r => r.band === 'mixed' && r.attack !== undefined && r.against !== undefined && r.strike ? Math.floor(r.damage / 2) : r.damage;
+
+  // A rider is an optional on-hit die from a weapon or homebrew feature.
+  // Graze is not a true hit for an "on hit" rider. The owner may choose WHICH hit
+  // receives it, after viewing the d20s but before the result is confirmed.
+  function riderCandidates(s,p) {
+    if (!p || p.mode === 'enemy' || p.action !== 'attack') return [];
+    const l = init(s), used = l.riderUsed || {};
+    return p.rolls.map((r,i) => ({r,i})).filter(({r}) =>
+      r.rider && ['success','crit'].includes(r.band)
+      && !used[p.actor + ':' + r.rider.id]).map(({i})=>i);
+  }
+  function refreshRider(s,p) {
+    const candidates = riderCandidates(s,p);
+    if (!candidates.length) { p.riderIndex = -1; p.riderDamage = null; p.riderId = ''; return; }
+    const id = candidates.some(i=>p.rolls[i].rider.id===p.riderId) ? p.riderId : p.rolls[candidates[0]].rider.id;
+    const allowed = candidates.filter(i=>p.rolls[i].rider.id===id);
+    const chosen = allowed.includes(p.riderIndex) ? p.riderIndex : allowed[0];
+    if (p.riderIndex !== chosen || p.riderId !== id) {
+      p.riderIndex = chosen;
+      p.riderId = id;
+      p.riderDamage = rollDamage(p.rolls[chosen].rider.dice, p.rolls[chosen].band === 'crit');
+    }
+  }
+  function selectRider(s,i) {
+    const p = init(s).pending, choices = riderCandidates(s,p);
+    if (!Number.isInteger(i) || !choices.includes(i)) throw Error('Choose a hit that qualifies for the bonus damage.');
+    if (p.rolls[i].rider.id !== p.riderId) throw Error('Only one selected bonus feature may be used in this action.');
+    if (p.riderIndex !== i) {
+      p.riderIndex = i;
+      p.riderDamage = rollDamage(p.rolls[i].rider.dice, p.rolls[i].band === 'crit');
+    }
+    return p.riderDamage;
+  }
+  function rollRider(s) {
+    const p = init(s).pending;
+    if (!p || !riderCandidates(s,p).includes(p.riderIndex)) throw Error('No eligible on-hit bonus to reroll.');
+    p.riderDamage = rollDamage(p.rolls[p.riderIndex].rider.dice, p.rolls[p.riderIndex].band === 'crit');
+    return p.riderDamage;
+  }
+  function attackDamage(r,p,i) {
+    return (Number(dealt(r))||0) + (i===p.riderIndex && r.rider && r.rider.id===p.riderId
+      && ['success','crit'].includes(r.band) ? Number(p.riderDamage)||0 : 0);
+  }
+
   // One response per hero Attack action: find the first failed roll while the target can still respond.
   // Consider damage in attack order so a target dropped by a graze cannot retaliate.
   // Called by both the result preview and confirmation, including after stamina Push.
@@ -301,7 +346,7 @@
     let hp = Number.isFinite(t.hpNow) ? t.hpNow : Infinity;
     for (let i = 0; i < p.rolls.length; i++) {
       const r = p.rolls[i];
-      if (LANDS.includes(r.band) && hp > 0) hp = Math.max(0, hp - (Number(dealt(r)) || 0));
+      if (LANDS.includes(r.band) && hp > 0) hp = Math.max(0, hp - attackDamage(r,p,i));
       if (FAILS.includes(r.band) && hp > 0) return i;
     }
     return -1;
@@ -401,6 +446,9 @@
     for (const r of p.rolls) { r.damage = num(r.damage); if (r.strike) r.strike.damage = num(r.strike.damage) ?? 0; }
     p.strikeDamage = num(p.strikeDamage) ?? undefined;
     if (!p.rolls.every(r => ok(r.damage) && (!r.strike || ok(r.strike.damage))) || !(p.strikeDamage === undefined || ok(p.strikeDamage))) throw Error('Enter damage as a whole number from 0 to 999.');
+    const eligibleRider = riderCandidates(s,p).includes(p.riderIndex) && p.rolls[p.riderIndex].rider.id===p.riderId;
+    if (eligibleRider && !ok(num(p.riderDamage))) throw Error('Enter a valid bonus die result from 0 to 999.');
+    if (eligibleRider) p.riderDamage = num(p.riderDamage);
     if (p.mode !== 'enemy' && p.rolls.some(r => r.expr && LANDS.includes(r.band) && (p.action === 'attack' || p.effect === 'damage') && r.damage === null)) throw Error('Enter or roll the damage for every hit first.');
     const strikesNeeded = p.mode !== 'enemy' && p.action !== 'attack' && FAILS.includes(p.band);
     if (strikesNeeded && p.consequence === 'goal' && !p.consequenceText.trim()) throw Error('Describe what changes in the scene.');
@@ -423,7 +471,11 @@
       });
     } else if (p.action === 'attack') {
       p.rolls.forEach((r, i) => {
-        if (LANDS.includes(r.band) && active(s, t)) lines.push((r.band === 'mixed' ? 'Graze: ' : r.band === 'crit' ? 'Critical hit: ' : '') + hurt(s, t.id, dealt(r)));
+        if (LANDS.includes(r.band) && active(s, t)) {
+          const addRider = eligibleRider && i===p.riderIndex;
+          lines.push((r.band === 'mixed' ? 'Graze: ' : r.band === 'crit' ? 'Critical hit: ' : '') + hurt(s, t.id, dealt(r) + (addRider ? p.riderDamage : 0)));
+          if (addRider) { l.riderUsed[a.id + ':' + p.riderId] = true; lines.push(r.rider.name + ': +' + p.riderDamage + ' damage.'); }
+        }
         if (i !== responseIndex || !active(s, t)) return;
         if (r.strike.reach) lines.push(`${t.name} strikes back${r.band === 'disaster' ? ' (critical)' : ''}: ` + hurt(s, a.id, r.strike.damage));
         else fallback(r.band);
@@ -472,7 +524,7 @@
     if (notes) { l.conditionNotes[id] ??= {}; l.conditionNotes[id][label] = { description: String(notes.description || '').slice(0, 1000), clears: String(notes.clears || '').slice(0, 500) }; }
   }
   function describe(s, id, label) { return root.ConditionGuide.get(label, init(s)?.conditionNotes?.[id]?.[label]); }
-  function nextRound(s) { const l = init(s); if (l.pending) throw Error('Finish the current roll first.'); remember(s); s.combat.round++; l.acted = {}; log(s, `Round ${s.combat.round}. Everyone gets a spotlight again.`); }
+  function nextRound(s) { const l = init(s); if (l.pending) throw Error('Finish the current roll first.'); remember(s); s.combat.round++; l.acted = {}; l.riderUsed = {}; log(s, `Round ${s.combat.round}. Everyone gets a spotlight again.`); }
   function move(s, id, zone) { const l = init(s); if (!zones.includes(zone) || !actor(s, id)) return; if (l.pending) throw Error('Finish this roll before moving tokens.'); if (l.positions[id] === zone) return; remember(s); l.positions[id] = zone; log(s, `${actor(s, id).name} placed in ${l.zones[zone]}.`); }
   // Manual HP correction by the DM (healing magic, potions, a mistake). Positive heals, negative damages.
   function adjust(s, id, n) {
@@ -490,5 +542,5 @@
   }
 
   root.Stakes = { contextEvents, contextPreview, actions, zones, init, actor, hero, active, needs, setStats, remember, undo, grade, attackBand, defenseBand, bonus, targets, configure,
-    rollsNeeded, rollFor, prepare, pushInfo, push, damage, rollDamage, attackResponseIndex, apply, nextRound, move, adjust, hurt, heal, deathSave, shortRest, longRest, condition, describe, log, d20, die, secret, resolveBreak, setStatus, groups, staminaMax };
+    rollsNeeded, rollFor, prepare, pushInfo, push, damage, rollDamage, attackResponseIndex, riderCandidates, selectRider, rollRider, apply, nextRound, move, adjust, hurt, heal, deathSave, shortRest, longRest, condition, describe, log, d20, die, secret, resolveBreak, setStatus, groups, staminaMax };
 })(globalThis);
