@@ -47,7 +47,7 @@ function hiDialog(target) {
     const hero = { id: uid('ph'), build: r.build, story: { want: '', fear: '', left: '' }, saved: Date.now() };
     out.querySelector('#hi-mine')?.addEventListener('click', () => { S.myHeroes ??= []; S.myHeroes.push(hero); S.tab = 'heroes'; finish(`${hero.build.name} is in My heroes.`); });
     out.querySelector('#hi-party')?.addEventListener('click', () => { cmAddHero({ hero: { ...hero, name: hero.build.name } }); finish(`${hero.build.name} joined the party.`); });
-    out.querySelector('#hi-edit').addEventListener('click', () => { S.creator = { ...crNew(), build: JSON.parse(JSON.stringify(hero.build)), step: 'review', ...(target === 'mine' ? { heroId: hero.id } : {}) }; if (target === 'mine') { S.myHeroes ??= []; S.myHeroes.push(hero); } dlg.close(); S.tab = 'create'; render(); window.scrollTo(0, 0); });
+    out.querySelector('#hi-edit').addEventListener('click', () => { S.creator = crRestoreSelections({ ...crNew(), build: JSON.parse(JSON.stringify(hero.build)), step: 'review', ...(target === 'mine' ? { heroId: hero.id } : {}) }); /* keep the imported increases and level-up choices */ if (target === 'mine') { S.myHeroes ??= []; S.myHeroes.push(hero); } dlg.close(); S.tab = 'create'; render(); window.scrollTo(0, 0); });
   };
   const handle = r => { if (r.error) return show(`<p class="cl-error">${esc(r.error)}</p>`); if (r.quillbound) return show('<p class="cl-error">This is a Quillbound hero file: use <b>Open a hero file…</b> (My heroes) or <b>Add hero files…</b> (Campaigns) instead.</p>');
     const list = r.founds || [r.found]; show(list.length > 1 ? `<p class="small">${list.length} heroes in this file.</p>` : '');

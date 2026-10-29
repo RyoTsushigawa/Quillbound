@@ -38,8 +38,10 @@
   const cls = b => byId(H().classes, b.cls);
   const levelsUpTo = b => (cls(b)?.levels || []).filter(l => l.level <= (b.level || 1));
   // Training from the class, plus training a (homebrew) subclass adds at its level (an Armorer's heavy armor at 3).
-  const classProfs = b => [...(cls(b)?.profs || []), ...(cls(b)?.profsAt || []).filter(p => p.level <= (b.level || 1)).map(p => p.prof)];
-  const spellList = b => cls(b)?.spellList || b.cls; // a homebrew class borrows an SRD class's spell list
+  // The hero's subclass: the one chosen (build.subclass) among the class's subclasses, otherwise the class's SRD subclass.
+  const subOf = b => { const c = cls(b); return (c?.subclasses || []).find(s => s.id === b.subclass) || c?.subclass || null; };
+  const classProfs = b => [...(cls(b)?.profs || []), ...[...(cls(b)?.profsAt || []), ...(subOf(b)?.profsAt || [])].filter(p => p.level <= (b.level || 1)).map(p => p.prof)];
+  const spellList = b => cls(b)?.spellList || subOf(b)?.spell?.list || b.cls; // a homebrew class borrows an SRD class's spell list
   const has = (b, featureId) => levelsUpTo(b).some(l => l.features.includes(featureId));
   const countUpTo = (b, re) => levelsUpTo(b).reduce((n, l) => n + l.features.filter(f => re.test(f)).length, 0);
   const specific = (b, key) => { let v; for (const l of levelsUpTo(b)) if (l.specific && key in l.specific) v = l.specific[key]; return v; };
@@ -92,7 +94,7 @@
     if ((Number(f?.minLevel) || 1) > lv) out.push(`from level ${f.minLevel}`);
     const earlier = { ...b, asi: Object.fromEntries(Object.entries(b.asi || {}).filter(([l]) => +l < lv)) }, s = scores(earlier);
     if ((p.abilities || []).length && !p.abilities.some(k => s[k] >= (Number(p.score) || 13))) out.push(`needs ${p.abilities.map(k => N[k]).join(' or ')} ${Number(p.score) || 13}`);
-    if (p.spellcasting && !cls(b)?.spellAbility) out.push('needs the Spellcasting feature');
+    if (p.spellcasting && !cls(b)?.spellAbility && !subOf(b)?.spell) out.push('needs the Spellcasting feature');
     if (p.cls && b.cls !== p.cls) out.push(`needs the ${byId(H().classes, p.cls)?.name || p.cls} class`);
     if (p.feat) { const bg = byId(H().backgrounds, b.background); if (![bg?.feat?.id, b.speciesFeat, b.fightingStyle, ...Object.values(earlier.asi).map(x => x?.feat)].includes(p.feat)) out.push(`needs the ${byId(H().feats, p.feat)?.name || p.feat} feat first`); }
     return out; }
@@ -157,7 +159,7 @@
     let hpMax = perLevel.reduce((a, x) => a + x, 0);
     if (sp?.traits.some(t => t.id === 'dwarven-toughness')) hpMax += level;
     for (const f of featsOf(b)) hpMax += (f.effects?.hpPerLevel || 0) * level + (f.effects?.hpFlat || 0); // Tough, Boon of Fortitude
-    if (b.cls === 'sorcerer' && level >= 3 && c?.subclass?.id === 'draconic-sorcery') hpMax += level; // Draconic Resilience: +3 at 3, +1 per level after
+    if (b.cls === 'sorcerer' && level >= 3 && subOf(b)?.id === 'draconic-sorcery') hpMax += level; // Draconic Resilience: +3 at 3, +1 per level after
 
     // armor class: the best of what applies
     const eq = equipped(b), armor = item(eq.armor), shieldAc = eq.shield ? 2 : 0, options = [];
@@ -171,7 +173,7 @@
       if (has(b, 'barbarian-unarmored-defense')) options.push({ ac: 10 + m.DEX + m.CON + shieldAc, from: 'Unarmored Defense (Dex + Con)' });
       const ua = specific(b, 'unarmored_ability'); if (ua) options.push({ ac: 10 + m.DEX + m[ua] + shieldAc, from: `Unarmored Defense (Dex + ${ua.charAt(0) + ua.slice(1).toLowerCase()})` }); // homebrew classes
       if (has(b, 'monk-unarmored-defense') && !eq.shield) options.push({ ac: 10 + m.DEX + m.WIS, from: 'Unarmored Defense (Dex + Wis)' });
-      if (b.cls === 'sorcerer' && level >= 3 && c?.subclass?.id === 'draconic-sorcery') options.push({ ac: 10 + m.DEX + m.CHA + shieldAc, from: 'Draconic Resilience (Dex + Cha)' });
+      if (b.cls === 'sorcerer' && level >= 3 && subOf(b)?.id === 'draconic-sorcery') options.push({ ac: 10 + m.DEX + m.CHA + shieldAc, from: 'Draconic Resilience (Dex + Cha)' });
     }
     if (eq.shield && !proficientWith(b, 'shield')) warn.push(`${c?.name || 'This class'} is not trained with shields.`);
     const ac = options.sort((x, y) => y.ac - x.ac)[0];
@@ -188,7 +190,7 @@
     if (has(b, 'rogue-slippery-mind')) { saveProf.add('WIS'); saveProf.add('CHA'); }
     for (const pick of Object.values(b.asi || {})) if (byId(H().feats, pick?.feat)?.effects?.saveFromPlus) Object.keys(pick.plus || {}).forEach(k => saveProf.add(k)); // Resilient
     const saves = Object.fromEntries(ABIL.map(k => [k, { bonus: m[k] + (saveProf.has(k) ? prof : 0), prof: saveProf.has(k) }]));
-    const lore = b.cls === 'bard' && level >= 3 && c?.subclass?.id === 'college-of-lore'; // Bonus Proficiencies: three skills of your choice
+    const lore = b.cls === 'bard' && level >= 3 && subOf(b)?.id === 'college-of-lore'; // Bonus Proficiencies: three skills of your choice
     const skillProf = new Set([...(bg?.skills || []), ...(b.skills || []), ...(sp?.effects?.skills || []), ...(b.speciesSkill ? [b.speciesSkill] : []), ...(b.keenSense ? [b.keenSense] : []), ...(b.featPicks?.skilled || []).filter(x => data.skills.some(k => k.id === x)), ...(lore ? (b.featPicks?.lore || []).slice(0, 3) : [])]);
     const expert = new Set((b.expertise || []).filter(x => skillProf.has(x)));
     const jack = has(b, 'bard-jack-of-all-trades');
@@ -200,9 +202,12 @@
     const castLevel = levelsUpTo(b).filter(l => l.spell).pop();
     if (c?.spellAbility && castLevel) { const k = c.spellAbility;
       spellcasting = { ability: k, dc: 8 + prof + m[k], attack: prof + m[k], cantrips: castLevel.spell.cantrips, prepared: castLevel.spell.prepared, slots: castLevel.spell.slots }; }
+    // a subclass that casts on its own (Eldritch Knight, Arcane Trickster)
+    else if (subOf(b)?.spell && level >= subOf(b).spell.from) { const sp = subOf(b).spell, k = sp.ability, s9 = [...sp.slots(level)]; while (s9.length < 9) s9.push(0);
+      spellcasting = { ability: k, dc: 8 + prof + m[k], attack: prof + m[k], cantrips: sp.cantrips(level), prepared: sp.prepared(level), slots: s9 }; }
 
     // attacks: equipped weapons, attack cantrips, and Sneak Attack / Martial Arts / Extra Attack from the class
-    const count = 1 + (levelsUpTo(b).some(l => l.features.some(f => /-extra-attack$/.test(f))) ? 1 : 0) // Extra Attack, SRD or homebrew
+    const count = 1 + (levelsUpTo(b).some(l => l.features.some(f => /-extra-attack$/.test(f))) || level >= (subOf(b)?.extraAttackAt || 99) ? 1 : 0) // Extra Attack, SRD or homebrew
       + (has(b, 'fighter-two-extra-attacks') ? 1 : 0) + (has(b, 'fighter-three-extra-attacks') ? 1 : 0);
     const sneak = specific(b, 'sneak_attack'), martial = specific(b, 'martial_arts_die');
     const attacks = [];
@@ -237,7 +242,7 @@
     // features
     const features = [];
     for (const l of levelsUpTo(b)) for (const f of l.features) { const x = data.features[f]; if (x) features.push({ name: x.name, level: l.level, source: c.name, desc: x.desc }); }
-    for (const f of c?.subclass?.features || []) if (f.level <= level) features.push({ name: f.name, level: f.level, source: c.subclass.name, desc: f.desc });
+    const subc = subOf(b); for (const f of subc?.features || []) if (f.level <= level) features.push({ name: f.name, level: f.level, source: subc.name, desc: f.desc });
     for (const t of [...(sp?.traits || []), ...(sub?.traits || [])]) features.push({ name: t.name, level: 1, source: sub ? `${sp.name} (${sub.name})` : sp.name, desc: t.desc });
     for (const id of feats) { const f = byId(data.feats, id); if (f) features.push({ name: f.name, level: 1, source: 'Feat', desc: f.desc }); }
 
@@ -270,7 +275,7 @@
     if (gear.gp < 0) warn.push(`The extra gear costs ${gear.spent} GP, but the kits give ${gear.startGp} GP: ${-gear.gp} GP short. Choose the gold option of a kit, buy less, or ask the DM to grant it.`);
     const tools = [...new Set([...classProfs(b).filter(p => /^tool:|kit$|supplies$|tools$/i.test(p)).map(p => p.replace(/^Tool:\s*/i, '')), ...(bg?.tools || []), ...(b.toolChoice ? [b.toolChoice] : [])])];
     if ((b.training || []).length) features.push({ name: 'Training granted by the DM', level: 1, source: 'House rule', desc: (b.training || []).map(g => TRAINING[g] || item(g)?.name || g).join(', ') + '. Not part of the class; your DM allowed it.' });
-    return { tools, name: b.name || '', level, prof, species: sp?.name || '', sub: sub?.name || '', cls: c?.name || '', subclass: level >= 3 ? c?.subclass?.name || '' : '', background: bg?.name || '',
+    return { tools, name: b.name || '', level, prof, species: sp?.name || '', sub: sub?.name || '', cls: c?.name || '', subclass: level >= 3 ? subOf(b)?.name || '' : '', background: bg?.name || '',
       size: sp?.size || b.size || '', scores: s, mods: m, saves, skills, passive: 10 + skills.perception.bonus, initiative: m.DEX + (hasFeat('alert') ? prof : 0), speed,
       senses: (sp?.traits || []).filter(t => /^darkvision/.test(t.id)).map(t => t.name),
       hp: { max: hpMax, perLevel }, hitDice: { die: c?.hitDie || 8, count: level }, ac: ac.ac, acFrom: ac.from, attacks, spellcasting, features, feats,
@@ -345,5 +350,5 @@
     return b;
   }
 
-  root.QBHeroRules = { featAllowed, featBlockers, getHomebrew, spellList, classProfs, TRAINING, priceOf, setHomebrew, data: () => H(), ABIL, ARRAY, POINT_COST, POINTS, mod, profFor, die, rollAbilities, rollTotal, rollHp, derive, toHero, quickBuild, fillDefaults, inventory, equipped, proficientWith, asiLevels, expertiseCount, abilityChecks, boostCheck };
+  root.QBHeroRules = { subOf, featAllowed, featBlockers, getHomebrew, spellList, classProfs, TRAINING, priceOf, setHomebrew, data: () => H(), ABIL, ARRAY, POINT_COST, POINTS, mod, profFor, die, rollAbilities, rollTotal, rollHp, derive, toHero, quickBuild, fillDefaults, inventory, equipped, proficientWith, asiLevels, expertiseCount, abilityChecks, boostCheck };
 })(globalThis);

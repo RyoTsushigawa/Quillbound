@@ -3,7 +3,7 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),plain=x=>JSON.parse(JSON.stringify(x));
 const ctx=vm.createContext({crypto:require('node:crypto').webcrypto});
-for(const f of ['srd-heroes','phb-feats','srd-spells','hero-rules','homebrew','table-homebrew','hero-import'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),ctx);
+for(const f of ['srd-heroes','phb-feats','phb-backgrounds','phb-subclasses','srd-spells','hero-rules','homebrew','table-homebrew','hero-import'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),ctx);
 const R=ctx.QBHeroRules,I=ctx.QBHeroImport,data=()=>R.data();R.setHomebrew(ctx.QBHomebrew.forCreator(ctx.QB_TABLE_HOMEBREW,{}));
 const build=f=>plain(I.toBuild(f,R,ctx.QBSPELLS)),diff=r=>r.compare.filter(x=>!x.same);
 
@@ -43,6 +43,10 @@ const heroes=I.splitHeroes([page1,page2,page3],data());assert.equal(heroes.lengt
 const f=I.fromText(heroes[0],data());assert.deepEqual([f.name,f.cls,f.level,f.subclass,f.species],['Rin','rogue',5,'Thief','human']);assert.deepEqual(plain(f.abilities),{STR:10,DEX:18,CON:14,INT:14,WIS:12,CHA:8},'scores in a column');
 assert(f.skills.stealth.expert&&f.skills.acrobatics.prof,'E marks expertise; skills anywhere on a line');assert.deepEqual(plain(f.attacks[0]),{name:'Dagger',bonus:7,damage:'1d4+4'},'a stacked attack');}
 console.log('PASS: column-style sheets (level in the header, scores under their labels, E for expertise, stacked attacks) and several heroes in one PDF.');
+/* subclasses by name: full names and short ones */
+{for(const [line,want] of [['Human · Bard 5 (College of Glamour)','college-of-glamour'],['Elf · Wizard 6 (Diviner)','diviner'],['Human · Fighter 3 (Eldritch Knight)','eldritch-knight'],['Human · Cleric 3 (Trickery)','trickery-domain']]){
+  const r=build(I.fromText(['Nyx',line,'STR | DEX | CON | INT | WIS | CHA','10 | 14 | 14 | 16 | 12 | 15'],data()));assert.equal(r.build.subclass,want,line);assert(!r.check.some(x=>/isn’t in Quillbound yet/.test(x)),line);}}
+console.log('PASS: imported subclasses are matched by name ("College of Glamour", "Diviner", "Trickery").');
 
 /* the real Night Shift PDFs, when they are on this computer (they aren't in the repository) */
 const sheets=['Toxic','Quinn','Camilla'].map(n=>path.join(process.env.USERPROFILE||'',`Downloads/${n}_DnD_Charakterbogen.pdf`)).filter(p=>fs.existsSync(p));
@@ -53,3 +57,9 @@ if(sheets.length&&pdfjs)(async()=>{const w=console.warn;console.warn=()=>{};cons
   console.warn=w;assert.deepEqual(got.Quinn,{hp:38,ac:16,diff:0});if(got.Toxic)assert.deepEqual([got.Toxic.hp,got.Toxic.ac],[43,17]);if(got.Camilla)assert.deepEqual([got.Camilla.hp,got.Camilla.ac],[38,15]);
   console.log(`PASS: the Night Shift PDFs import (${Object.entries(got).map(([n,v])=>`${n}: HP ${v.hp}, AC ${v.ac}, ${v.diff} differences`).join('; ')}).`);})().catch(e=>{console.error(e);process.exit(1);});
 else console.log('(The Night Shift PDFs aren’t on this computer: that part is skipped.)');
+
+/* opening an imported hero in the creator keeps its background increases and improvements (ChatGPT's restore step, #12) */
+{const html=fs.readFileSync(path.join(root,'index.html'),'utf8');const ui=fs.readFileSync(path.join(root,'src/ui/hero-import.js'),'utf8');
+assert(/S\.creator = crRestoreSelections\(\{ \.\.\.crNew\(\), build: JSON\.parse\(JSON\.stringify\(hero\.build\)\)/.test(ui),'Open in the creator restores the pickers');
+assert(html.includes('src/ui/hero-import.js'));}
+console.log('PASS: an imported hero opened in the creator keeps its ability increases and level-up choices.');
