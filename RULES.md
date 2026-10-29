@@ -53,6 +53,7 @@ The **Create a hero** tab builds 2024 (SRD 5.2) heroes from level 1 to 20.
 - **Tools:** tool proficiencies from the class and background are listed on the Skills tab.
 - The sheet works out armor class, including Unarmored Defense and the Defense style.
 - It also works out attacks: finesse, proficiency, Archery, Extra Attack, Sneak Attack, Martial Arts and attack cantrips.
+- **Sneak Attack** is its own attack line right after each finesse or ranged weapon ("Shortsword + Sneak Attack"), because it needs Advantage or an ally next to the target and works once per turn. The plain line comes first and is the default in combat; pick the Sneak Attack line when it applies. Homebrew class and subclass comparisons measure each hero by its strongest line, Sneak Attack included.
 
 **In combat,** a hero made here fights with the strongest attack on its sheet (highest average damage per action). It also uses the sheet's HP, AC and Hit Dice, and stamina equal to its proficiency bonus.
 
@@ -183,7 +184,7 @@ Each attack is its own roll: d20 + attack bonus against the target's armor class
 
 Only the **first eligible graze or miss** in a hero's Attack action can cause a strike-back, while the target remains standing. Later rolls in the same Attack action cannot trigger additional strike-backs. A natural 1 causes a critical strike-back only if it is that first eligible response. A **strike-back** is one of the target's attacks; the app rolls its damage, with no extra roll to hit. If the target can't reach the hero, untick *can reach* and choose another consequence instead: become Exposed, or what was at risk happens (after a natural 1: separated and pinned, or the enemy achieves a major goal). A graze that drops the target draws no strike-back.
 
-A hero made in the hero creator attacks with the strongest attack on its sheet. Older heroes have a simple starter attack per class (for example Fighter greatsword 2d6, Rogue rapier 1d8 with Sneak Attack, Wizard Fire Bolt 1d10). Cantrip dice grow at levels 5, 11 and 17.
+A hero made in the hero creator attacks with the strongest attack on its sheet (Sneak Attack lines aside: the plain weapon comes first). Older heroes have a simple starter attack per class (for example Fighter greatsword 2d6, Rogue rapier 1d8 with Sneak Attack, Wizard Fire Bolt 1d10). Cantrip dice grow at levels 5, 11 and 17.
 
 ### Enemy moves
 

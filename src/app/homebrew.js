@@ -199,7 +199,7 @@
   // Measured like the class comparison: the class's Quick build hero with each of its subclasses at levels 3/5/11/17.
   const SUB_LEVELS = [3, 5, 11, 17];
   function measureSub(clsId, subId, level) {
-    const R = root.QBHeroRules, s = R.derive({ ...R.quickBuild(clsId, 'Test', level), subclass: subId }), a = s.attacks[0];
+    const R = root.QBHeroRules, s = R.derive({ ...R.quickBuild(clsId, 'Test', level), subclass: subId }), a = mainAttack(s);
     return { hp: s.hp.max, ac: s.ac, dpa: a ? Math.round(avgDice(a.damage) * a.count * hitShare(a.bonus, 15) * 10) / 10 : 0, slots: (s.spellcasting?.slots || []).reduce((n, x) => n + x, 0), attack: a ? `${a.name} ${a.bonus >= 0 ? '+' : ''}${a.bonus}, ${a.damage}${a.count > 1 ? ' ×' + a.count : ''}` : '' };
   }
   function compareSubclass(sc) {
@@ -222,10 +222,13 @@
   // Measured like every SRD class: its Quick build hero at levels 1/5/11/17 (HP, AC, best attack, expected damage per
   // action against AC 15 with Stakes grazes). Weapons and cantrips only: spell slots and limited features aren't counted.
   const LEVELS = [1, 5, 11, 17];
+  // The hero's strongest attack line against AC 15, Sneak Attack lines included (a Rogue lands it most turns).
+  const lineDpa = a => avgDice(a.damage) * a.count * hitShare(a.bonus, 15);
+  const mainAttack = s => s.attacks.reduce((best, x) => !best || lineDpa(x) > lineDpa(best) ? x : best, null);
   const avgDice = e => String(e).split('+').reduce((n, t) => { const d = t.match(/^(\d+)d(\d+)$/); return n + (d ? d[1] * (+d[2] + 1) / 2 : Number(t) || 0); }, 0);
   const hitShare = (b, ac) => { let n = 0; for (let d = 2; d <= 20; d++) n += d === 20 || d + b >= ac ? 1 : d + b >= ac - 5 ? 0.5 : 0; return n / 20; };
   function measure(clsId, level) {
-    const R = root.QBHeroRules, s = R.derive(R.quickBuild(clsId, 'Test', level)), a = s.attacks[0];
+    const R = root.QBHeroRules, s = R.derive(R.quickBuild(clsId, 'Test', level)), a = mainAttack(s);
     return { hp: s.hp.max, ac: s.ac, bonus: a ? a.bonus : 0, dpa: a ? Math.round(avgDice(a.damage) * a.count * hitShare(a.bonus, 15) * 10) / 10 : 0, attack: a ? `${a.name} ${a.bonus >= 0 ? '+' : ''}${a.bonus}, ${a.damage}${a.count > 1 ? ' ×' + a.count : ''}` : '' };
   }
   let srdTable = null;
