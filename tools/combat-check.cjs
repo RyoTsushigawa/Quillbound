@@ -91,7 +91,7 @@ console.log('PASS: 0 HP means dying with fair death saves (20 revives, 1 counts 
 s=state();l=R.init(s);R.prepare(s,draft(s,{action:'move',ability:'DEX',destination:'objective'}),[9]);assert.equal(l.pending.band,'mixed');l.pending.consequence='strike';l.pending.striker='f';l.pending.strikeDamage=4;R.apply(s);
 assert.equal(me(s).hpNow,8);assert.equal(l.positions.p1,'objective');
 s=state();l=R.init(s);R.prepare(s,draft(s,{action:'improvise',effect:'context',contextEvent:'trapped',intent:'Pin the sword arm'}),[15]);R.apply(s);assert(l.conditions.f.includes('Pinned'));
-s=state();l=R.init(s);R.prepare(s,draft(s,{action:'improvise',effect:'damage',intent:'Drop the chandelier'}),[16]);assert.throws(()=>R.apply(s),/damage/);R.damage(s,0,7);R.apply(s);assert.equal(foe(s).hpNow,23);
+s=state();l=R.init(s);R.prepare(s,draft(s,{action:'improvise',effect:'damage',intent:'Drop the chandelier'}),[16]);assert(l.pending.rolls[0].damage>=2,'Improvise damage is rolled automatically');R.damage(s,0,7);R.apply(s);assert.equal(foe(s).hpNow,23);
 s=state();R.init(s);const before=s.publicRolls?.length||0;R.prepare(s,draft(s),[12]);R.damage(s,0,3);R.apply(s);R.undo(s);assert.equal(s.publicRolls.length,before+1,'public dice survive Undo');
 console.log('PASS: Help, Move, Improvise and Defend keep the Stakes bands (15+ / 8–14 / 7−); a failure can call an enemy strike; context conditions and public dice still work.');
 
