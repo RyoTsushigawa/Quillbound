@@ -447,7 +447,7 @@
     p.strikeDamage = num(p.strikeDamage) ?? undefined;
     if (!p.rolls.every(r => ok(r.damage) && (!r.strike || ok(r.strike.damage))) || !(p.strikeDamage === undefined || ok(p.strikeDamage))) throw Error('Enter damage as a whole number from 0 to 999.');
     const eligibleRider = riderCandidates(s,p).includes(p.riderIndex) && p.rolls[p.riderIndex].rider.id===p.riderId;
-    if (eligibleRider && !ok(num(p.riderDamage))) throw Error('Enter a valid bonus die result from 0 to 999.');
+    if (eligibleRider && (num(p.riderDamage) === null || !ok(num(p.riderDamage)))) throw Error('Enter a valid bonus die result from 0 to 999.');
     if (eligibleRider) p.riderDamage = num(p.riderDamage);
     if (p.mode !== 'enemy' && p.rolls.some(r => r.expr && LANDS.includes(r.band) && (p.action === 'attack' || p.effect === 'damage') && r.damage === null)) throw Error('Enter or roll the damage for every hit first.');
     const strikesNeeded = p.mode !== 'enemy' && p.action !== 'attack' && FAILS.includes(p.band);
