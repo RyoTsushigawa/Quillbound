@@ -47,7 +47,7 @@ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 // The checks load app scripts by name; the real page must load the same ones, in this order.
 const tags=[...html.matchAll(/<script src="src\/app\/([\w-]+)\.js"><\/script>/g)].map(m=>m[1]);
 assert.deepEqual(tags.filter(n=>['srd-monsters','attacks','combat-rules'].includes(n)),['srd-monsters','attacks','combat-rules'],'index.html loads the SRD data and attacks.js before the combat engine');
-vm.runInContext([...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(x=>x.includes('const ACT=')),ctx);
+require('./ui-scripts.cjs').loadUi(html,ctx);vm.runInContext([...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(x=>x.includes('const ACT=')),ctx);
 const party=vm.runInContext('S.party',ctx);
 for(const p of party){assert(p.hp>0&&p.hpNow===p.hp,p.name+' HP');assert.equal(p.hitDice.left,p.level);assert(p.hitDice.die>=6);assert.equal(p.stamina,2);assert(p.attack&&p.attack.name);}
 stored=JSON.stringify({party:[{id:'old',name:'Old save',cls:'Cleric',anc:'Dwarf',level:2,prof:2,abil:{WIS:16,CON:14},hp:19,ac:18,conds:[null,null,null,null]}]});

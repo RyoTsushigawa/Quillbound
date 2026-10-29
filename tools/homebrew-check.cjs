@@ -6,7 +6,7 @@ const nodes=new Map(),node=s=>{if(!nodes.has(s))nodes.set(s,{innerHTML:'',textCo
 let captured='',handlers={};
 const ctx=vm.createContext({document:{querySelector:node,querySelectorAll:()=>[],getElementById:id=>node('#'+id),addEventListener(){}},crypto:require('node:crypto').webcrypto,BroadcastChannel:class{postMessage(){}close(){}},localStorage:{getItem:()=>null,setItem(){}},window:null,console,setTimeout:()=>0,clearTimeout(){},URL});ctx.window=ctx;ctx.addEventListener=()=>{};ctx.scrollTo=()=>{};
 for(const n of ['player-core','srd-monsters','attacks','srd-heroes','srd-spells','hero-rules','homebrew','combat-rules','conditions','encounter-design'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',n+'.js'),'utf8'),ctx);
-const html=fs.readFileSync(path.join(root,'index.html'),'utf8');vm.runInContext([...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(x=>x.includes('const ACT=')),ctx);
+const html=fs.readFileSync(path.join(root,'index.html'),'utf8');require('./ui-scripts.cjs').loadUi(html,ctx);vm.runInContext([...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(x=>x.includes('const ACT=')),ctx);
 assert([...html.matchAll(/<script src="src\/app\/([\w-]+)\.js"><\/script>/g)].map(m=>m[1]).includes('homebrew'),'index.html loads homebrew.js');
 const B=ctx.QBHomebrew,R=ctx.QBHeroRules,plain=x=>JSON.parse(JSON.stringify(x)),run=c=>vm.runInContext(c,ctx);
 

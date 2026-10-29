@@ -3,7 +3,7 @@ const node=s=>{if(!nodes.has(s))nodes.set(s,make());return nodes.get(s);};const 
 class Channel{postMessage(){}close(){}}
 const ctx=vm.createContext({document:doc,crypto:require('node:crypto').webcrypto,BroadcastChannel:Channel,localStorage:{getItem:()=>null,setItem(){if(storageFail)throw Error('Quota');}},window:null,console,setTimeout:()=>0,clearTimeout(){},URL});ctx.window=ctx;ctx.addEventListener=()=>{};ctx.scrollTo=()=>{};
 for(const name of ['player-core','srd-monsters','attacks','srd-heroes','srd-spells','hero-rules','homebrew','combat-rules','conditions','encounter-design'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',name+'.js'),'utf8'),ctx);
-const html=fs.readFileSync(path.join(root,'index.html'),'utf8');const script=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(x=>x.includes('const ACT='));vm.runInContext(script,ctx);
+const html=fs.readFileSync(path.join(root,'index.html'),'utf8');const script=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(x=>x.includes('const ACT='));require('./ui-scripts.cjs').loadUi(html,ctx);vm.runInContext(script,ctx);
 assert.equal(vm.runInContext('S.tab',ctx),'home');assert(node('#view').innerHTML.includes('What would you like to do?'));assert(node('#view').innerHTML.includes('Connect adventures'));
 for(const tab of ['create','import','desk','combat']){vm.runInContext(`S.tab='${tab}';render();`,ctx);assert(node('#view').innerHTML.length>200,tab+' renders');}
 vm.runInContext("S.tab='import';S.importer.phase='library';render();",ctx);assert(!node('#view').innerHTML.includes('AI assist'));assert(node('#view').innerHTML.includes('Your next step'));
