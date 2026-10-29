@@ -196,7 +196,7 @@
   // Ordinary thugs and other single-attack foes need no additional setup.
   const rollTargetId = (d,i) => i > 0 && d.targets?.[i] || d.target;
   const edgeFor = (l,d,i) => d.mode === 'enemy'
-    ? !!l.protected[rollTargetId(d,i)] && !Array.from({length:i},(_,j)=>rollTargetId(d,j)).includes(rollTargetId(d,i))
+    ? !!(l.protected[rollTargetId(d,i)] || l.openings[rollTargetId(d,i)]) && !Array.from({length:i},(_,j)=>rollTargetId(d,j)).includes(rollTargetId(d,i))
     : i === 0 && !!l.openings[d.actor];
   // How many d20s this exchange needs: one per attack for Attack and for a damaging enemy move, otherwise one.
   function rollsNeeded(s, d) {
@@ -492,7 +492,7 @@
     remember(s);
     const lines = [];
     // The second die spends one edge: on defense the Defend cover first, otherwise the Help opening.
-    if (p.edgeUsed) { if (p.mode === 'enemy') for (const id of p.edgeTargets) delete l.protected[id]; else delete l.openings[p.roller]; }
+    if (p.edgeUsed) { if (p.mode === 'enemy') for (const id of p.edgeTargets) { if (l.protected[id]) delete l.protected[id]; else delete l.openings[id]; } else delete l.openings[p.roller]; }
     if (p.cost.stamina || p.cost.hd) { a.stamina -= p.cost.stamina; a.hitDice.left -= p.cost.hd; lines.push(`${a.name} pushes: ${[p.cost.stamina && p.cost.stamina + ' stamina', p.cost.hd && p.cost.hd + ' Hit Die (overexert)'].filter(Boolean).join(' and ')}${a.stamina === 0 ? '; now Winded' : ''}.`); }
     const fallback = band => { if (p.consequence === 'goal') lines.push(`${band === 'disaster' ? 'Major reversal' : 'Consequence'}: ${p.consequenceText}`); else { l.positions[a.id] = 'center'; condition(s, a.id, band === 'disaster' ? 'Separated and pinned' : 'Exposed'); lines.push(`${a.name} loses their safe position${band === 'disaster' ? ' and is separated and pinned' : ''}.`); } };
     if (p.mode === 'enemy') {
