@@ -23,7 +23,8 @@ function cmShell() {
   const ps = document.getElementById('player-btn'); if (ps) ps.hidden = !isDm();
   const m = document.getElementById('mode-btn'); if (m?.dataset) { m.textContent = isDm() ? 'Lock DM mode' : 'I’m the DM'; m.dataset.act = isDm() ? 'cm-lock' : 'cm-unlock'; }
 }
-const cmHeroLine = (b, sheet) => `${esc(sheet?.species || '')} ${esc(sheet?.cls || b.cls)} ${sheet?.level || b.level}${sheet?.subclass ? ' (' + esc(sheet.subclass) + ')' : ''}`;
+// the same wording as the creator: "Level 5 Human Rogue · Thief · Criminal"
+const cmHeroLine = (b, sheet) => `Level ${sheet?.level || b.level} ${esc(sheet?.species || '')} ${esc(sheet?.cls || b.cls)}${sheet?.subclass ? ' · ' + esc(sheet.subclass) : ''}${sheet?.background ? ' · ' + esc(sheet.background) : ''}`;
 function cmSheet(build) { try { QBHeroRules.setHomebrew(QBHomebrew.forCreator(S.homebrew, build)); return QBHeroRules.derive(build); } catch { return null; } }
 
 /* ---------- player home and My heroes ---------- */
@@ -33,15 +34,16 @@ function vPlayerHome() {
     <div class="results">
       <article class="card stack"><h3>1. Create a hero</h3><p>Species, class, abilities, background, skills, gear and your story. The sheet on the right updates as you choose.</p><button class="btn primary" data-act="tab" data-v="create">Create a hero</button></article>
       <article class="card stack"><h3>2. My heroes</h3><p>${n ? `You have ${n} hero${n > 1 ? 'es' : ''} saved in this browser.` : 'Heroes you save appear here.'} Print a character sheet or send a hero to your DM.</p><button class="btn" data-act="tab" data-v="heroes">My heroes</button></article>
+      <article class="card stack"><h3>3. Your own ideas</h3><p>Missing a species, background, subclass or feat? Make your own inside the 2024 rules and send it to your DM.</p><button class="btn" data-act="tab" data-v="homebrew">My homebrew</button></article>
     </div>
-    <p class="small muted">Your heroes are saved in this browser only. Send your DM the hero file (it works in Discord or by email); keep a copy as a backup. Are you the DM? Use <b>I’m the DM</b> at the top.</p>`;
+    <p class="small muted" style="margin-top:14px">Your heroes are saved in this browser only. Send your DM the hero file (it works in Discord or by email); keep a copy as a backup. Are you the DM? Use <b>I’m the DM</b> at the top.</p>`;
 }
 function vHeroes() {
   const list = S.myHeroes || [];
   return `<div class="pagehead"><div><div class="eyebrow">My heroes</div><h2>Your heroes</h2><p>Saved in this browser. <b>Send to DM</b> downloads a hero file: attach it in Discord or an email to your DM. <b>Copy as text</b> works for chats that don’t take files.</p></div>
       <div class="row"><button class="btn primary" data-act="cm-newhero">Create a hero</button><label class="btn">Open a hero file…<input type="file" id="cm-my-file" accept=".json,application/json" hidden></label><button class="btn" data-act="hi-open" data-v="mine">Import from a sheet…</button></div></div>
     <div class="results">${list.map(h => { const s = cmSheet(h.build); return `<article class="card stack"><h3>${esc(h.build.name || 'Hero')}</h3><p>${cmHeroLine(h.build, s)}</p>
-      ${s ? `<p class="small muted">AC ${s.ac} · HP ${s.hp.max} · ${esc((s.attacks || []).slice(0, 2).map(a => `${a.name} ${a.save ? 'save ' + a.save : (a.bonus >= 0 ? '+' : '') + a.bonus}, ${a.damage}`).join(' · '))}</p>` : '<p class="cl-error">This hero can’t be read in this browser.</p>'}
+      ${s ? `<p class="small muted">AC ${s.ac} · HP ${s.hp.max} · ${esc((s.attacks || []).filter(a => !a.sneak).slice(0, 2).map(a => `${a.name} ${a.save ? 'save ' + a.save : (a.bonus >= 0 ? '+' : '') + a.bonus}, ${a.damage}`).join(' · '))}</p>` : '<p class="cl-error">This hero can’t be read in this browser.</p>'}
       <div class="row"><button class="btn primary" data-act="cm-send" data-id="${esc(h.id)}">Send to DM</button><button class="btn" data-act="cm-copy" data-id="${esc(h.id)}">Copy as text</button>
         <button class="btn" data-act="cm-print" data-id="${esc(h.id)}">Character sheet (print / PDF)</button><button class="btn" data-act="cm-edit" data-id="${esc(h.id)}">Edit</button><button class="btn ghost" data-act="cm-delhero" data-id="${esc(h.id)}">Delete</button></div></article>`; }).join('')
       || '<div class="empty">No heroes yet. Choose <b>Create a hero</b>; at the end, save it here.</div>'}</div>`;
@@ -52,7 +54,7 @@ function vCampaigns() {
   const c = QBCampaigns.ensure(S), cur = QBCampaigns.current(S), others = c.list.filter(x => x.id !== cur.id);
   return `<div class="pagehead"><div><div class="eyebrow">Adventure manager · DM only</div><h2>${esc(cur.name)}</h2><p>Each campaign has its own party, DM desk, adventures and fight. Switching saves this one and opens the other.</p></div>
       <div class="row"><button class="btn" data-act="cm-export">Back up this campaign…</button><label class="btn">Restore a campaign file…<input type="file" id="cm-camp-file" accept=".json,application/json" hidden></label></div></div>
-    <section class="card stack"><h3>This campaign</h3><label class="f">Name<input data-act-change="cm-rename" value="${esc(cur.name)}" maxlength="80"></label>
+    <div class="stack"><section class="card stack"><h3>This campaign</h3><label class="f">Name<input data-act-change="cm-rename" value="${esc(cur.name)}" maxlength="80"></label>
       <p class="small muted">${(S.adventures || []).length} adventure${(S.adventures || []).length === 1 ? '' : 's'} · ${(S.beats || []).length} scenes on the desk · ${(S.encounters || []).length} prepared fights${S.combat ? ' · a fight is running' : ''}</p>
       <div class="row"><button class="btn" data-act="tab" data-v="desk">Open the DM desk</button><button class="btn" data-act="tab" data-v="import">Import an adventure</button></div></section>
     <section class="card stack"><h3>Party</h3>
@@ -66,7 +68,7 @@ function vCampaigns() {
       ${c.list.map(x => `<div class="row hb-item"><span><b>${esc(x.name)}</b>${x.id === cur.id ? ' <span class="chip ok">open</span>' : ` <span class="small muted">${(x.data?.party || []).length} heroes · saved ${new Date(x.updated).toLocaleDateString()}</span>`}</span>
         ${x.id === cur.id ? '' : `<span class="row"><button class="btn sm" data-act="cm-switch" data-id="${esc(x.id)}">Open</button><button class="btn sm ghost" data-act="cm-delcamp" data-id="${esc(x.id)}">Delete</button></span>`}</div>`).join('')}
       <div class="row"><input id="cm-new-name" placeholder="The Night Shift" maxlength="80" aria-label="New campaign name"><button class="btn primary" data-act="cm-newcamp">New campaign</button></div>
-      ${others.length ? '' : '<p class="small muted">A new campaign starts empty. Your current one stays here and opens again with one click.</p>'}</section>`;
+      ${others.length ? '' : '<p class="small muted">A new campaign starts empty. Your current one stays here and opens again with one click.</p>'}</section></div>`;
 }
 
 /* ---------- actions ---------- */

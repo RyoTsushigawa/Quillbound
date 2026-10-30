@@ -17,6 +17,14 @@ const CR_HEAD={species:['Where do you come from?','Your species is your hero’s
   review:['Your hero is ready','Check the sheet with your DM, then add the hero to the party.']};
 const firstSentence=t=>(String(t||'').split(/(?<=[.!?])\s/)[0]||'').replace(/\*\*/g,'');
 const crData=()=>QBHeroRules.data(); // SRD plus approved homebrew
+// Rules text from the game data, as HTML: **bold** labels, line breaks, and the small "a | b" tables some features carry.
+function rulesText(t){
+  const inline=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|\s)\*(\S[^*]*?)\*(?=\s|[.,;:]|$)/g,'$1<i>$2</i>');
+  const out=[]; let rows=[];
+  const flush=()=>{ if(!rows.length) return; const [h,...r]=rows; out.push(`<table class="cr-table cr-rules-table"><tr>${h.map(c=>`<th>${inline(c)}</th>`).join('')}</tr>${r.map(x=>`<tr>${x.map(c=>`<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</table>`); rows=[]; };
+  for(const line of String(t||'').split('\n').map(l=>l.trim()).filter(Boolean)){ if(/\S\s*\|\s*\S/.test(line)&&!/^[-|:\s]+$/.test(line)){ rows.push(line.replace(/^\||\|$/g,'').split('|').map(c=>c.trim())); continue; } if(/^[-|:\s]+$/.test(line)) continue; flush(); out.push(`<span class="cr-rules-line">${inline(line)}</span>`); }
+  flush(); return out.join('');
+}
 function crNew(){return {v:2,step:'species',tab:'summary',swap:null,boostUI:{mode:'2-1',plus2:'',plus1:''},asiUI:{},
   build:{name:'',level:1,abilities:{method:'array',base:null},boost:{},skills:[],expertise:[],mastery:[],asi:{},hp:{method:'average',rolls:{}},gear:{cls:0,bg:0},spells:{cantrips:[],prepared:[]},featPicks:{}},
   story:{left:'',want:'',fear:''}};}
@@ -75,7 +83,7 @@ function crStepBody(c,sheet){
   const b=c.build, D=crData(), cls=D.classes.find(x=>x.id===b.cls), sp=D.species.find(x=>x.id===b.species), bg=D.backgrounds.find(x=>x.id===b.background);
   switch(c.step){
   case 'species': return `<div class="choices">${D.species.map(s=>crPick('cr-species',`data-v="${s.id}"`,b.species===s.id,`<div class="cls">${esc(s.name)}${s.homebrew?' <span class="chip acc">Homebrew</span>':''}</div>`,`<div class="desc">${esc(SPECIES_BLURB[s.name]||firstSentence(s.desc)||'')}</div><div class="small"><span class="muted">You get:</span> ${esc(s.traits.map(t=>t.name).join(', '))}. Speed ${s.speed} ft.</div>`)).join('')}</div>
-    ${sp?`<div class="card stack cr-detail"><h3>${esc(sp.name)} traits</h3>${sp.traits.map(t=>`<details><summary><b>${esc(t.name)}</b> · ${esc(firstSentence(t.desc))}</summary><p class="small">${esc(t.desc)}</p></details>`).join('')}
+    ${sp?`<div class="card stack cr-detail"><h3>${esc(sp.name)} traits</h3>${sp.traits.map(t=>`<details><summary><b>${esc(t.name)}</b> · ${esc(firstSentence(t.desc))}</summary><div class="small cr-rules">${rulesText(t.desc)}</div></details>`).join('')}
       ${sp.sub.length?`<h4>Choose a lineage</h4><div class="choices small-cards">${sp.sub.map(x=>crPick('cr-sub',`data-v="${x.id}"`,b.sub===x.id,`<div class="cls">${esc(x.name.replace(/^[^:]+:\s*/,''))}</div>`,`<div class="small">${esc(x.traits.map(t=>t.name).join(', ')||x.damage)}</div>`)).join('')}</div>`:''}
       ${!sp.size?`<label class="f">Size<select data-bind="creator.build.size" data-rerender>${crOpt('','Choose…',!b.size)}${['Small','Medium'].map(x=>crOpt(x,x,b.size===x)).join('')}</select></label>`:''}
       ${sp.traits.some(t=>t.id==='versatile')?`<label class="f">Versatile: choose an origin feat<select data-bind="creator.build.speciesFeat" data-rerender>${crOpt('','Choose…',!b.speciesFeat)}${D.feats.filter(f=>f.type==='origin').map(f=>crOpt(f.id,f.name+(f.id==='skilled'?' (recommended)':''),b.speciesFeat===f.id)).join('')}</select></label>`:''}</div>`:''}`;
@@ -117,7 +125,7 @@ function crStepBody(c,sheet){
     return `<div class="choices">${D.backgrounds.map(x=>crPick('cr-bg',`data-v="${x.id}"`,b.background===x.id,`<div class="cls">${esc(x.name)}${x.homebrew?' <span class="chip acc">Homebrew</span>':''}${({'phb-2024':'PHB',playtest:'Playtest',classic:'Classic, converted',adventure:'Die Sammlersache'})[x.source]?' <span class="chip">'+({'phb-2024':'PHB',playtest:'Playtest',classic:'Classic, converted',adventure:'Die Sammlersache'})[x.source]+'</span>':''}</div>`,`<div class="small">${x.desc?esc(firstSentence(x.desc))+'<br>':''}<span class="muted">Raises</span> ${x.abilities.join(', ')}<br><span class="muted">Feat</span> ${esc(x.feat?.name||'')}${x.feat?.note?' ('+esc(x.feat.note)+')':''}<br><span class="muted">Skills</span> ${esc(x.skills.map(s=>D.skills.find(k=>k.id===s)?.name).join(', '))}</div>`)).join('')}</div>
       ${bg?`<div class="card stack cr-detail"><fieldset class="cr-asi"><legend>Raise your abilities</legend><label><input type="radio" name="cr-boost" data-act="cr-boost" data-v="2-1" ${u.mode!=='1-1-1'?'checked':''}> +2 to one and +1 to another</label><label><input type="radio" name="cr-boost" data-act="cr-boost" data-v="1-1-1" ${u.mode==='1-1-1'?'checked':''}> +1 to all three (${bg.abilities.join(', ')})</label>
         ${u.mode!=='1-1-1'?`<div class="row"><select data-bind="creator.boostUI.plus2" data-rerender>${crOpt('','+2 to…',!u.plus2)}${bg.abilities.map(k=>crOpt(k,'+2 '+APPROACH[k].name+' ('+k+')',u.plus2===k)).join('')}</select><select data-bind="creator.boostUI.plus1" data-rerender>${crOpt('','+1 to…',!u.plus1)}${bg.abilities.filter(k=>k!==u.plus2).map(k=>crOpt(k,'+1 '+APPROACH[k].name+' ('+k+')',u.plus1===k)).join('')}</select></div>`:''}</fieldset>
-        ${bg.feat?`<details open><summary><b>Origin feat: ${esc(bg.feat.name)}</b>${bg.feat.note?' ('+esc(bg.feat.note)+')':''}</summary><p class="small">${esc(D.feats.find(f=>f.id===bg.feat.id)?.desc||'')}</p></details>`:''}
+        ${bg.feat?`<details open><summary><b>Origin feat: ${esc(bg.feat.name)}</b>${bg.feat.note?' ('+esc(bg.feat.note)+')':''}</summary><div class="small cr-rules">${rulesText(D.feats.find(f=>f.id===bg.feat.id)?.desc)}</div></details>`:''}
         ${bg.toolChoice?`<label class="f">${esc(bg.toolChoice.desc)}<select data-bind="creator.build.toolChoice" data-rerender>${crOpt('','Choose…',!b.toolChoice)}${bg.toolChoice.from.map(x=>crOpt(x,x,b.toolChoice===x)).join('')}</select></label>`:''}</div>`:''}`; }
   case 'skills': {
     const prof=Object.entries(sheet.skills).filter(([,v])=>v.prof).map(([k])=>k), want=QBHeroRules.expertiseCount(b), fromBg=new Set(bg?.skills||[]);
@@ -132,7 +140,7 @@ function crStepBody(c,sheet){
   case 'spells': {
     const list=crSpells(); if(!list) return '<p>Loading the spell list…</p>';
     const sc=sheet.spellcasting, maxLevel=sc.slots.reduce((m,n,i)=>n?i+1:m,0), mine=list.filter(s=>s.classes.includes(QBHeroRules.spellList(b)));
-    const row=(k,s,max)=>crCheck(k,s.id,(b.spells[k]||[]).includes(s.id),`<b>${esc(s.name)}</b> <span class="small muted">${s.level?'level '+s.level:'cantrip'} · ${esc(s.school)}${s.conc?' · concentration':''}${s.ritual?' · ritual':''}${s.source==='phb-2024'?' · PHB':''}${s.unchecked?' · <span class="chip warn">check the book</span>':''}</span>`,max,`<details><summary class="small">What it does</summary><p class="small">${esc(s.desc)}</p>${s.higher?`<p class="small">${esc(s.higher)}</p>`:''}<p class="small muted">${esc([s.time,s.range,s.duration].join(' · '))}</p></details>`);
+    const row=(k,s,max)=>crCheck(k,s.id,(b.spells[k]||[]).includes(s.id),`<b>${esc(s.name)}</b> <span class="small muted">${s.level?'level '+s.level:'cantrip'} · ${esc(s.school)}${s.conc?' · concentration':''}${s.ritual?' · ritual':''}${s.source==='phb-2024'?' · PHB':''}${s.unchecked?' · <span class="chip warn">check the book</span>':''}</span>`,max,`<details><summary class="small">What it does</summary><div class="small cr-rules">${rulesText(s.desc)}</div>${s.higher?`<div class="small cr-rules">${rulesText(s.higher)}</div>`:''}<p class="small muted">${esc([s.time,s.range,s.duration].join(' · '))}</p></details>`);
     return `<p class="small">Spell save DC <b>${sc.dc}</b> · spell attack <b>${fmt(sc.attack)}</b> · slots ${sc.slots.map((n,i)=>n?`${n}×${i+1}`:'').filter(Boolean).join(', ')||'none yet'}</p>
       ${sc.cantrips?`<section class="card stack"><h3>Cantrips</h3>${crCount(b.spells.cantrips.length,sc.cantrips,'cantrips')}<div class="cr-checks">${mine.filter(s=>s.level===0).map(s=>row('cantrips',s,sc.cantrips)).join('')}</div></section>`:''}
       <section class="card stack"><h3>Prepared spells (level 1–${maxLevel})</h3>${crCount(b.spells.prepared.length,sc.prepared,'spells')}<div class="cr-checks">${mine.filter(s=>s.level>=1&&s.level<=maxLevel).map(s=>row('prepared',s,sc.prepared)).join('')}</div></section>`; }
@@ -164,7 +172,7 @@ function crStepBody(c,sheet){
     return `<div class="card stack"><h3>${esc(b.name||'Your hero')}</h3><p>Level ${sheet.level} ${esc(sheet.species)} ${esc(sheet.cls)}${sheet.subclass?' ('+esc(sheet.subclass)+')':''} · ${esc(sheet.background)}</p>
       ${open.length?`<div class="cl-error" role="alert"><b>Still to choose:</b><ul>${open.map(o=>`<li><button class="linklike" data-act="cr-step" data-v="${o.step}">${esc(o.label)}${o.left>1?' ('+o.left+')':''}</button></li>`).join('')}</ul></div>`:'<p class="cr-count done">✓ Every choice is made.</p>'}
       ${sheet.warnings.length?`<ul class="small lt-warning">${sheet.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:''}
-      <div class="row"><button class="btn discord" data-act="discord" data-v="sheet">Preview Discord message</button><button class="btn" data-act="cr-printsheet">Character sheet (print / PDF)</button><button class="btn" data-act="cr-new">Start another</button><button class="btn primary" data-act="${S.role==='dm'?'cr-add':'cr-savehero'}" ${open.length?'disabled':''}>${S.role==='dm'?'Add to party':(c.heroId?'Save changes to My heroes':'Save to My heroes')}</button></div></div>`; }
+      <div class="row"><button class="btn primary" data-act="${S.role==='dm'?'cr-add':'cr-savehero'}" ${open.length?'disabled':''}>${S.role==='dm'?'Add to party':(c.heroId?'Save changes to My heroes':'Save to My heroes')}</button><button class="btn" data-act="cr-printsheet">Character sheet (print / PDF)</button><button class="btn discord" data-act="discord" data-v="sheet">Preview Discord message</button><button class="btn ghost" data-act="cr-new">Start another</button></div></div>`; }
   }
 }
 // The live sheet: every number calculated from the choices so far.
@@ -175,11 +183,11 @@ function crSheetPanel(c,sheet){
   if(t==='summary') body=`<div class="stats"><div class="stat"><b>${sheet.hp.max}</b><span>Hit points</span></div><div class="stat"><b>${sheet.ac}</b><span>Armor class</span></div><div class="stat"><b>${sheet.speed}</b><span>Speed (ft)</span></div><div class="stat"><b>${fmt(sheet.prof)}</b><span>Proficiency</span></div><div class="stat"><b>${fmt(sheet.initiative)}</b><span>Initiative</span></div><div class="stat"><b>${sheet.passive}</b><span>Passive Perception</span></div></div>
     <div class="abils6">${ABIL.map(k=>`<div><small>${k}</small><b>${sheet.scores[k]}</b><small>${fmt(sheet.mods[k])} · save ${fmt(sheet.saves[k].bonus)}${sheet.saves[k].prof?' ●':''}</small></div>`).join('')}</div>
     <p class="small muted">${esc(sheet.acFrom)}${sheet.senses.length?' · '+esc(sheet.senses.join(', ')):''}${sheet.size?' · '+esc(sheet.size):''}</p>`;
-  if(t==='combat') body=`<table class="cr-table"><tr><th>Attack</th><th>Bonus</th><th>Damage</th><th>Per action</th></tr>${sheet.attacks.map(a=>`<tr><td>${esc(a.name)}${a.note?' <span class="small lt-warning">'+esc(a.note)+'</span>':''}</td><td>${fmt(a.bonus)}</td><td>${esc(a.damage)} ${esc(a.type||'')}</td><td>${a.count}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">Choose weapons or attack cantrips.</td></tr>'}</table>
+  if(t==='combat') body=`<table class="cr-table"><tr><th>Attack</th><th>Bonus</th><th>Damage</th><th>Per action</th></tr>${sheet.attacks.map(a=>`<tr><td>${esc(a.name)}${a.note?` <span class="small ${a.sneak?'muted':'lt-warning'}">${esc(a.note)}</span>`:''}</td><td>${fmt(a.bonus)}</td><td>${esc(a.damage)} ${esc(a.type||'')}</td><td>${a.count}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">Choose weapons or attack cantrips.</td></tr>'}</table>
     <p class="small">In Stakes combat: HP ${sheet.hp.max}, AC ${sheet.ac}, stamina ${sheet.stamina}, Hit Dice ${sheet.hitDice.count} × d${sheet.hitDice.die}. The first attack in this list is the one the Combat tab uses.</p>${sheet.spellcasting?`<p class="small">Spell save DC ${sheet.spellcasting.dc} · spell attack ${fmt(sheet.spellcasting.attack)}</p>`:''}`;
   if(t==='skills') body=`${sheet.tools.length?`<p class="small"><b>Tools:</b> ${esc(sheet.tools.join(', '))}</p>`:''}<ul class="cr-skills">${Object.entries(sheet.skills).map(([id,s])=>`<li class="${s.prof?'on':''}"><span>${s.expert?'◆':s.prof?'●':'○'} ${esc(s.name)} <span class="small muted">${s.ability}</span></span><b>${fmt(s.bonus)}</b></li>`).join('')}</ul><p class="small muted">● trained · ◆ expertise</p>`;
   if(t==='spells'){ const sc=sheet.spellcasting, nm=id=>list.find(s=>s.id===id)?.name||id; body=`<p>DC ${sc.dc} · attack ${fmt(sc.attack)} · ${esc(sc.ability)}</p><p class="small">Slots: ${sc.slots.map((n,i)=>n?`level ${i+1} × ${n}`:'').filter(Boolean).join(', ')||'none yet'}</p><p class="small"><b>Cantrips:</b> ${esc((c.build.spells.cantrips||[]).map(nm).join(', ')||'none')}</p><p class="small"><b>Prepared:</b> ${esc((c.build.spells.prepared||[]).map(nm).join(', ')||'none')}</p>`; }
-  if(t==='features') body=sheet.features.map(f=>`<details><summary><b>${esc(f.name)}</b> <span class="small muted">${esc(f.source)}${f.level>1?' · level '+f.level:''}</span></summary><p class="small">${esc(f.desc)}</p></details>`).join('')||'<p class="muted">Choose a species and class.</p>';
+  if(t==='features') body=sheet.features.map(f=>`<details><summary><b>${esc(f.name)}</b> <span class="small muted">${esc(f.source)}${f.level>1?' · level '+f.level:''}</span></summary><div class="small cr-rules">${rulesText(f.desc)}</div></details>`).join('')||'<p class="muted">Choose a species and class.</p>';
   if(t==='gear') body=`<p class="small">${esc(sheet.gear.items.map(x=>(x.count>1?x.count+' × ':'')+x.name+(x.from==='Granted by the DM'?' (granted)':'')).join(', ')||'Nothing yet')} · ${sheet.gear.gp} GP left</p><p class="small muted">Wearing: ${esc(D.equipment[sheet.gear.equipped.armor]?.name||'no armor')}${sheet.gear.equipped.shield?', shield':''}.</p>`;
   return `<aside class="cr-sheet" aria-label="Live character sheet"><div class="eyebrow">Live sheet</div><h3>${esc(c.build.name||'Your hero')}</h3><p class="small muted">${sheet.cls?`Level ${sheet.level} ${esc(sheet.species||'')} ${esc(sheet.cls)}${sheet.subclass?' · '+esc(sheet.subclass):''}`:'Choose a species and class'}${sheet.background?' · '+esc(sheet.background):''}</p>
     <div class="cr-tabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" aria-selected="${t===k}" data-act="cr-tab" data-v="${k}">${l}</button>`).join('')}</div><div class="cr-tabbody">${body}</div>
@@ -187,12 +195,14 @@ function crSheetPanel(c,sheet){
 }
 function vCreate(){
   const c=crState(), sheet=crSheet(c), steps=crSteps(sheet); if(!steps.some(([k])=>k===c.step)) c.step='species';
-  const i=steps.findIndex(([k])=>k===c.step), head=CR_HEAD[c.step];
-  const stepper=`<div class="cr-steps" role="list">${steps.map(([k,l])=>{const n=crOpenIn(sheet,c,k);return `<button role="listitem" data-act="cr-step" data-v="${k}" ${k===c.step?'aria-current="step"':''} class="${n?'':'done'}">${l}${k==='review'?'':n?` <span class="badge">${n}</span>`:' ✓'}</button>`;}).join('')}</div>`;
+  const i=steps.findIndex(([k])=>k===c.step), head=c.step==='review'&&S.role!=='dm'?['Your hero is ready','Save your hero to My heroes, then send it to your DM from there.']:CR_HEAD[c.step];
+  // before a class is chosen, the steps that depend on it are neither open nor done
+  const waits=k=>!c.build.cls&&['abilities','skills','spells','equipment'].includes(k);
+  const stepper=`<div class="cr-steps" role="list">${steps.map(([k,l])=>{const n=crOpenIn(sheet,c,k);return `<button role="listitem" data-act="cr-step" data-v="${k}" ${k===c.step?'aria-current="step"':''} class="${n||waits(k)||k==='review'?'':'done'}">${l}${k==='review'||waits(k)?'':n?` <span class="badge">${n}</span>`:' ✓'}</button>`;}).join('')}</div>`;
   const foot=`<div class="cr-foot"><button class="btn" data-act="cr-step" data-v="${steps[i-1]?.[0]||''}" ${i===0?'disabled':''}>Back</button>${i<steps.length-1?`<button class="btn primary" data-act="cr-step" data-v="${steps[i+1][0]}">Next: ${steps[i+1][1]}</button>`:''}</div>`;
-  return `<div class="pagehead"><div><div class="eyebrow">Character creator · SRD 5.2 rules</div><h2>${head[0]}</h2><p>${head[1]}</p></div></div>
+  return `<div class="pagehead"><div><h2>${head[0]}</h2><p>${head[1]}</p></div></div>
     <div class="cr-layout"><div class="cr-main">${stepper}${crStepBody(c,sheet)}${crOwnIdea(c.step)}${foot}</div>
-    <details class="cr-sheet-wrap" open><summary>View sheet</summary>${crSheetPanel(c,sheet)}</details></div>`;
+    <details class="cr-sheet-wrap" ${c.sheetOpen?'open':''}><summary data-act="cr-sheet-toggle">${c.sheetOpen?'Hide sheet':'View sheet'}<span>HP ${sheet.hp.max} · AC ${sheet.ac}${sheet.open.length?` · ${sheet.open.reduce((n,o)=>n+o.left,0)} open`:''}</span></summary>${crSheetPanel(c,sheet)}</details></div>`;
 }
 // "Make your own": the steps with things players may invent open the matching Homebrew editor (src/ui/homebrew.js).
 const CR_OWN={species:['species','species'],class:['classes','class'],background:['backgrounds','background']};
@@ -252,6 +262,7 @@ function creatorActions(){ const B=()=>crState().build, D=()=>crData();
   'cr-chip':d=>{ crState().story[d.k]=d.v; },
   'cr-randname':()=>{ B().name=NAMES[Math.floor(Math.random()*NAMES.length)]; },
   'cr-new':()=>{ S.creator=crNew(); },
+  'cr-sheet-toggle':()=>{ const c=crState(); c.sheetOpen=!c.sheetOpen; },
   // Player mode: the hero goes to My heroes in this browser (src/ui/campaigns.js sends it to the DM from there).
   'cr-savehero':()=>{ const c=crState(), sheet=crSheet(c); if(sheet.open.length||!c.build.name.trim()) { toast('Finish the open choices first.'); return; }
     crKeepHomebrew(c.build); S.myHeroes??=[]; const hero={id:c.heroId||uid('ph'),build:JSON.parse(JSON.stringify({...c.build,name:c.build.name.trim()})),story:{...c.story},saved:Date.now()};

@@ -42,4 +42,8 @@
     bg(A, 'hb-bg-sammler-toxic', 'Nachtingenieur', ['INT', 'DEX', 'CON'], ['alert'], ['stealth', 'animal-handling'], "Tinker's Tools", [['tinkers-tools'], ['pouch']], 0, [], 'You keep strange machines running through the night, and they tend to trust you more than people do.')
   ];
   for (const b of BACKGROUNDS) if (!D.backgrounds.some(x => x.id === b.id)) D.backgrounds.push(b);
+  // the SRD's four come without a description
+  const SRD_DESC = { acolyte: 'You served in a temple, tending its rites and learning the stories of its gods.', criminal: 'You made a living outside the law: picking locks, pockets and the right moment to leave.',
+    sage: 'Years among books and scholars taught you where to look for an answer.', soldier: 'You trained and fought in an army, and you still sleep with your boots close by.' };
+  for (const b of D.backgrounds) if (!b.desc && SRD_DESC[b.id]) b.desc = SRD_DESC[b.id];
 })(globalThis);

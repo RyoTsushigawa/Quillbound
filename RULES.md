@@ -19,10 +19,11 @@ The **Create a hero** tab builds 2024 (SRD 5.2) heroes from level 1 to 20.
 
 **Layout**
 - **Left: guided steps.** Species, Class & level, Abilities, Background, Skills, Spells (spellcasters only), Equipment, Story and Review.
-  - Each step shows how many choices are still open, or a ✓ when it's done.
-  - **Add to party** stays disabled until nothing is open and the hero has a name.
+  - Each step shows how many choices are still open, or a ✓ when it's done. Abilities, Skills, Spells and Equipment stay unmarked until a class is chosen, because they depend on it.
+  - **Add to party** (DM) or **Save to My heroes** (player) stays disabled until nothing is open and the hero has a name.
 - **Right: the live sheet,** recalculated on every click. Its tabs are Summary, Combat, Skills, Spells, Features and Gear.
-  - At phone width it becomes a "View sheet" panel at the bottom.
+  - At phone width it becomes a closed "View sheet" bar at the bottom showing HP, AC and the open choices; tapping it opens the sheet as a drawer, and "Hide sheet" closes it.
+  - Rules text from the game data (traits, feats, features, spells) shows its bold labels, line breaks and small tables as formatted text.
 
 **Editing a saved hero:** My heroes → Edit restores the background ability increases and every level's feat/Ability Score Improvement selections before recalculating the sheet. This also applies to hero files received from another player. Simply opening or navigating a saved hero must not clear those choices; saving an edit keeps the same hero ID.
 
