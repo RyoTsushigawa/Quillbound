@@ -24,3 +24,12 @@ vm.runInContext(fs.readFileSync(path.join(root,'src/app/player-core.js'),'utf8')
 const feed=JSON.stringify(ctx.PlayerFeed.snapshot(ctx.S,{}));assert(!feed.includes('SOLUTION'));assert(!feed.includes('PRIVATE'));assert(!feed.includes('dmFocusId'));
 ctx.S.beats[1].question=ctx.S.beats[2].question='Shared session aim';ctx.S.beats[1].transition=ctx.S.beats[2].transition='Generic next step';ctx.S.dmFocusId='B';shown=ctx.sessionOverview(()=>'<div></div>');assert(!shown.includes('Shared session aim'));assert(!shown.includes('Generic next step'));ctx.S.dmFocusId='A';assert(ctx.sessionOverview(()=>'<div></div>').includes('Shared session aim'));
 console.log('PASS: DM location preview versus movement, reference isolation, structured notes, NPC helpers, finish/reopen and HTML escaping.');
+const grid={dataset:{campaign:'one',scene:'A'}};
+const panel=(id,open)=>({id,open,closest:()=>null,querySelector:()=>({textContent:id})});
+let panels=[panel('rules',true),panel('maps',false)];
+ctx.document={querySelector:()=>grid,querySelectorAll:()=>panels};
+const saved=ctx.overviewCaptureDisclosures();panels=[panel('rules',false),panel('maps',true)];ctx.overviewRestoreDisclosures(saved);
+assert.equal(panels[0].open,true);assert.equal(panels[1].open,false);
+grid.dataset.scene='B';panels[0].open=false;ctx.overviewRestoreDisclosures(saved);assert.equal(panels[0].open,false,'new locations retain their own disclosure defaults');
+grid.dataset.scene='A';grid.dataset.campaign='two';ctx.overviewRestoreDisclosures(saved);assert.equal(panels[0].open,false,'disclosure state stays within its campaign');
+console.log('PASS: open and closed notes survive updates only within the same campaign and location.');

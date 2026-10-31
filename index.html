@@ -1288,7 +1288,7 @@ function vHome(){const examples=S.party.filter(p=>p.example).length;const jobs=[
 }
 const clCreate=vCreate;vCreate=function(){const c=crState(),sheet=crSheet(c),steps=crSteps(sheet),i=Math.max(0,steps.findIndex(([k])=>k===c.step)),open=sheet.open.filter(o=>o.step===c.step).map(o=>o.label);if(c.step==='story'&&!c.build.name.trim())open.push('a name');return `<p class="cl-progress">Step ${i+1} of ${steps.length} · ${esc(steps[i][1])}</p>`+clCreate()+(open.length&&c.step!=='review'?`<p class="cl-next" role="status">Still to choose here: ${esc(open.join('; '))}. You can come back later; open choices are marked on the steps.</p>`:'');};
 const clImport=vImport;vImport=function(){const I=S.importer;const message=I.busy?'Reading your files. You can leave this page open and wait for the results.':I.phase==='results'?'Tick the entries you want to keep. Adding them to the DM desk saves private notes; it does not show them to players.':I.phase==='product'?'Choose Read this adventure to extract notes. View opens a file preview; Show players asks you to review the image before sharing.':'1. Choose files or a folder. 2. Open an adventure. 3. Read and review it. 4. Add the results to the DM desk.';return clHint('Your next step',message)+clImport();};
-const clDesk=vDesk;vDesk=function(){const campaignView=S.deskView==='campaign';return clHint(campaignView?'Build your campaign':'Your private DM notes',campaignView?'Add adventures, put them in order, then choose the story links you like. These are suggestions, not changes to the original books.':'Choose a location to bring up its map and scene guidance. Relevant NPC notes are ready to read on the right. Preview lets you read ahead. Use Reveal… to review shared cards.')+clDesk();};
+const clDesk=vDesk;vDesk=function(){const campaignView=S.deskView==='campaign';return (campaignView?clHint('Build your campaign','Add adventures, put them in order, then choose the story links you like. These are suggestions, not changes to the original books.'):'')+clDesk();};
 function clConfirm(title,text,run,label='Confirm'){const dlg=openDialog(title,`<p>${esc(text)}</p><div class="row"><button class="btn primary" id="cl-confirm">${esc(label)}</button><button class="btn" id="cl-cancel">Keep my work</button></div>`);dlg.querySelector('#cl-cancel').onclick=()=>dlg.close();dlg.querySelector('#cl-confirm').onclick=()=>{dlg.close();run();render();};}
 const clReset=ACT.reset;ACT.reset=()=>clConfirm('Replace your saved work with examples?','This replaces your heroes, imported notes, campaign plan and current fight in this browser. Close this window to keep them.',clReset,'Replace with examples');
 const clRun=ACT['enc-run'];ACT['enc-run']=d=>{if(S.combat)clConfirm('Start a new fight?','A fight is already open. Starting another replaces its current progress. Your saved fight and hero sheets remain.',()=>clRun(d),'Start new fight');else clRun(d);};
@@ -1301,11 +1301,13 @@ document.addEventListener('input',e=>{if(e.target.dataset.bind==='draft.name'){c
 
 /* ---------- wiring ---------- */
 function render(){
+  const disclosureState=overviewCaptureDisclosures();
   sceneMapsSync();
   publishPlayer();
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.v===S.tab));
   cmShell(); // player or DM mode (src/ui/campaigns.js)
   $('#view').innerHTML={home:S.role==='dm'?vHome:vPlayerHome,create:vCreate,heroes:vHeroes,campaigns:vCampaigns,import:vImport,desk:vDesk,combat:vCombat,homebrew:vHomebrew}[S.tab]();
+  overviewRestoreDisclosures(disclosureState);
   save();
   if(S.tab==='desk' && S.deskView!=='campaign') void sessionOverviewHydrate();
 }
