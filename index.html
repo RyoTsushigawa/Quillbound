@@ -252,6 +252,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <div id="toast"></div>
 
 <script src="src/app/player-core.js"></script>
+<script src="src/app/scene-maps.js" data-ui></script>
 <script src="src/app/srd-monsters.js"></script>
 <script src="src/app/attacks.js"></script>
 <script src="src/app/srd-heroes.js"></script>
@@ -275,6 +276,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/ui/campaigns.js"></script>
 <script src="src/ui/hero-import.js"></script>
 <script src="src/ui/combat-objectives.js"></script>
+<script src="src/ui/scene-maps.js"></script>
 <script>
 /* ---------- rules data ---------- */
 const ABIL=['STR','DEX','CON','INT','WIS','CHA'];
@@ -751,7 +753,7 @@ function vDesk(){
   if(S.deskView==='campaign') return vCampaign();
   const dangling=S.hooks.filter(h=>h.status==='dangling').length, active=S.beats.find(b=>b.status==='active');
   const beats=S.beats.map(b=>`<div class="beat ${b.status}"><button class="dot" data-act="beat" data-id="${b.id}" aria-label="Mark ${esc(b.title)}: now ${b.status}" title="Click: upcoming → active → done"></button>
-    <div class="row" style="justify-content:space-between;flex-wrap:nowrap"><h4>${esc(b.title)} <span class="chip">${{upcoming:'Next',active:'Current',done:'Finished'}[b.status]}</span></h4>${eye('beats',b)}</div>${b.readAloud&&b.readAloud.length?`<div style="grid-column:2"><button class="btn sm" data-act="spot-text" data-id="${b.id}">Read-aloud text on player screen</button></div>`:''}<p>${esc(b.summary)}</p>${b.question?`<p><b>Question:</b> ${esc(b.question)}</p>`:''}${b.transition&&b.status==='active'?`<p><b>Next:</b> ${esc(b.transition)}</p>`:''}${b.branches&&b.branches.length?`<div class="branches">${b.branches.map(x=>`<span>↳ ${esc(x)}</span>`).join('')}</div>`:''}</div>`).join('')||'<div class="empty">Import an adventure to fill the story.</div>';
+    <div class="row" style="justify-content:space-between;flex-wrap:nowrap"><h4>${esc(b.title)} <span class="chip">${{upcoming:'Next',active:'Current',done:'Finished'}[b.status]}</span></h4>${eye('beats',b)}</div>${sceneMapControls(b)}${b.readAloud&&b.readAloud.length?`<div style="grid-column:2"><button class="btn sm" data-act="spot-text" data-id="${b.id}">Read-aloud text on player screen</button></div>`:''}<p>${esc(b.summary)}</p>${b.question?`<p><b>Question:</b> ${esc(b.question)}</p>`:''}${b.transition&&b.status==='active'?`<p><b>Next:</b> ${esc(b.transition)}</p>`:''}${b.branches&&b.branches.length?`<div class="branches">${b.branches.map(x=>`<span>↳ ${esc(x)}</span>`).join('')}</div>`:''}</div>`).join('')||'<div class="empty">Import an adventure to fill the story.</div>';
   const st={dangling:'warn',taken:'acc',ignored:'bad',resolved:'ok'};
   const hooks=S.hooks.map(h=>`<div class="hook"><div class="row" style="justify-content:space-between;flex-wrap:nowrap;align-items:flex-start"><div>${esc(h.text)}</div>${eye('hooks',h)}</div>
     <div class="row" style="justify-content:space-between"><div class="row">
@@ -858,7 +860,7 @@ const ACT={
   'res-back':()=>{S.importer.phase=S.importer.lib?'product':'library';},
   'res-send':()=>{const n=sendReaderResult(S,S.importer.result); toast(n?`Sent ${n} new entries to the DM desk`:'Everything selected is already on the desk'); S.tab='desk'; window.scrollTo(0,0);},
   'tbl-roll':d=>{const t=S.tables.find(x=>x.id===d.id); if(!t) return; const r=t.rows[Math.floor(Math.random()*t.rows.length)]; t.last=r.roll+': '+r.text;},
-  beat:d=>{const b=S.beats.find(x=>x.id===d.id); b.status={upcoming:'active',active:'done',done:'upcoming'}[b.status];},
+  beat:d=>{const b=S.beats.find(x=>x.id===d.id); if(!b)return; b.status={upcoming:'active',active:'done',done:'upcoming'}[b.status]; if(b.status==='active')S.sceneMapSceneId=b.id;},
   'hook-clock':d=>{const h=S.hooks.find(x=>x.id===d.id); h.clock=(h.clock+1)%5;},
   'hook-add':()=>{const i=$('#hook-new'); const v=i.value.trim(); if(!v) return; S.hooks.unshift({id:uid('h'),text:v,status:'dangling',clock:0,source:'DM'});},
   npc:d=>{const n=S.npcs.find(x=>x.id===d.id); n.open=!n.open;},
@@ -885,8 +887,8 @@ async function libRun(label,job){
   catch(e){ console.error(e); I.status=e.message||String(e); }
   I.busy=false; render();
 }
-const libAddFiles=files=>libRun('Looking through the files…',async()=>{ S.importer.lib=await QB.addFileList([...files]); S.importer.phase='library'; });
-const libAddDrop=dt=>libRun('Looking through the files…',async()=>{ S.importer.lib=await QB.addDropped(dt); S.importer.phase='library'; });
+const libAddFiles=files=>libRun('Looking through the files…',async()=>{ S.importer.lib=await QB.addFileList([...files]); S.importer.phase='library'; sceneMapsRetryMissing(); });
+const libAddDrop=dt=>libRun('Looking through the files…',async()=>{ S.importer.lib=await QB.addDropped(dt); S.importer.phase='library'; sceneMapsRetryMissing(); });
 const libCompare=gi=>libRun('Comparing the book versions by their text…',async()=>{ S.importer.versions[S.importer.pi+':'+gi]=await QB.compareVersions(S.importer.pi,gi); });
 const libRead=()=>libRun('Loading the PDF reader…',async progress=>{
   const r=await QB.readProduct(S.importer.pi,progress);
@@ -1212,8 +1214,8 @@ function playerSetup() {
   dlg.querySelector('#player-open').onclick = () => { publishPlayer(true); save(); };
   for (const [id, key] of [['share-party','party'],['share-combat','combat']]) dlg.querySelector('#'+id).onchange = e => { cfg[key] = e.target.checked; publishPlayer(true); save(); };
   dlg.querySelectorAll('[data-player-hide]').forEach(b=>b.onclick=()=>{const record=S[b.dataset.kind].find(x=>x.id===b.dataset.playerHide); if(record?.player) record.player.visible=false; publishPlayer(true); render(); dlg.close(); playerSetup();});
-  dlg.querySelector('#player-clear-spot').onclick = () => { playerSpotlight=null; publishPlayer(true); dlg.close(); playerSetup(); };
-  dlg.querySelector('#player-hide-all').onclick = () => { for(const kind of ['beats','hooks','npcs','items']) for(const r of S[kind]||[]) if(r.player) r.player.visible=false; cfg.party=false; cfg.combat=false; playerSpotlight=null; publishPlayer(true); render(); dlg.close(); playerSetup(); };
+  dlg.querySelector('#player-clear-spot').onclick = () => { sceneMapsPause(); playerSpotlight=null; publishPlayer(true); dlg.close(); playerSetup(); };
+  dlg.querySelector('#player-hide-all').onclick = () => { sceneMapsPause(); for(const kind of ['beats','hooks','npcs','items']) for(const r of S[kind]||[]) if(r.player) r.player.visible=false; cfg.party=false; cfg.combat=false; playerSpotlight=null; publishPlayer(true); render(); dlg.close(); playerSetup(); };
 }
 function playerEdit(kind, id) {
   if (!['beats','hooks','npcs','items'].includes(kind)) return;
@@ -1230,12 +1232,14 @@ function playerEdit(kind, id) {
   dlg.querySelector('#reveal-hide').onclick=()=>{record.player={...shared,visible:false};dlg.close();render();};
 }
 function playerReadAloud(id) {
+  const mapTicket = sceneMapsPause();
   const beat = S.beats.find(x => x.id === id); if(!beat) return;
   const text = (beat.readAloud||[]).map(x=>typeof x==='string'?x:(x.text||'')).join('\n\n');
   const dlg=openDialog('Review read-aloud text', `<label class="f">Title<input id="spot-title" value="${esc(beat.title)}"></label><label class="f">What players see<textarea id="spot-body" rows="8">${esc(text)}</textarea></label><button class="btn primary" id="spot-confirm">Show on player screen</button>`);
-  dlg.querySelector('#spot-confirm').onclick=()=>{playerSpotlight={type:'text',title:dlg.querySelector('#spot-title').value,text:dlg.querySelector('#spot-body').value};publishPlayer(true);dlg.close();toast('Read-aloud shown');};
+  dlg.querySelector('#spot-confirm').onclick=()=>{if(!sceneMapsCurrent(mapTicket))return;playerSpotlight={type:'text',title:dlg.querySelector('#spot-title').value,text:dlg.querySelector('#spot-body').value};publishPlayer(true);dlg.close();toast('Read-aloud shown');};
 }
 async function playerMap(path) {
+  const mapTicket = sceneMapsPause();
   try {
     if(!window.QB) throw new Error('The importer is still loading. Try again in a moment.');
     const image = await QB.blobFor(S.importer.pi,path);
@@ -1248,12 +1252,13 @@ async function playerMap(path) {
         const bitmap=await createImageBitmap(image.blob); const scale=Math.min(1,2400/Math.max(bitmap.width,bitmap.height));
         const canvas=document.createElement('canvas'); canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
         canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height); bitmap.close();
+        if(!sceneMapsCurrent(mapTicket))return;
         playerSpotlight={type:'image',title:dlg.querySelector('#map-title').value,url:canvas.toDataURL('image/png')};publishPlayer(true);dlg.close();toast('Image shown on player screen');
       }catch(error){e.target.disabled=false;toast('Could not display this image: '+error.message);}
     };
   }catch(error){toast(error.message);}
 }
-Object.assign(ACT,{'player-setup':playerSetup,'player-edit':d=>playerEdit(d.kind,d.id),'spot-text':d=>playerReadAloud(d.id),'lib-show':d=>playerMap(d.path)});
+Object.assign(ACT,{'player-setup':playerSetup,'player-edit':d=>playerEdit(d.kind,d.id),'spot-text':d=>playerReadAloud(d.id),'lib-show':d=>playerMap(d.path),'scene-map':d=>sceneMapDialog(d.id),'scene-map-show':d=>sceneMapShow(d.id)});
 window.addEventListener('pagehide',()=>playerChannel?.channel.close());
 
 /* ---------- clarity integration ---------- */
@@ -1287,6 +1292,7 @@ document.addEventListener('input',e=>{if(e.target.dataset.bind==='draft.name'){c
 
 /* ---------- wiring ---------- */
 function render(){
+  sceneMapsSync();
   publishPlayer();
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.v===S.tab));
   cmShell(); // player or DM mode (src/ui/campaigns.js)
@@ -1361,10 +1367,11 @@ sendReaderResult=function(s,r){const n=rdAssetSend(s,r);if(r.sampleAssets)s.samp
 const rdAssetDesk=vDesk;
 vDesk=function(){return rdAssetDesk()+((S.sampleAssets||[]).length?`<section class="card stack"><h3>Happy Jack’s maps & artwork</h3><p>Supplied artwork stays on this computer. Preview each image before sharing; DM labels can reveal secrets.</p>${S.sampleAssets.map((a,i)=>`<details><summary>${esc(a.title)} · ${esc(a.variant||a.kind)}</summary><img src="${esc(a.path)}" loading="lazy" alt="Private asset preview" style="max-width:100%;max-height:400px;object-fit:contain"><button class="btn sm" data-act="rd-asset" data-index="${i}">Review for player display</button></details>`).join('')}</section>`:'');};
 ACT['rd-asset']=async d=>{
+  const mapTicket = sceneMapsPause();
  const a=S.sampleAssets?.[Number(d.index)];if(!a||!/^samples\/assets\/happy-\d+\.(jpg|jpeg|png)$/.test(a.path))return;
  const dlg=rdDialog('Review image for player display',`${a.dm?'<p><b>DM version: check labels and secrets.</b></p>':'<p>Check this image for labels and secrets.</p>'}<img src="${esc(a.path)}" alt="Preview before sharing" style="max-width:100%;max-height:45vh;object-fit:contain">`+rdField('rd-asset-title','Player-facing title','Map or handout'),()=>{});
  dlg.querySelector('#rd-save').textContent='Show this image to players';
- dlg.querySelector('#rd-save').onclick=async()=>{try{const res=await fetch(a.path);if(!res.ok)throw Error('Image could not be loaded.');const bitmap=await createImageBitmap(await res.blob()),scale=Math.min(1,2400/Math.max(bitmap.width,bitmap.height));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();playerSpotlight={type:'image',title:rdValue(dlg,'rd-asset-title'),url:canvas.toDataURL('image/png')};publishPlayer(true);dlg.close();}catch(e){toast(e.message);}};
+ dlg.querySelector('#rd-save').onclick=async()=>{try{const res=await fetch(a.path);if(!res.ok)throw Error('Image could not be loaded.');const bitmap=await createImageBitmap(await res.blob()),scale=Math.min(1,2400/Math.max(bitmap.width,bitmap.height));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();if(!sceneMapsCurrent(mapTicket))return;playerSpotlight={type:'image',title:rdValue(dlg,'rd-asset-title'),url:canvas.toDataURL('image/png')};publishPlayer(true);dlg.close();}catch(e){toast(e.message);}};
 };
 
 S=load()||fresh();

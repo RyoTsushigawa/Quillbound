@@ -266,7 +266,15 @@ A second browser tab for the table or a TV. It shows only what you approve.
 
 What players never see: secrets, motives and roleplay notes from People, story branches and solutions, enemy statistics (HP, AC, attacks, breaking points) and plans, the DM log and secret rolls.
 
-Revealed cards and sharing settings are saved with the DM page. A shown map or read-aloud text lives only in memory and clears when the DM page reloads. Reloading the player tab asks the DM page for the current state; if the DM page is closed, the player tab keeps the last state and says it is waiting.
+Revealed cards and sharing settings are saved with the DM page. A manually shown map or read-aloud text lives only in memory and clears when the DM page reloads. Reloading the player tab asks the DM page for the current state; if the DM page is closed, the player tab keeps the last state and says it is waiting.
+
+### Maps linked to story scenes
+
+On the **DM desk**, each scene has **Choose player map…**. Choose a map from the imported library or a PNG/JPEG/WebP from this device, inspect its preview, give it a public title, and save. GM-labelled images are excluded. The app does not infer that a map is safe from the story text; it requires this review.
+
+With **Show this map when this scene becomes active** selected, marking that scene active displays its reviewed image on the player screen. **Show linked map** brings it back after a handout. Manual maps, read-alouds, and Clear/Hide override automatic display until another scene is activated. Entering an unlinked scene clears the previous map instead of showing a potentially wrong location. If several scenes are marked active, the most recently activated scene chooses the map.
+
+Reviewed image pixels are re-encoded to at most 2400 pixels and saved in this browser's IndexedDB. They survive a normal reload; raw files, metadata, and private notes are not broadcast. A campaign backup carries each map's title, filename, and checksum, not its pixels. On another browser, load the original maps once: only an exact checksum match reconnects a reviewed link. A different image with the same filename requires a new review. Missing files or unavailable browser storage produce a DM message and never reveal an unreviewed replacement. Switching campaigns cancels any pending image from the previous campaign. This does not upload map artwork to the public website.
 
 **This is a presentation screen, not access control.** Anyone who can use the DM's browser can see DM material, and it does not reach other devices. Real player access needs accounts and a server.
 
