@@ -6,10 +6,29 @@
   const validId = id => /^[\w-]+$/.test(id || '');
   const clientId = value => /^[\w.-]+\.apps\.googleusercontent\.com$/.test(value || '');
   const quote = value => String(value).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  function signInConfig(id, email = '') {
+    if (!clientId(id)) throw Error('Enter the public OAuth client ID from Google Cloud setup first.');
+    const hint = String(email).trim();
+    if (hint && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(hint)) throw Error('Enter the Google account’s full email address.');
+    return {client_id:id,scope,include_granted_scopes:false,prompt:hint?'consent':'select_account',...(hint?{login_hint:hint}:{})};
+  }
+  function authError(response) {
+    const code = response?.error || response?.type;
+    const known = {
+      access_denied:'Google denied access. Check the selected account and its test-user permission.',
+      invalid_client:'Google rejected the OAuth client ID. Check that it belongs to your Web application.',
+      origin_mismatch:'Google rejected this website origin. Check the Web application’s authorized JavaScript origins.',
+      popup_failed_to_open:'The Google window could not open. Allow this sign-in popup for Quillbound and click Connect again.',
+      popup_closed:'The Google window closed without completing sign-in. If account selection failed in Firefox, enter your email and use Connect this account (Firefox).',
+      unknown:'Google did not return a sign-in result. Try Connect this account (Firefox) with your account email.'
+    };
+    return known[code] || (code ? 'Google sign-in failed (' + String(code).replace(/[^a-z_]/gi,'').slice(0,60) + '). Try connecting with your account email.' : 'Google Drive read access was not granted.');
+  }
   function client({ request = (...args) => root.fetch(...args), now = () => Date.now() } = {}) {
     let token = '', expires = 0, revision = 0;
     function disconnect() { token = ''; expires = 0; revision++; }
     function authorize(response) {
+      if (response?.error) throw Error(authError(response));
       if (!response?.access_token || !String(response.scope || '').split(' ').includes(scope)) throw Error('Google Drive read access was not granted.');
       token = response.access_token; expires = now() + Number(response.expires_in || 3600) * 1000; revision++;
     }
@@ -40,5 +59,5 @@
     }
     return { authorize, disconnect, connected, list, download };
   }
-  root.QBDrive = { scope, folderType, supported, clientId, client };
+  root.QBDrive = { scope, folderType, supported, clientId, client, signInConfig, authError };
 })(globalThis);

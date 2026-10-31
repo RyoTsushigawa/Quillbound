@@ -26,6 +26,8 @@ Library source files are held while the page is open. Re-import them from Drive 
 
 ## Troubleshooting
 
+- **Firefox fails after account selection but Chrome works**: open **Firefox: sign in without the account chooser** in Quillbound's Google Drive dialog, enter your Google account email, and click **Connect this account (Firefox)**. This uses Google's supported `login_hint` with an explicit consent prompt to skip account selection where possible. The email is not saved; permissions and scope are unchanged. If the Google library loads on the first click, the status asks you to click the same button again to open sign-in directly from your click. This addresses the account-chooser path; it does not guarantee a fix for browser-specific Google session errors. Do not erase Quillbound site data, as that contains your saved campaigns.
+
 - **origin_mismatch**: check the exact origin above in your Web application client.
 - **access_denied**: add your account as a test user; check the consent screen and scope.
 - **API disabled / forbidden**: enable Drive API in the same Cloud project and check the owner's download permission.
