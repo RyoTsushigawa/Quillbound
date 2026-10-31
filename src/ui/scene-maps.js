@@ -1,5 +1,29 @@
 /* DM reviews a map once. Activating a linked scene can then display only those reviewed pixels. */
 let sceneMapController, sceneMapProblem = '', sceneMapOwner = '', sceneMapManualRevision = 0;
+let sceneAutoLibrary, sceneAutoBeats, sceneAutoCampaign, sceneAutoSignature, sceneAutoJob;
+const sceneMapHint = beat => SceneMaps.hint(beat);
+function sceneMapsAutoLink() {
+  const library=S.importer?.lib, beats=S.beats, campaign=S.campaigns?.current;
+  if(S.role!=='dm' || !library || !window.QB || !Array.isArray(beats))return;
+  const signature=JSON.stringify(beats.filter(b=>!b.playerMap && !b.playerMapAutoOff).map(b=>[b.id,sceneMapHint(b)]));
+  if(library===sceneAutoLibrary && beats===sceneAutoBeats && campaign===sceneAutoCampaign && signature===sceneAutoSignature)return sceneAutoJob;
+  sceneAutoLibrary=library;sceneAutoBeats=beats;sceneAutoCampaign=campaign;sceneAutoSignature=signature;
+  const current=()=>S.role==='dm' && S.importer?.lib===library && S.beats===beats && S.campaigns?.current===campaign;
+  return sceneAutoJob=(async()=>{
+    let linked=0;const cached=new Map();
+    for(const beat of beats){
+      if(!current())return;
+      if(beat.playerMap || beat.playerMapAutoOff)continue;
+      const file=SceneMaps.suggested(beat,library);if(!file)continue;
+      const expected=sceneMapHint(beat);let image=cached.get(file.pi+":"+file.path);
+      if(!image){const source=await QB.blobFor(file.pi,file.path);if(source.dm)continue;image={key:await SceneMaps.fingerprint(source.blob),url:await SceneMaps.pixels(source.blob)};await SceneMaps.assets.put(image);cached.set(file.pi+":"+file.path,image);}
+      if(!current())return;
+      if(beat.playerMap || beat.playerMapAutoOff || sceneMapHint(beat)!==expected)continue;
+      beat.playerMap={key:image.key,fileName:file.name,title:beat.player?.title || beat.title,auto:true,reviewed:true,linkedFrom:'explicit-player-file'};linked++;
+    }
+    if(linked && current()){if(typeof render==='function')render();toast(linked+' scene maps linked from matching PLAYER files.');}
+  })().catch(()=>{if(current())toast('Some PLAYER maps could not be linked. Check map controls and browser storage.');});
+}
 function sceneMapContext() {
   const chosen = (S.beats || []).find(b => b.id === S.sceneMapSceneId && b.status === 'active') || (S.beats || []).find(b => b.status === 'active');
   return { beat: chosen, token: String(S.campaigns?.current || '') + ':' + String(chosen?.id || '') + ':' + JSON.stringify(chosen?.playerMap || null) };
@@ -19,6 +43,7 @@ async function sceneMapImage(ref) {
   throw new Error('Import the original image or choose a new player map.');
 }
 function sceneMapsSync() {
+  void sceneMapsAutoLink();
   if (!sceneMapController) sceneMapController = SceneMaps.controller({
     getImage: sceneMapImage,
     current: token => S.role === 'dm' && sceneMapContext().token === token,
@@ -88,7 +113,7 @@ async function sceneMapDialog(id) {
       sceneMapController?.reset(); dlg.close(); render(); toast('Player map linked to this scene.');
     } catch (error) { field('save').disabled = false; field('status').textContent = error.message; }
   };
-  if (ref) field('remove').onclick = () => { delete beat.playerMap; sceneMapController?.reset(); playerSpotlight = null; dlg.close(); render(); };
+  if (ref) field('remove').onclick = () => { delete beat.playerMap; beat.playerMapAutoOff=true; sceneMapController?.reset(); playerSpotlight = null; dlg.close(); render(); };
   if (match.length === 1) { field('file').value = String(files.indexOf(match[0])); void field('file').onchange(); }
   else if (ref) {
     try { const image = await SceneMaps.assets.get(ref.key); if (image && dlg.isConnected && !selected && previewGeneration === 0) void preview({ ...image, name: ref.fileName }); }
