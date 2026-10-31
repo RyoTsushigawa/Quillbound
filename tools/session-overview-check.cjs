@@ -33,3 +33,4 @@ assert.equal(panels[0].open,true);assert.equal(panels[1].open,false);
 grid.dataset.scene='B';panels[0].open=false;ctx.overviewRestoreDisclosures(saved);assert.equal(panels[0].open,false,'new locations retain their own disclosure defaults');
 grid.dataset.scene='A';grid.dataset.campaign='two';ctx.overviewRestoreDisclosures(saved);assert.equal(panels[0].open,false,'disclosure state stays within its campaign');
 console.log('PASS: open and closed notes survive updates only within the same campaign and location.');
+ctx.S.party=[{name:'Quinn',hp:38,ac:16,level:5}];assert(ctx.overviewReadiness().includes('Perception bonus'));ctx.S.party[0].perceptionBonus=3;assert(ctx.overviewReadiness().includes('basics filled in'));ctx.S.party[0].hp=0;assert(ctx.overviewReadiness().includes('check HP'));
