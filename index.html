@@ -253,6 +253,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 
 <script src="src/app/player-core.js"></script>
 <script src="src/app/scene-maps.js" data-ui></script>
+<script src="src/app/drive.js" data-ui></script>
 <script src="src/app/srd-monsters.js"></script>
 <script src="src/app/attacks.js"></script>
 <script src="src/app/srd-heroes.js"></script>
@@ -277,6 +278,8 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/ui/hero-import.js"></script>
 <script src="src/ui/combat-objectives.js"></script>
 <script src="src/ui/scene-maps.js"></script>
+<script src="src/ui/package-import.js"></script>
+<script src="src/ui/drive.js"></script>
 <script>
 /* ---------- rules data ---------- */
 const ABIL=['STR','DEX','CON','INT','WIS','CHA'];
@@ -604,7 +607,7 @@ function dropZone(){
   const I=S.importer;
   return `<div class="card stack">
     <div class="drop" id="drop"><b>Drop adventure folders, zips or PDFs</b><span class="small muted">Whole folders work, with everything inside them.</span>
-      <div class="row" style="justify-content:center;margin-top:6px"><label class="btn sm" for="lib-folder">Choose a folder</label><label class="btn sm" for="lib-files">Choose files</label></div>
+      <div class="row" style="justify-content:center;margin-top:6px"><button class="btn sm" data-act="drive-open">Google Drive…</button><label class="btn sm" for="lib-folder">Choose a folder</label><label class="btn sm" for="lib-files">Choose files</label><label class="btn sm">Restore campaign ZIP<input type="file" id="cm-camp-file" accept=".zip,application/zip" hidden></label></div>
       <input type="file" id="lib-folder" webkitdirectory multiple hidden><input type="file" id="lib-files" multiple accept=".pdf,.zip,.jpg,.jpeg,.png,.webp,.tif,.tiff" hidden></div>
     <p class="small muted">Nothing is uploaded. Files are read on this computer and only kept while this page is open.</p>
     ${I.busy?`<div class="readout"><div style="color:var(--accent)">${esc(I.status||'Working…')}</div></div>`:I.status?`<div class="readout"><div style="color:var(--warn)">${esc(I.status)}</div></div>`:''}
@@ -709,7 +712,7 @@ const lvlText=l=>l?(l.min===l.max?`Level ${l.min}`:`Levels ${l.min}–${l.max}`)
 const themeChips=p=>Object.entries(p.themes||{}).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k])=>`<span class="chip">${THEME_LABEL[k]||k}</span>`).join('');
 function vCampaign(){
   const C=campaign(), all=S.adventures||[];
-  const head=`<div class="pagehead"><div><div class="eyebrow">DM desk · Campaign</div><h2>Campaign planner</h2><p>Put adventures in order, see where the levels jump, and use the threads the books already share to tie them together. Everything here is a suggestion; you decide.</p></div>${deskToggle()}</div>`;
+  const head=`<div class="pagehead"><div><div class="eyebrow">DM desk · Campaign</div><h2>Campaign planner</h2><p>Put adventures in order, see where the levels jump, and use the threads the books already share to tie them together. Everything here is a suggestion; you decide.</p></div>${deskToggle()}</div>${driveControls()}`;
   if(!all.length) return head+`<div class="card stack" style="max-width:640px"><h3>No adventures read yet</h3><p>Go to <b>Import adventure</b>, drop your folders, and click <b>Read all adventures for a campaign</b>. Each book you read shows up here.</p><div><button class="btn primary" data-act="tab" data-v="import">Go to Import adventure</button></div></div>`;
   if(!window.QB) return head+'<div class="empty">Loading the planner…</div>';
   const advs=C.order.map(id=>all.find(a=>a.id===id)).filter(Boolean);
@@ -1258,7 +1261,7 @@ async function playerMap(path) {
     };
   }catch(error){toast(error.message);}
 }
-Object.assign(ACT,{'player-setup':playerSetup,'player-edit':d=>playerEdit(d.kind,d.id),'spot-text':d=>playerReadAloud(d.id),'lib-show':d=>playerMap(d.path),'scene-map':d=>sceneMapDialog(d.id),'scene-map-show':d=>sceneMapShow(d.id)});
+Object.assign(ACT,{'player-setup':playerSetup,'player-edit':d=>playerEdit(d.kind,d.id),'spot-text':d=>playerReadAloud(d.id),'lib-show':d=>playerMap(d.path),'scene-map':d=>sceneMapDialog(d.id),'scene-map-show':d=>sceneMapShow(d.id),'drive-open':driveDialog});
 window.addEventListener('pagehide',()=>playerChannel?.channel.close());
 
 /* ---------- clarity integration ---------- */

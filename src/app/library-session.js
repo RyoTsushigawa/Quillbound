@@ -2,7 +2,7 @@
 // runs the library scanner, compares book versions and reads books + combat cards.
 // File handles live only in memory; nothing is uploaded anywhere.
 import { scanLibrary, KIND_LABEL } from '../importer/library.js';
-import { listZip, readZipEntry, fromBlob } from '../importer/zipdir.js';
+import { listPackage } from '../importer/package.js';
 import { extractPdf } from '../importer/pdftext.js';
 import { readAdventure, readCards, textQuality } from '../importer/reader.js';
 import { readCharacterOptions, mergeCharacterOptions } from '../importer/character-options.js';
@@ -25,9 +25,8 @@ const IMG_OK = /\.(jpe?g|png|webp|gif|bmp)$/i;
 
 async function addFile(file, path, rootLen) {
   if (/\.zip$/i.test(file.name)) {
-    const src = fromBlob(file);
     try {
-      for (const e of await listZip(src)) RT.entries.push({ path: path + '/' + e.name, size: e.size, inZip: path, rootLen, read: () => readZipEntry(src, e) });
+      for (const e of await listPackage(file)) RT.entries.push({ path: path + '/' + e.path, size: e.size, inZip: path, rootLen, read: e.read });
     } catch (err) { RT.entries.push({ path, size: file.size, rootLen, error: err.message, read: async () => new Uint8Array(await file.arrayBuffer()) }); }
   }
   RT.entries.push({ path, size: file.size, rootLen, read: async () => new Uint8Array(await file.arrayBuffer()), blob: file });
