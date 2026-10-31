@@ -46,8 +46,9 @@
     async function get(path, params = {}, media = false) {
       if (!connected()) { disconnect(); throw Error('Connect Google Drive again; the session has expired.'); }
       const ticket = revision, url = 'https://www.googleapis.com/drive/v3/' + path + '?' + new URLSearchParams(params);
+      const resourceId=path.match(/^files\/([\w-]+)/)?.[1] || params.q?.match(/'([\w-]+)' in parents/)?.[1], resourceKey=resourceKeys.get(resourceId);
       let response;
-      try { response = await request(url, { headers: { Authorization: 'Bearer ' + token, ...(resourceKeys.size ? {'X-Goog-Drive-Resource-Keys':[...resourceKeys].map(([id,key])=>id+'/'+key).join(',')} : {}) }, credentials: 'omit', redirect: 'error' }); }
+      try { response = await request(url, { headers: { Authorization: 'Bearer ' + token, ...(resourceKey ? {'X-Goog-Drive-Resource-Keys':resourceId+'/'+resourceKey} : {}) }, credentials: 'omit', redirect: 'error' }); }
       catch { throw Error('Drive could not be reached. Check your connection and whether a browser extension blocks googleapis.com, then retry.'); }
       if (ticket !== revision) throw Error('Drive connection changed. Try again.');
       if (response.status === 401) { disconnect(); throw Error('Google session expired. Connect Drive again.'); }
@@ -64,7 +65,7 @@
     async function list({ folder = 'root', search = '', page = '', view = 'folder' } = {}) {
       if (!validId(folder)) throw Error('Choose a valid Drive folder.');
       const q = 'trashed = false' + (search.trim() ? " and name contains '" + quote(search.trim()) + "'" : view==='shared' ? ' and sharedWithMe = true' : view==='all' ? '' : " and '" + folder + "' in parents");
-      const result=await get('files', { q, fields:'nextPageToken,incompleteSearch,files(id,name,mimeType,size,modifiedTime,resourceKey,shortcutDetails(targetId,targetMimeType,targetResourceKey),capabilities(canDownload))', pageSize:100, pageToken:page, orderBy:'folder,name', spaces:'drive', includeItemsFromAllDrives:'true', supportsAllDrives:'true' });
+      const result=await get('files', { q, fields:'nextPageToken,incompleteSearch,files(id,name,mimeType,size,modifiedTime,parents,resourceKey,shortcutDetails(targetId,targetMimeType,targetResourceKey),capabilities(canDownload))', pageSize:100, pageToken:page, orderBy:'folder,name', spaces:'drive', includeItemsFromAllDrives:'true', supportsAllDrives:'true' });
       const files=(result.files || []).map(target);
       for(const f of files) if(f.resourceKey && validId(f.id) && validId(f.resourceKey)) resourceKeys.set(f.id,f.resourceKey);
       return {...result,files};
@@ -86,7 +87,43 @@
       if(file.resourceKey && validId(file.resourceKey))resourceKeys.set(file.id,file.resourceKey);
       return file;
     }
-    return { authorize, disconnect, connected, list, download, open };
+    async function adventures({folder='root',view='folder',includeMaps=false,onProgress=()=>{},cancelled=()=>false}={}) {
+      const pending=[{id:folder,view,path:''}], visited=new Set(), seen=new Set(), files=[], records=new Map();
+      let entries=0, bytes=0;
+      while(pending.length){
+        if(cancelled())throw Error('Adventure import cancelled.');
+        const current=pending.pop(), identity=current.view+':'+current.id;
+        if(visited.has(identity))continue;visited.add(identity);
+        let page='', pages=new Set();
+        do {
+          if(cancelled())throw Error('Adventure import cancelled.');
+          const result=await list({folder:current.id,view:current.view,page});
+          if(cancelled())throw Error('Adventure import cancelled.');
+          if(result.incompleteSearch)throw Error('Google returned an incomplete file list. Open a smaller folder and import it instead.');
+          for(const file of result.files){
+            records.set(file.id,file);
+            if(++entries>4000)throw Error('This collection has more than 4,000 entries. Open a smaller adventure folder and import it instead.');
+            const name=String(file.name || '').replace(/[\\/]/g,'_');
+            if(file.mimeType===folderType){if(view!=='all')pending.push({id:file.id,view:'folder',path:current.path+name+'/'});continue;}
+            if(seen.has(file.id) || !(includeMaps?supported(file) && !/\.json$/i.test(name):/\.(pdf|zip)$/i.test(name)))continue;
+            seen.add(file.id);bytes+=Number(file.size)||0;
+            if(bytes>300*1024*1024)throw Error('This collection exceeds 300 MB. Import smaller adventure folders one at a time.');
+            files.push({...file,path:current.path+name});
+          }
+          onProgress({folders:visited.size,files:files.length,entries});
+          page=result.nextPageToken || '';
+          if(page && pages.has(page))throw Error('Google repeated a file-list page. Retry with a smaller folder.');
+          pages.add(page);
+        }while(page);
+      }
+      if(view==='all')for(const file of files){
+        const parts=[file.name.replace(/[\\/]/g,'_')], ancestors=new Set([file.id]);let parent=file.parents?.[0];
+        while(parent && !ancestors.has(parent)){ancestors.add(parent);const record=records.get(parent);parts.unshift(String(record?.name || parent).replace(/[\\/]/g,'_'));parent=record?.parents?.[0];}
+        file.path=parts.join('/');
+      }
+      return files;
+    }
+    return { authorize, disconnect, connected, list, download, open, adventures };
   }
   root.QBDrive = { scope, folderType, target, location, supported, clientId, client, signInConfig, authError };
 })(globalThis);

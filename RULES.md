@@ -339,3 +339,6 @@ Removing restraints clears only Pinned or Sword pinned; custom and combined cond
 
 Google Drive browsing includes My Drive, Shared with me and all accessible files. Folder and file shortcuts resolve to their targets, including resource keys required by link-shared files. Selections survive paging and folder navigation. A connected dialog loads its list when reopened. API failures report the HTTP status and a useful setup, permission or quota reason; PDF reader errors remain visible in Import adventure. Drive stays read-only; tokens and resource keys stay in memory.
 
+
+Drive folders show the current path and a Back button that restores the previous folder or results view. Import all adventures scans the current location and its subfolders (or all accessible files in that view), follows pagination, deduplicates target IDs, and reads detected adventures into Link adventures. It includes PDFs and ZIPs; loose images are optional. Paths are retained for grouping. Cancel stops before the next request or local library import. Collections are limited to 4,000 entries and 300 MB; existing campaigns are preserved.
+
