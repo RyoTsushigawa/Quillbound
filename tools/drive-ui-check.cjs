@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+(async()=>{
+ const fields=new Map(), requests=[],downloads=[],added=[];let dialog,rendered=0;
+ const field=id=>{if(!fields.has(id))fields.set(id,{value:'',checked:false,disabled:false,style:{},textContent:'',innerHTML:'',querySelectorAll:()=>[]});return fields.get(id);};
+ const client={connected:()=>true,list:async q=>{requests.push(q);return q.page?{files:[{id:'two',name:'second.png'}]}:q.view==='shared'?{files:[{id:'shared',name:'shared.pdf'}]}:{files:[{id:'one',name:'first.png'}],nextPageToken:'next'};},download:async f=>{downloads.push(f.id);return new Blob(['pixels'],{type:'image/png'});}};
+ const state={role:'dm',campaigns:{current:'test'},importer:{},tab:'import'};
+ const ctx=vm.createContext({console,File,Blob,QBDrive:{client:()=>client,folderType:'folder',supported:()=>true},S:state,esc:x=>String(x),localStorage:{getItem:()=>''},openDialog:()=>dialog={isConnected:true,querySelector:s=>field(s.slice(7)),close(){this.isConnected=false;}},window:{QB:{addFileList:async files=>{added.push(...files);return {products:[]};}}},sceneMapsRetryMissing:()=>{},render:()=>rendered++,toast:()=>{},libReadAll:async()=>{},QBCampaigns:{}});
+ vm.runInContext(fs.readFileSync('src/ui/drive.js','utf8'),ctx);
+ const settle=()=>new Promise(r=>setImmediate(r));
+ ctx.driveDialog();await settle();assert.equal(requests.length,1,'reopening a connected dialog loads files automatically');
+ field('files').onchange({target:{dataset:{driveFile:'one'},checked:true}});assert.equal(field('import').disabled,false);
+ field('more').onclick();await settle();assert.equal(requests.at(-1).page,'next');assert.match(field('files').innerHTML,/data-drive-file="one" checked/,'More files keeps selections');
+ field('shared').onclick();await settle();assert.equal(requests.at(-1).view,'shared');assert.equal(field('import').disabled,false,'selection survives navigating folders');
+ await field('import').onclick({target:field('import')});assert.deepEqual(downloads,['one']);assert.equal(added[0].name,'first.png');assert.equal(added[0].type,'image/png');assert.equal(rendered,1);assert(!dialog.isConnected);
+ console.log('PASS: connected Drive reopening, shared browsing, pagination selection retention and selected-file import into the real library entry point.');
+})().catch(e=>{console.error(e);process.exitCode=1;});
