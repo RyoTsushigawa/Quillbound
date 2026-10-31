@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..'),ctx=vm.createContext({console});
 const esc=x=>String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-ctx.esc=esc;ctx.eye=()=>'<button>Reveal…</button>';ctx.deskToggle=()=>'';ctx.sceneMapControls=()=>'<button>Player map…</button>';
+ctx.securityMeter=()=>"";ctx.esc=esc;ctx.eye=()=>'<button>Reveal…</button>';ctx.deskToggle=()=>'';ctx.sceneMapControls=()=>'<button>Player map…</button>';
 ctx.sceneMapHint=()=>'';ctx.SceneMaps={reference:r=>r?.reviewed?r:null};ctx.S={role:'dm',beats:[{id:'ref',title:'SL: Start',summary:'# Private reference\nSECRET'},{id:'A',title:'Arrival',summary:'> Welcome\n# Goal\nSpeak to Ada.\n# Secret\nSOLUTION',status:'active'},{id:'B',title:'Gallery',summary:'<script>bad()</script>',status:'upcoming',playerMap:{reviewed:true,title:'Player map'}}],npcs:[{id:'ada',name:'Ada',role:'Guard',voice:'Tired',wants:'Rest',secret:'PRIVATE'}],hooks:[],encounters:[],party:[]};
 ctx.sceneMapContext=()=>({beat:ctx.S.beats.find(b=>b.id===ctx.S.sceneMapSceneId&&b.status==='active')||ctx.S.beats.find(b=>b.status==='active')});
 vm.runInContext(fs.readFileSync(path.join(root,'src/ui/session-overview.js'),'utf8'),ctx);

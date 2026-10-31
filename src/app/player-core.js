@@ -4,6 +4,7 @@
   const rows = value => Array.isArray(value) ? value : [];
   function snapshot(state, spotlight) {
     const result = { version: 1, updated: Date.now(), cards: [], party: [], combat: null, spotlight: null };
+    if(state.securityAlert?.shared===true)result.securityAlert={value:Math.max(0,Math.min(6,Math.round(Number(state.securityAlert.value)||0))),max:6};
     result.rolls = rows(state.publicRolls).slice(-8).map(r => ({ die: Number(r.die), total: Number(r.total), band: text(r.band), roller: text(r.roller), dice: rows(r.dice).map(Number) }));
     for (const kind of ['beats', 'hooks', 'npcs', 'items']) {
       for (const record of rows(state[kind])) {
@@ -45,6 +46,7 @@
   function view(data) {
     const e = escape, groups = { beats: 'Scenes', hooks: 'Leads', npcs: 'People', items: 'Items' };
     let html = '';
+    if(data.securityAlert){const n=Math.max(0,Math.min(6,Math.round(Number(data.securityAlert.value)||0)));html+=`<section class="sec-public sec-level-${n}"><h2>Security alert · ${n}/6</h2><div class="sec-track" role="meter" aria-label="Security alert" aria-valuemin="0" aria-valuemax="6" aria-valuenow="${n}">${Array.from({length:6},(_,i)=>`<span class="${i<n?'filled':''}" aria-hidden="true"></span>`).join('')}</div></section>`;}
     if(rows(data.rolls).length) html += '<section><h2>Public dice</h2>'+rows(data.rolls).slice().reverse().map(r=>'<div class="public-roll '+(r.die===20?'critical':r.die===1?'disaster':'')+'"><b>'+e(r.die)+'</b><span>'+e(r.die===20?'NATURAL 20!':r.die===1?'NATURAL 1!':'d20')+' · '+e(r.roller)+' · total '+e(r.total)+(rows(r.dice).length>1?' · dice '+e(r.dice.join(' / ')):'')+'</span></div>').join('')+'</section>';
     if (data.spotlight?.type === 'image') html += `<section class="spotlight"><h2>${e(data.spotlight.title)}</h2><img alt="Shared map or handout" src="${e(data.spotlight.url)}"></section>`;
     if (data.spotlight?.type === 'text') html += `<section class="spotlight"><h2>${e(data.spotlight.title)}</h2><p>${e(data.spotlight.text)}</p></section>`;
