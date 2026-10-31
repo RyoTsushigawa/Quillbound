@@ -53,7 +53,7 @@ function vHeroes() {
 function vCampaigns() {
   const c = QBCampaigns.ensure(S), cur = QBCampaigns.current(S), others = c.list.filter(x => x.id !== cur.id);
   return `<div class="pagehead"><div><div class="eyebrow">Adventure manager · DM only</div><h2>${esc(cur.name)}</h2><p>Each campaign has its own party, DM desk, adventures and fight. Switching saves this one and opens the other.</p></div>
-      <div class="row"><button class="btn" data-act="cm-export">Back up this campaign…</button><label class="btn">Restore a campaign file…<input type="file" id="cm-camp-file" accept=".json,application/json" hidden></label></div></div>
+      <div class="row"><button class="btn" data-act="cm-export">Back up this campaign…</button><label class="btn">Restore campaign / ZIP…<input type="file" id="cm-camp-file" accept=".json,.zip,application/json,application/zip" hidden></label></div></div>
     <div class="stack"><section class="card stack"><h3>This campaign</h3><label class="f">Name<input data-act-change="cm-rename" value="${esc(cur.name)}" maxlength="80"></label>
       <p class="small muted">${(S.adventures || []).length} adventure${(S.adventures || []).length === 1 ? '' : 's'} · ${(S.beats || []).length} scenes on the desk · ${(S.encounters || []).length} prepared fights${S.combat ? ' · a fight is running' : ''}</p>
       <div class="row"><button class="btn" data-act="tab" data-v="desk">Open the DM desk</button><button class="btn" data-act="tab" data-v="import">Import an adventure</button></div></section>
@@ -127,6 +127,7 @@ function campaignActions() { return {
 document.addEventListener('change', e => {
   const t = e.target; if (!t.files?.length || !['cm-hero-file', 'cm-my-file', 'cm-camp-file'].includes(t.id)) return;
   const files = [...t.files]; t.value = '';
+  if (t.id === 'cm-camp-file' && /\.zip$/i.test(files[0].name)) { void cmRestoreZip(files[0]); return; }
   Promise.all(files.map(f => f.text())).then(texts => {
     if (t.id === 'cm-hero-file') return cmImportHeroes(texts);
     if (t.id === 'cm-my-file') { for (const x of texts) { const r = QBCampaigns.parseHero(x, b => cmSheet(b)); if (r.error) { toast(r.error); continue; } S.myHeroes ??= []; const i = S.myHeroes.findIndex(h => h.id === r.hero.id); const h = { id: r.hero.id, build: r.hero.build, story: r.hero.story, saved: Date.now() }; if (i >= 0) S.myHeroes[i] = h; else S.myHeroes.push(h); toast(`${r.hero.name} is in My heroes.`); } return render(); }

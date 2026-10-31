@@ -1,0 +1,25 @@
+const assert=require('node:assert/strict'), fs=require('node:fs'), path=require('node:path'), vm=require('node:vm'), JSZip=require('jszip');
+const {pathToFileURL}=require('node:url'), root=path.resolve(__dirname,'..');
+(async()=>{
+  const {readPackage,campaignPackage}=await import(pathToFileURL(path.join(root,'src/importer/package.js')).href);
+  const inner=new JSZip();inner.file('Maps/Gallery_PLAYER.png','pixels');inner.file('Book.pdf','pdf');
+  const outer=new JSZip();outer.file('library.zip',await inner.generateAsync({type:'uint8array',compression:'DEFLATE'}));outer.file('campaign.json',JSON.stringify({format:'quillbound-campaign',data:{party:[]},name:'Museum'}));
+  const blob=new Blob([await outer.generateAsync({type:'uint8array',compression:'DEFLATE'})]);
+  const ctx=vm.createContext({console,URLSearchParams});vm.runInContext(fs.readFileSync(path.join(root,'src/app/campaigns.js'),'utf8'),ctx);
+  const pack=await campaignPackage(blob,ctx.QBCampaigns.parseCampaign);assert.equal(pack.campaigns.length,1);assert.equal(pack.files.length,3);assert.equal(await pack.files.find(f=>f.path.endsWith('.png')).blob.text(),'pixels');
+  const plain=new JSZip();plain.file('map.png','image');await assert.rejects(campaignPackage(new Blob([await plain.generateAsync({type:'uint8array'})]),ctx.QBCampaigns.parseCampaign),/No Quillbound/);
+  await assert.rejects(readPackage(new Blob(['not a zip'])),/Not a zip/);
+  let nested=new Blob([await plain.generateAsync({type:'uint8array'})]);for(let i=0;i<5;i++){const z=new JSZip();z.file('nested.zip',new Uint8Array(await nested.arrayBuffer()));nested=new Blob([await z.generateAsync({type:'uint8array'})]);}await assert.rejects(readPackage(nested),/nested archives/);
+  vm.runInContext(fs.readFileSync(path.join(root,'src/app/drive.js'),'utf8'),ctx);
+  const D=ctx.QBDrive;let now=1000,calls=[],resolve;
+  const client=D.client({now:()=>now,request:async(url,options)=>{calls.push({url,options});return{ok:true,status:200,json:async()=>({files:[],nextPageToken:'next'}),blob:async()=>new Blob(['image'])};}});
+  assert(D.clientId('123-abc.apps.googleusercontent.com'));assert(!D.clientId('secret'));assert(!D.supported({name:'program.exe'}));
+  assert.throws(()=>client.authorize({access_token:'x',scope:'wrong'}),/not granted/);
+  client.authorize({access_token:'private-token',scope:D.scope,expires_in:1});
+  const list=await client.list({search:"Ada's maps"});assert.equal(list.nextPageToken,'next');assert(calls[0].url.startsWith('https://www.googleapis.com/drive/v3/files?'));assert(!calls[0].url.includes('private-token'));assert.equal(calls[0].options.headers.Authorization,'Bearer private-token');
+  await assert.rejects(client.download({id:'file',name:'map.png',capabilities:{canDownload:false}}),/disabled/);
+  assert.equal((await client.download({id:'file',name:'map.png'})).size,5);now=3000;await assert.rejects(client.list(),/expired/);assert(!client.connected());
+  const pending=D.client({request:()=>new Promise(r=>resolve=r)});pending.authorize({access_token:'x',scope:D.scope});const work=pending.list();pending.disconnect();resolve({ok:true,status:200,json:async()=>({files:[]})});await assert.rejects(work,/connection changed/);
+  const {addFileList,clear}=await import(pathToFileURL(path.join(root,'src/app/library-session.js')).href);const file=new File([blob],'Museum.zip');const library=await addFileList([file]);assert(library.products.some(p=>p.groups.some(g=>g.files.some(f=>f.name==='Gallery_PLAYER.png'))));clear();
+  console.log('PASS: nested campaign ZIPs, missing/corrupt/over-nested archives, library maps, Drive scope, filenames, pagination, download permissions, expiry and disconnect races.');
+})().catch(e=>{console.error(e);process.exitCode=1;});
