@@ -1,4 +1,18 @@
 let packageImportBusy = false;
+async function cachePackageMaps(beats, library, source) {
+  const seen = new Set(), files = SceneMaps.candidates(library);
+  for (const beat of beats || []) {
+    const ref = SceneMaps.reference(beat.playerMap);
+    if (!ref || seen.has(ref.key)) continue;
+    seen.add(ref.key);
+    if (SceneMaps.imageUrl((await SceneMaps.assets.get(ref.key))?.url)) continue;
+    for (const file of files.filter(f => f.name === ref.fileName)) {
+      const image = await source.blobFor(file.pi, file.path);
+      if (image.dm || await SceneMaps.fingerprint(image.blob) !== ref.key) continue;
+      await SceneMaps.assets.put({key:ref.key,url:await SceneMaps.pixels(image.blob)}); break;
+    }
+  }
+}
 async function cmRestoreZip(file, prepared) {
   if (packageImportBusy || S.role !== 'dm') return;
   packageImportBusy = true;
@@ -17,6 +31,7 @@ async function cmRestoreZip(file, prepared) {
         const QB = window.QB || await import('../app/library-session.js');
         const media = pack.files.filter(f => /\.(pdf|png|jpe?g|webp|gif|bmp)$/i.test(f.path)).map(f => new File([f.blob], f.path));
         const library = await QB.addFileList(media);
+        await cachePackageMaps(selected.data.beats, library, QB);
         if (!dlg.isConnected || S.role !== 'dm' || S.campaigns?.current !== owner) throw Error('Campaign changed. Choose the ZIP again.');
         QBCampaigns.importCampaign(S, selected);
         S.importer = { lib: library, phase: 'library', pi: null, versions: {}, status: '' };
