@@ -268,6 +268,12 @@ What players never see: secrets, motives and roleplay notes from People, story b
 
 Revealed cards and sharing settings are saved with the DM page. A manually shown map or read-aloud text lives only in memory and clears when the DM page reloads. Reloading the player tab asks the DM page for the current state; if the DM page is closed, the player tab keeps the last state and says it is waiting.
 
+### DM session overview
+
+The DM desk opens with location navigation, one selected scene, its linked map preview, and NPC roleplay helpers. Clicking a location previews its notes without changing the player screen. **Move players here** explicitly makes that location active, changes the linked player map, and returns other active scenes to upcoming; finished scenes remain finished. **Mark finished** and **Mark available** track progress separately. SL/DM/GM reference cards are grouped under Reference notes and cannot move players.
+
+Markdown-style headings in imported scene summaries become expandable briefing sections, with quoted read-aloud paragraphs formatted separately. NPC helpers show opening line, motivation, delivery, gesture and response under pressure, with knowledge and secrets behind a second fold. People mentioned in scene text are listed first; this is a text match, not a claim that they are physically present. All campaign NPCs remain accessible. Map previews, selected-location state and private notes are never automatically revealed; existing Reveal review controls still govern sharing. Preparation tools and complete original notes remain in an expandable section below the overview.
+
 ### Maps linked to story scenes
 
 The Google Drive dialog includes **Firefox: sign in without the account chooser**. Enter an account email and use **Connect this account (Firefox)** to send a one-request Google login hint with an explicit consent prompt. The email is not saved or sent to the player screen. It uses the same Google library, scope and token storage as ordinary sign-in; Google may still require login or account selection. OAuth and popup errors are shown separately instead of being collapsed into a generic message.
