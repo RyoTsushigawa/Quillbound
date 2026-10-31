@@ -35,3 +35,8 @@ Library source files are held while the page is open. Re-import them from Drive 
 - **No campaign in ZIP**: use ordinary Choose files for a PDF/map archive, rather than campaign restore.
 
 Implementation references: [Google token model](https://developers.google.com/identity/oauth2/web/guides/use-token-model), [Drive files list](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list), [Drive downloads](https://developers.google.com/workspace/drive/api/guides/manage-downloads).
+
+### Browsing or downloads return 403
+Quillbound now shows Google’s error reason. For accessNotConfigured or SERVICE_DISABLED, enable **Google Drive API** in the same Google Cloud project as the OAuth client ID saved in Quillbound, then reconnect. For insufficientPermissions, reconnect and grant Drive read access. Owner download restrictions and downloadQuotaExceeded must be resolved by the file owner or by waiting for Google’s quota to reset.
+
+Files shared by link may not appear in My Drive or Shared with me. Paste the original Drive folder/file URL into **Open Drive link**; retain its resourcekey parameter if present. Folder and file shortcuts are supported. The app remains read-only.

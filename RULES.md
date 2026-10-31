@@ -336,3 +336,6 @@ For Improvise, choose Resolve a physical situation, or choose that consequence f
 
 Removing restraints clears only Pinned or Sword pinned; custom and combined conditions need explicit DM review. Moving to cover while Exposed offers an unchecked DM suggestion to clear Exposed. It only clears if accepted and the character actually remains in cover after consequences. Context rules do not infer safety from an area name.
 
+
+Google Drive browsing includes My Drive, Shared with me and all accessible files. Folder and file shortcuts resolve to their targets, including resource keys required by link-shared files. Selections survive paging and folder navigation. A connected dialog loads its list when reopened. API failures report the HTTP status and a useful setup, permission or quota reason; PDF reader errors remain visible in Import adventure. Drive stays read-only; tokens and resource keys stay in memory.
+
