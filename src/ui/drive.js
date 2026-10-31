@@ -1,5 +1,12 @@
 const driveClient = QBDrive.client();
-let driveScript, driveBusy = false, driveSession = 0;
+let driveScript, driveBusy = false, driveSession = 0, driveResume = null;
+function driveImportFeedback(){
+  const report=S.importer?.driveReport, read=S.importer?.readReport;
+  if(!report && !read)return '';
+  const failed=(report?.failed || []).length+(read?.failed || []).length;
+  const groups=(S.importer.lib?.products || []).flatMap(p=>p.groups || []),maps=new Set(groups.filter(g=>g.kind==='map').flatMap(g=>(g.files || []).filter(f=>!f.copyOf).map(f=>f.path))),copies=groups.flatMap(g=>g.files || []).filter(f=>f.copyOf).length;
+  return `<details class="card" id="import-summary"><summary>Last import${report?' · '+report.ready+' files ready':''}${read?' · '+read.ready+' adventures read':''}${failed?' · '+failed+' need attention':''}</summary>${report?`<p>${report.ready} files downloaded. ${report.failed.length} downloads failed.</p>${report.failed.map(f=>`<p><b>${esc(f.name)}:</b> ${esc(f.error)}</p>`).join('')}${report.failed.length?'<button class="btn sm" data-act="drive-open">Retry downloads in Google Drive…</button>':''}`:''}${read?`<p>${read.ready} adventures read. ${read.failed.length} could not be read.</p>${read.failed.map(f=>`<p><b>${esc(f.name)}:</b> ${esc(f.error)}</p>`).join('')}${read.failed.length?'<button class="btn sm" data-act="lib-retry-read">Retry unread adventures</button>':''}`:''}${S.importer.lib?`<p>Current library: ${maps.size} map files · ${copies} duplicate files set aside · ${S.importer.lib.mirrors?.length || 0} unpacked ZIP copies set aside.</p>`:''}<p class="small muted">Downloaded files can be reused while this page stays open. After reloading, reconnect and select the original files again.</p></details>`;
+}
 function driveControls() { return '<div class="row"><button class="btn" data-act="drive-open">Google Drive assets & adventures…</button><span class="small muted">Import PDFs and maps into your library and Link adventures.</span></div>'; }
 async function driveLoadIdentity() {
   if (window.google?.accounts?.oauth2) return;
@@ -13,6 +20,7 @@ function driveDialog() {
   if (S.role !== 'dm') return;
   if (driveBusy) { toast('A Drive import is running. Finish or cancel it before reopening Drive.'); return; }
   const owner = S.campaigns?.current, session = ++driveSession;
+  if(driveResume?.owner!==owner)driveResume=null;
   const active = () => dlg.isConnected && session === driveSession && S.role === 'dm' && owner === S.campaigns?.current;
   const configured = localStorage.getItem('quillbound-drive-client') || '';
   const dlg = openDialog('Google Drive library', `<p>Browse Drive, then choose which files to copy into Quillbound. Google grants read access to your Drive; this app only downloads files you choose. It never edits, uploads or deletes Drive files. The access token stays in memory and expires.</p>
@@ -21,7 +29,7 @@ function driveDialog() {
     <details><summary>Firefox: try a specific Google account</summary><p>If Google fails after you select your account, enter its email here to suggest that account. Google may still show its account chooser and asks for permission. The email is used for this request only and is not saved.</p><label class="f">Google account email<input id="drive-account" type="email" autocomplete="off" placeholder="Your Google account email"></label><button class="btn" id="drive-connect-account">Connect this account (Firefox)</button></details>
     <div class="row"><label class="f">Search filenames across Drive<input id="drive-search" maxlength="200"></label><button class="btn" id="drive-find">Search</button><button class="btn" id="drive-home">My Drive</button><button class="btn" id="drive-shared">Shared with me</button><button class="btn" id="drive-all">All accessible files</button></div>
     <div class="row"><label class="f">Open a shared Drive file or folder link<input id="drive-link" type="url" placeholder="https://drive.google.com/…"></label><button class="btn" id="drive-open-link">Open Drive link</button></div><p id="drive-status" role="status">${driveClient.connected()?'Connected. Open My Drive or search.':'Not connected. Complete setup, then connect.'}</p><div class="row" style="position:sticky;top:0;background:var(--panel);padding:8px 0;z-index:1"><button class="btn" id="drive-back" disabled>← Back</button><strong id="drive-path">My Drive</strong></div><div id="drive-files"></div><button class="btn" id="drive-more" style="display:none">More files</button><label><input type="checkbox" id="drive-read" ${S.tab==='desk' && S.deskView==='campaign'?'checked':''}> Read library adventures after import and open Link adventures</label><button class="btn primary" id="drive-import" disabled>Import selected files</button>
-    <hr><button class="btn primary" id="drive-bulk">Import all adventures in this folder</button><label><input type="checkbox" id="drive-include-maps"> Also include loose maps and images</label><p class="small muted">Finds PDFs and ZIPs in this location and its subfolders, reads detected adventures, and opens Link adventures. Existing campaign notes stay in place. Up to 300 MB and 4,000 entries per import.</p><button class="btn" id="drive-cancel" hidden style="display:none">Cancel import</button><p>After importing PDFs, choose <b>Read all adventures for a campaign</b> in Import adventure, then return to <b>Link adventures</b>. Maps use the same preview and scene-link controls as local files. Reloading requires reconnecting to fetch source files again; saved adventure profiles and reviewed scene maps remain local.</p>`);
+    ${driveResume?'<p class="small">Your previous downloads are kept for this page.</p><button class="btn" id="drive-resume">Retry / resume previous import</button>':''}<hr><button class="btn primary" id="drive-bulk">Import all adventures in this folder</button><label><input type="checkbox" id="drive-include-maps"> Also include loose maps and images</label><p class="small muted">Finds PDFs and ZIPs in this location and its subfolders, reads detected adventures, and opens Link adventures. Existing campaign notes stay in place. Up to 300 MB and 4,000 entries per import.</p><button class="btn" id="drive-cancel" hidden style="display:none">Cancel import</button><p>After importing PDFs, choose <b>Read all adventures for a campaign</b> in Import adventure, then return to <b>Link adventures</b>. Maps use the same preview and scene-link controls as local files. Reloading requires reconnecting to fetch source files again; saved adventure profiles and reviewed scene maps remain local.</p>`);
   const field = id => dlg.querySelector('#drive-' + id);
   let folder = 'root', view = 'folder', history = [], page = '', rows = [], generation = 0, path=['My Drive'], cancelled=false;
   const context=()=>({folder,view,path:[...path],search:field('search').value});
@@ -86,16 +94,23 @@ function driveDialog() {
       else status('This link is not a supported PDF, ZIP, image or campaign JSON file.');
     }catch(error){if(ticket===generation)status(error.message);}
   };
-  async function importFiles(bulk=false){
+  async function importFiles(bulk=false,resume=false){
     if(driveBusy)return;cancelled=false;busy(true);
-    const stopped=()=>cancelled || !active() || !driveClient.connected();
+    const stopped=()=>cancelled || !active();
     try {
-      const selected=bulk?await driveClient.adventures({folder,view,includeMaps:field('include-maps').checked,cancelled:stopped,onProgress:p=>status('Looking through subfolders… '+p.files+' files found in '+p.folders+' locations.')}):[...chosen.values()], files=[], readAfter=bulk || field('read').checked;
+      const selected=resume?driveResume.sources:bulk?await driveClient.adventures({folder,view,includeMaps:field('include-maps').checked,cancelled:stopped,onProgress:p=>status('Looking through subfolders… '+p.files+' files found in '+p.folders+' locations.')}):[...chosen.values()], files=[], readAfter=resume?driveResume.readAfter:bulk || field('read').checked;
+      if(!resume)driveResume={owner,sources:selected,cache:new Map(),readAfter,bulk};
+      if(resume)bulk=driveResume.bulk;
       if(stopped())throw Error('Adventure import cancelled.');
       if(!selected.length)throw Error(bulk?'No PDFs or ZIPs were found in this location. Open your adventure folder or include loose maps.':'Select at least one PDF, ZIP or map first.');
-      let bytes=0;
-      for(const source of selected){if(stopped())throw Error('Adventure import cancelled.');status('Downloading '+(files.length+1)+'/'+selected.length+': '+source.name+'…');let blob;try{blob=await driveClient.download(source);}catch(error){throw Error(source.name+': '+error.message);}if(stopped())throw Error('Adventure import cancelled.');bytes+=blob.size;if(bytes>300*1024*1024)throw Error('Selected files exceed 300 MB. Import smaller folders.');files.push(new File([blob],source.path || source.name,{type:blob.type}));}
-      if(!active() || !driveClient.connected())throw Error('Connect Drive again before importing.');
+      let bytes=[...driveResume.cache.values()].reduce((n,f)=>n+f.size,0);const failed=[];
+      for(const source of selected){if(stopped())throw Error('Adventure import cancelled.');status('Downloading '+(files.length+1)+'/'+selected.length+': '+source.name+'…');let file=driveResume.cache.get(source.id);
+        if(!file){try{const blob=await driveClient.download(source);if(stopped())throw Error('Adventure import cancelled.');if(bytes+blob.size>300*1024*1024)throw Error('Selected files exceed 300 MB. Import smaller folders.');file=new File([blob],source.path || source.name,{type:blob.type});driveResume.cache.set(source.id,file);bytes+=blob.size;}catch(error){if(stopped())throw error;failed.push({name:source.name,error:error.message});continue;}}
+        files.push(file);
+      }
+      if(!active())return;
+      S.importer.driveReport={ready:files.length,failed};
+      if(!files.length)throw Error('No files downloaded. Reconnect if needed, then reopen Drive and retry your previous import. '+(failed[0]?.error || ''));
       if(!bulk && files.length===1 && /\.zip$/i.test(files[0].name)) {
         const {campaignPackage}=await import('../importer/package.js');
         let prepared;
@@ -109,18 +124,20 @@ function driveDialog() {
       const QB=window.QB || await import('../app/library-session.js');
       const media=files.filter(f=>!/\.json$/i.test(f.name));
       const library=media.length?await QB.addFileList(media):S.importer.lib;
-      if(!active() || !driveClient.connected())throw Error('Drive connection or campaign changed. Import again.');
+      if(!active())throw Error('Campaign changed. Import again.');
       S.driveSources ??= [];
-      for(const f of selected){const old=S.driveSources.findIndex(x=>x.id===f.id);const source={id:f.id,name:f.name,modifiedTime:f.modifiedTime||''};if(old<0)S.driveSources.push(source);else S.driveSources[old]=source;}
+      for(const f of selected.filter(f=>driveResume.cache.has(f.id))){const old=S.driveSources.findIndex(x=>x.id===f.id);const source={id:f.id,name:f.name,modifiedTime:f.modifiedTime||''};if(old<0)S.driveSources.push(source);else S.driveSources[old]=source;}
       S.importer.lib=library;S.importer.phase='library';sceneMapsRetryMissing();S.tab='import';dlg.close();render();
       const backup=files.find(f=>/\.json$/i.test(f.name));
       if(backup){const parsed=QBCampaigns.parseCampaign(await backup.text());if(parsed.error)toast(parsed.error);else if(S.role==='dm' && owner===S.campaigns?.current)clConfirm('Restore '+parsed.name+'?', 'This creates a new campaign and preserves the current one.',()=>{if(S.role!=='dm' || owner!==S.campaigns?.current)return;QBCampaigns.importCampaign(S,parsed);render();},'Restore');}
       else if(readAfter){await libReadAll();if(S.role==='dm' && owner===S.campaigns?.current && !S.importer.status){S.tab='desk';S.deskView='campaign';render();}}
-      else toast('Files imported. Read the adventures to add them to Link adventures.');
+      else toast(failed.length?files.length+' files imported; '+failed.length+' failed. Open Drive to retry.':'Files imported. Read the adventures to add them to Link adventures.');
+      if(!failed.length)driveResume=null;
     }catch(error){status(error.message);}finally{busy(false);}
   }
   field('import').onclick=()=>importFiles(false);
   field('bulk').onclick=()=>importFiles(true);
+  if(driveResume)field('resume').onclick=()=>importFiles(false,true);
   field('cancel').onclick=()=>{cancelled=true;status('Cancelling import after the current request…');};
   navigation();
   if(driveClient.connected())void load();

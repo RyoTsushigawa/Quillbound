@@ -256,7 +256,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/app/player-core.js"></script>
 <script src="src/app/scene-maps.js" data-ui></script>
 <script src="src/app/security-alert.js" data-ui></script>
-<script src="src/app/drive.js?v=20261031-drive3" data-ui></script>
+<script src="src/app/drive.js?v=20261031-drive4" data-ui></script>
 <script src="src/app/srd-monsters.js"></script>
 <script src="src/app/attacks.js"></script>
 <script src="src/app/srd-heroes.js"></script>
@@ -281,10 +281,10 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/ui/hero-import.js"></script>
 <script src="src/ui/combat-objectives.js"></script>
 <script src="src/ui/scene-maps.js"></script>
-<script src="src/ui/session-overview.js"></script>
+<script src="src/ui/session-overview.js?v=20261031-ready1"></script>
 <script src="src/ui/security-alert.js"></script>
 <script src="src/ui/package-import.js"></script>
-<script src="src/ui/drive.js?v=20261031-drive3"></script>
+<script src="src/ui/drive.js?v=20261031-drive4"></script>
 <script>
 /* ---------- rules data ---------- */
 const ABIL=['STR','DEX','CON','INT','WIS','CHA'];
@@ -604,9 +604,9 @@ const SYS_LABEL={'5e':'D&D 5e',coc:'Call of Cthulhu',pf2:'Pathfinder 2e',dsa:'Da
 const fmtSize=b=>b>1e6?(b/1e6).toFixed(b>1e8?0:1)+' MB':Math.max(1,Math.round(b/1e3))+' KB';
 function vImport(){
   const I=S.importer;
-  if(I.phase==='results'&&I.result) return vResults();
-  if(I.phase==='product'&&I.lib&&I.lib.products[I.pi]) return vProduct();
-  return vLibrary();
+  if(I.phase==='results'&&I.result) return driveImportFeedback()+vResults();
+  if(I.phase==='product'&&I.lib&&I.lib.products[I.pi]) return driveImportFeedback()+vProduct();
+  return driveImportFeedback()+vLibrary();
 }
 function dropZone(){
   const I=S.importer;
@@ -758,7 +758,7 @@ function vCampaign(){
     </div></div>`;
 }
 function vDesk(){
-  if(S.deskView==='campaign') return vCampaign();
+  if(S.deskView==='campaign') return driveImportFeedback()+vCampaign();
   if(!overviewLegacy) return sessionOverview(vDesk);
   const dangling=S.hooks.filter(h=>h.status==='dangling').length, active=S.beats.find(b=>b.status==='active');
   const beats=S.beats.map(b=>`<div class="beat ${b.status}"><button class="dot" data-act="beat" data-id="${b.id}" aria-label="Mark ${esc(b.title)}: now ${b.status}" title="Click: upcoming → active → done"></button>
@@ -857,6 +857,7 @@ const ACT={
   'lib-compare':d=>{libCompare(+d.v);},
   'lib-read':()=>{libRead();},
   'lib-readall':()=>{libReadAll();},
+  'lib-retry-read':()=>{libReadAll(true);},
   'desk-view':d=>{S.deskView=d.v; window.scrollTo(0,0);},
   'camp-toggle':d=>{const C=campaign(); const i=C.order.indexOf(d.id); if(i>=0) C.order.splice(i,1); else C.order.push(d.id);},
   'camp-suggest':()=>{const C=campaign(); const advs=C.order.map(id=>S.adventures.find(a=>a.id===id)).filter(Boolean); if(!window.QB) return; const {order}=QB.suggestOrder(advs.map(a=>a.profile),[]); C.order=order.map(i=>advs[i].id);},
@@ -916,16 +917,18 @@ function rememberAdventure(r){
   const i=S.adventures.findIndex(x=>x.id===a.id);
   if(i>=0) S.adventures[i]=a; else S.adventures.push(a);
 }
-const libReadAll=()=>libRun('Reading all adventures…',async progress=>{
-  const ps=S.importer.lib.products.filter(p=>p.type==='adventure');
+const libReadAll=(retry=false)=>libRun('Reading all adventures…',async progress=>{
+  if(!S.importer.lib)throw Error('Reload the original files into the library before retrying PDF reading.');
+  const previous=S.importer.readReport;
+  const ps=S.importer.lib.products.filter(p=>p.type==='adventure' && (!retry || previous?.failed.some(f=>f.name===p.name)));
   let n=0, failed=[];
   for(const p of ps){
     n++;
     try{ rememberAdventure(await QB.readProduct(p.i,msg=>progress(`Book ${n} of ${ps.length}, ${p.name}: ${msg}`))); }
-    catch(e){ failed.push(p.name); }
+    catch(e){ failed.push({name:p.name,error:e.message||String(e)}); }
   }
   toast(`Read ${ps.length-failed.length} adventures. Open the DM desk → Campaign to connect them.`);
-  if(failed.length) S.importer.status='Could not read: '+failed.join(', ');
+  S.importer.readReport={ready:(retry?previous?.ready||0:0)+ps.length-failed.length,failed};
 });
 async function libPreview(path){
   try{ const url=await QB.previewUrl(S.importer.pi,path), name=path.split('/').pop(); openDialog(name,`<img src="${esc(url)}" alt="${esc(name)}" class="preview">`,{wide:true}); }

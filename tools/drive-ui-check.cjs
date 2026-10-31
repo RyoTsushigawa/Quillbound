@@ -19,5 +19,13 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
  let bulkArgs,reads=0;client.adventures=async options=>{bulkArgs=options;return [{id:'book',name:'Book.pdf',path:'Adventure/Book.pdf'}];};ctx.libReadAll=async()=>{reads++;};
  await field('bulk').onclick();assert.equal(bulkArgs.folder,'root');assert.equal(reads,1);assert.equal(added.at(-1).name,'Adventure/Book.pdf');assert.equal(state.deskView,'campaign');assert.equal(field('cancel').hidden,true);
   let finish;client.adventures=()=>new Promise(resolve=>finish=resolve);ctx.driveDialog();await settle();const before=added.length, pending=field('bulk').onclick();field('cancel').onclick();finish([{id:'cancelled',name:'Cancelled.pdf'}]);await pending;assert.equal(added.length,before);assert.match(field('status').textContent,/cancelled/);assert.equal(field('bulk').disabled,false);
- console.log('PASS: connected Drive reopening, shared browsing, pagination selections, folder Back/path, selected import and bulk reading into Link adventures.');
+ client.adventures=async()=>[{id:'keep',name:'Keep.pdf'},{id:'retry',name:'Retry.pdf'}];let fail=true;
+ client.download=async f=>{downloads.push(f.id);if(f.id==='retry'&&fail)throw Error('Temporary failure');return new Blob(['pdf']);};
+ ctx.driveDialog();await settle();await field('bulk').onclick();assert.equal(state.importer.driveReport.ready,1);assert.equal(state.importer.driveReport.failed.length,1);assert(ctx.driveImportFeedback().includes('Temporary failure'));
+ fail=false;ctx.driveDialog();await settle();await field('resume').onclick();assert.equal(downloads.filter(x=>x==='keep').length,1,'retry reuses completed downloads');assert.equal(state.importer.driveReport.failed.length,0);assert.equal(state.importer.driveReport.ready,2);
+ const main=fs.readFileSync('index.html','utf8'),reader=main.slice(main.indexOf('const libReadAll='),main.indexOf('async function libPreview'));
+ let readCalls=[];const readState={importer:{lib:{products:[{i:0,name:'Good',type:'adventure'},{i:1,name:'Bad',type:'adventure'}]}}};
+ const readerCtx=vm.createContext({S:readState,QB:{readProduct:async i=>{readCalls.push(i);if(i===1&&fail)throw Error('Unreadable PDF');return {};}},rememberAdventure:()=>{},toast:()=>{},libRun:async(label,job)=>{await job(()=>{});readState.importer.status='';}});
+ vm.runInContext(reader+';globalThis.readAll=libReadAll;',readerCtx);fail=true;await readerCtx.readAll();assert.equal(readState.importer.readReport.failed[0].error,'Unreadable PDF');fail=false;await readerCtx.readAll(true);assert.deepEqual(readCalls,[0,1,1]);assert.equal(readState.importer.readReport.ready,2);
+ console.log('PASS: Drive navigation, selection and bulk import, cancellation, partial success, cached download retry and failed-PDF-only reading retry.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

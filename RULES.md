@@ -342,3 +342,6 @@ Google Drive browsing includes My Drive, Shared with me and all accessible files
 
 Drive folders show the current path and a Back button that restores the previous folder or results view. Import all adventures scans the current location and its subfolders (or all accessible files in that view), follows pagination, deduplicates target IDs, and reads detected adventures into Link adventures. It includes PDFs and ZIPs; loose images are optional. Paths are retained for grouping. Cancel stops before the next request or local library import. Collections are limited to 4,000 entries and 300 MB; existing campaigns are preserved.
 
+
+Import feedback stays in a collapsed Last import summary on the library and DM overview. It reports completed files, adventure reading failures with reasons, and current library maps/copies. Failed downloads do not discard completed files; reopening Drive offers retry/resume and reuses completed downloads in memory for the same campaign until reload. Reading retry targets failed adventure products only. Session check is a collapsed reminder for named-but-unlinked maps, missing heroes and basic hero fields; a separate private action checks actual cached map pixels. It does not certify character builds or encounter balance.
+
