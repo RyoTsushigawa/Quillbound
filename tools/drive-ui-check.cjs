@@ -12,5 +12,12 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
  field('more').onclick();await settle();assert.equal(requests.at(-1).page,'next');assert.match(field('files').innerHTML,/data-drive-file="one" checked/,'More files keeps selections');
  field('shared').onclick();await settle();assert.equal(requests.at(-1).view,'shared');assert.equal(field('import').disabled,false,'selection survives navigating folders');
  await field('import').onclick({target:field('import')});assert.deepEqual(downloads,['one']);assert.equal(added[0].name,'first.png');assert.equal(added[0].type,'image/png');assert.equal(rendered,1);assert(!dialog.isConnected);
- console.log('PASS: connected Drive reopening, shared browsing, pagination selection retention and selected-file import into the real library entry point.');
+ client.open=async()=>({id:'child',name:'Adventure shelf',mimeType:'folder'});
+ ctx.driveDialog();await settle();field('link').value='https://drive.google.com/drive/folders/child';await field('open-link').onclick();
+ assert.equal(field('path').textContent,'Adventure shelf');assert.equal(field('back').disabled,false);
+ field('back').onclick();await settle();assert.equal(requests.at(-1).folder,'root');assert.equal(field('path').textContent,'My Drive');assert.equal(field('back').disabled,true);
+ let bulkArgs,reads=0;client.adventures=async options=>{bulkArgs=options;return [{id:'book',name:'Book.pdf',path:'Adventure/Book.pdf'}];};ctx.libReadAll=async()=>{reads++;};
+ await field('bulk').onclick();assert.equal(bulkArgs.folder,'root');assert.equal(reads,1);assert.equal(added.at(-1).name,'Adventure/Book.pdf');assert.equal(state.deskView,'campaign');assert.equal(field('cancel').hidden,true);
+  let finish;client.adventures=()=>new Promise(resolve=>finish=resolve);ctx.driveDialog();await settle();const before=added.length, pending=field('bulk').onclick();field('cancel').onclick();finish([{id:'cancelled',name:'Cancelled.pdf'}]);await pending;assert.equal(added.length,before);assert.match(field('status').textContent,/cancelled/);assert.equal(field('bulk').disabled,false);
+ console.log('PASS: connected Drive reopening, shared browsing, pagination selections, folder Back/path, selected import and bulk reading into Link adventures.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
