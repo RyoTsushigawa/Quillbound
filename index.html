@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="combat.css">
 <link rel="stylesheet" href="drama.css">
 <link rel="stylesheet" href="session-overview.css">
+<link rel="stylesheet" href="security-alert.css">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -254,6 +255,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 
 <script src="src/app/player-core.js"></script>
 <script src="src/app/scene-maps.js" data-ui></script>
+<script src="src/app/security-alert.js" data-ui></script>
 <script src="src/app/drive.js" data-ui></script>
 <script src="src/app/srd-monsters.js"></script>
 <script src="src/app/attacks.js"></script>
@@ -280,6 +282,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/ui/combat-objectives.js"></script>
 <script src="src/ui/scene-maps.js"></script>
 <script src="src/ui/session-overview.js"></script>
+<script src="src/ui/security-alert.js"></script>
 <script src="src/ui/package-import.js"></script>
 <script src="src/ui/drive.js"></script>
 <script>
@@ -1221,7 +1224,7 @@ function playerSetup() {
   for (const [id, key] of [['share-party','party'],['share-combat','combat']]) dlg.querySelector('#'+id).onchange = e => { cfg[key] = e.target.checked; publishPlayer(true); save(); };
   dlg.querySelectorAll('[data-player-hide]').forEach(b=>b.onclick=()=>{const record=S[b.dataset.kind].find(x=>x.id===b.dataset.playerHide); if(record?.player) record.player.visible=false; publishPlayer(true); render(); dlg.close(); playerSetup();});
   dlg.querySelector('#player-clear-spot').onclick = () => { sceneMapsPause(); playerSpotlight=null; publishPlayer(true); dlg.close(); playerSetup(); };
-  dlg.querySelector('#player-hide-all').onclick = () => { sceneMapsPause(); for(const kind of ['beats','hooks','npcs','items']) for(const r of S[kind]||[]) if(r.player) r.player.visible=false; cfg.party=false; cfg.combat=false; playerSpotlight=null; publishPlayer(true); render(); dlg.close(); playerSetup(); };
+  dlg.querySelector('#player-hide-all').onclick = () => { sceneMapsPause(); for(const kind of ['beats','hooks','npcs','items']) for(const r of S[kind]||[]) if(r.player) r.player.visible=false; cfg.party=false; cfg.combat=false; if(S.securityAlert)S.securityAlert.shared=false; playerSpotlight=null; publishPlayer(true); render(); dlg.close(); playerSetup(); };
 }
 function playerEdit(kind, id) {
   if (!['beats','hooks','npcs','items'].includes(kind)) return;
@@ -1264,7 +1267,7 @@ async function playerMap(path) {
     };
   }catch(error){toast(error.message);}
 }
-Object.assign(ACT,{'player-setup':playerSetup,'player-edit':d=>playerEdit(d.kind,d.id),'spot-text':d=>playerReadAloud(d.id),'lib-show':d=>playerMap(d.path),'scene-map':d=>sceneMapDialog(d.id),'scene-map-show':d=>sceneMapShow(d.id),'drive-open':driveDialog,...sessionOverviewActions()});
+Object.assign(ACT,{'player-setup':playerSetup,'player-edit':d=>playerEdit(d.kind,d.id),'spot-text':d=>playerReadAloud(d.id),'lib-show':d=>playerMap(d.path),'scene-map':d=>sceneMapDialog(d.id),'scene-map-show':d=>sceneMapShow(d.id),'drive-open':driveDialog,...sessionOverviewActions(),...securityActions()});
 window.addEventListener('pagehide',()=>playerChannel?.channel.close());
 
 /* ---------- clarity integration ---------- */

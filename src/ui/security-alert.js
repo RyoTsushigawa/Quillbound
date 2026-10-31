@@ -1,0 +1,14 @@
+function securityMeter(){
+  if(!S.securityAlert && !QBSecurity.isMuseum(S))return '<div class="sec-enable"><button class="btn sm" data-act="security-enable">Add a security alert meter</button></div>';
+  const a=QBSecurity.read(S),stage=QBSecurity.stage(a.value);
+  return `<section class="card sec-meter sec-level-${a.value}" aria-label="Security alert controls"><div class="sec-main"><div><div class="eyebrow">${a.museum?'Spannung · Museum security':'Security pressure'}</div><h3>Security alert <span>${a.value}/6</span></h3></div><div class="sec-track" role="meter" aria-label="Security alert" aria-valuemin="0" aria-valuemax="6" aria-valuenow="${a.value}">${Array.from({length:6},(_,i)=>`<span class="${i<a.value?'filled':''}" aria-hidden="true"></span>`).join('')}</div><div class="row"><button class="btn sm" data-act="security-down" ${a.value===0?'disabled':''} aria-label="Lower security alert by one">−1</button><button class="btn sm primary" data-act="security-up" ${a.value===6?'disabled':''}>Raise +1</button><button class="btn sm" data-act="security-undo" ${!a.history.length?'disabled':''}>Undo</button></div></div><div class="sec-foot"><span>${a.museum?esc(stage.name):'Manual track · the DM decides consequences'}</span><button class="btn sm ghost" data-act="security-share" aria-pressed="${a.shared}">${a.shared?'Shown to players · hide':'Show meter to players'}</button></div>${a.museum?`<p class="sec-effect">${esc(stage.effect)}</p><details><summary>Next threshold & when to change the alert</summary><p><b>${esc(stage.next)}</b></p><p>+1 bei einem angekündigten lauten Alarm, zerstörter Tür/Vitrine, misslungenem riskanten Einbruch oder zehn Minuten ergebnislosem Zögern in gefährlicher Lage. Höchstens +1 pro gemeinsam abgewickelter Szene, nicht pro Held oder Würfel. Ein schlechter Kampfwurf erhöht die Spannung nicht.</p><p>Ein ehrlicher Ausgleich mit Voss und das Abschalten des Zentralalarms in C senken sie je einmal um 1.</p><div class="row"><button class="btn sm" data-act="security-voss" ${a.used.voss || !a.value?'disabled':''}>${a.used.voss?'Voss reconciliation used':'Voss reconciled −1 (once)'}</button><button class="btn sm" data-act="security-alarm" ${a.used.alarm || !a.value?'disabled':''}>${a.used.alarm?'Central alarm reduction used':'Central alarm disabled −1 (once)'}</button></div></details>`:''}</section>`;
+}
+function securityActions(){return {
+  'security-enable':()=>QBSecurity.ensure(S),
+  'security-up':()=>QBSecurity.change(S,1,'Raised by the DM'),
+  'security-down':()=>QBSecurity.change(S,-1,'Lowered by the DM'),
+  'security-undo':()=>QBSecurity.undo(S),
+  'security-share':()=>{const a=QBSecurity.ensure(S);a.shared=!a.shared;},
+  'security-voss':()=>QBSecurity.change(S,-1,'Voss reconciled','voss'),
+  'security-alarm':()=>QBSecurity.change(S,-1,'Central alarm disabled','alarm')
+};}

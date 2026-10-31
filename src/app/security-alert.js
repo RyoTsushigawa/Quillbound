@@ -1,0 +1,10 @@
+(function(root){
+  const clamp=n=>Math.max(0,Math.min(6,Math.round(Number(n)||0)));
+  const isMuseum=s=>(s.beats||[]).some(b=>/Le Louvr[eé]/i.test(b.summary||'') || /^louvre-/.test(b.id||''));
+  function read(s){const a=s.securityAlert||{};return {value:clamp(a.value),shared:a.shared===true,used:{voss:a.used?.voss===true,alarm:a.used?.alarm===true},history:Array.isArray(a.history)?a.history.slice(-30):[],museum:a.museum===undefined?isMuseum(s):a.museum===true};}
+  function ensure(s){return s.securityAlert=read(s);}
+  function change(s,delta,reason,once){if(!Number.isFinite(delta))return false;const a=ensure(s);if(once && !['voss','alarm'].includes(once))return false;if(once && a.used[once])return false;const value=clamp(a.value+delta);if(value===a.value)return false;a.history.push({value:a.value,used:{...a.used},reason:String(reason||'Manual adjustment').slice(0,160)});a.history=a.history.slice(-30);a.value=value;if(once)a.used[once]=true;return true;}
+  function undo(s){const a=ensure(s),last=a.history.pop();if(!last)return false;a.value=clamp(last.value);a.used={voss:last.used?.voss===true,alarm:last.used?.alarm===true};return true;}
+  function stage(value){const n=clamp(value);return n<2?{name:'Quiet unease',effect:'Ansagen und wandernde Schatten. Noch keine zusätzliche Sicherung.',next:'Bei 2: Servicetüren verriegeln; Handrad SG 12 oder Voss öffnet sie ohne neuen Alarm.'}:n<4?{name:'Security on watch',effect:'Servicetüren verriegelt. Handrad SG 12 oder Voss öffnet sie ohne neuen Alarm.',next:'Bei 4: Voss wird zum Reliquiar beordert. Keine zusätzlichen Kämpfe.'}:n<6?{name:'High alert',effect:'Voss wird zum Reliquiar beordert. Besiegte Wachen kehren nicht zurück; keine Zusatzkämpfe.',next:'Bei 6: Das Finale beginnt mit Versiegelung 1 statt 0.'}:{name:'Maximum alert',effect:'Das Finale beginnt mit Versiegelung 1 statt 0. Spannung 6 beendet das Abenteuer nicht und zerstört keine Schätze.',next:'Keine weiteren automatischen Folgen. Den Wert und die laufende Versiegelungsuhr getrennt führen.'};}
+  root.QBSecurity={clamp,isMuseum,read,ensure,change,undo,stage};
+})(globalThis);
