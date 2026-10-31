@@ -17,6 +17,7 @@ function driveDialog() {
   const dlg = openDialog('Google Drive library', `<p>Browse Drive, then choose which files to copy into Quillbound. Google grants read access to your Drive; this app only downloads files you choose. It never edits, uploads or deletes Drive files. The access token stays in memory and expires.</p>
     <details ${configured?'':'open'}><summary>Set up Google sign-in once</summary><p>The website owner must enable Google Drive API and create an OAuth <b>Web application</b> client in Google Cloud. Add <b>https://ryotsushigawa.github.io</b> as an authorized JavaScript origin. For a personal test, add your Google account as a test user on the consent screen and allow the Drive read-only scope.</p><p><a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Open Google Cloud credentials</a> · <a href="GOOGLE_DRIVE_SETUP.md" target="_blank" rel="noopener noreferrer">Full setup instructions</a></p><label class="f">Public OAuth client ID<input id="drive-client-id" value="${esc(configured)}" placeholder="…apps.googleusercontent.com"></label><p>No client secret is needed. This public ID is saved only in this browser.</p></details>
     <div class="row"><button class="btn primary" id="drive-connect">Connect Google Drive</button><button class="btn" id="drive-disconnect">Disconnect</button></div>
+    <details><summary>Firefox: sign in without the account chooser</summary><p>If Google fails after you select your account, enter its email here to ask Google to open that account directly. Google still handles sign-in and asks for permission. The email is used for this request only and is not saved.</p><label class="f">Google account email<input id="drive-account" type="email" autocomplete="off" placeholder="Your Google account email"></label><button class="btn" id="drive-connect-account">Connect this account (Firefox)</button></details>
     <div class="row"><label class="f">Search filenames across Drive<input id="drive-search" maxlength="200"></label><button class="btn" id="drive-find">Search</button><button class="btn" id="drive-home">My Drive</button><button class="btn" id="drive-back">Back</button></div>
     <p id="drive-status" role="status">${driveClient.connected()?'Connected. Open My Drive or search.':'Not connected. Complete setup, then connect.'}</p><div id="drive-files"></div><button class="btn" id="drive-more" style="display:none">More files</button><label><input type="checkbox" id="drive-read" ${S.tab==='desk' && S.deskView==='campaign'?'checked':''}> Read library adventures after import and open Link adventures</label><button class="btn primary" id="drive-import" disabled>Import selected files</button>
     <p>After importing PDFs, choose <b>Read all adventures for a campaign</b> in Import adventure, then return to <b>Link adventures</b>. Maps use the same preview and scene-link controls as local files. Reloading requires reconnecting to fetch source files again; saved adventure profiles and reviewed scene maps remain local.</p>`);
@@ -37,17 +38,22 @@ function driveDialog() {
       field('files').onchange=()=>{field('import').disabled=!field('files').querySelector('input:checked');};
     } catch(error) { status(error.message); }
   }
-  field('connect').onclick = async () => {
+  async function connect(useAccount) {
     try {
-      const id = field('client-id').value.trim(); if (!QBDrive.clientId(id)) throw Error('Enter the public OAuth client ID from Google Cloud setup first.');
-      if (!window.google?.accounts?.oauth2) { await driveLoadIdentity(); status('Google sign-in is ready. Click Connect Google Drive again.'); return; }
+      const id = field('client-id').value.trim(), email = useAccount ? field('account').value.trim() : '';
+      if(useAccount && !email) throw Error('Enter your Google account email above, then click Connect this account (Firefox).');
+      const config = QBDrive.signInConfig(id,email);
+      if (!window.google?.accounts?.oauth2) { await driveLoadIdentity(); status('Google sign-in is ready. Click '+(useAccount?'Connect this account (Firefox)':'Connect Google Drive')+' again.'); return; }
       if(!active())return;
       localStorage.setItem('quillbound-drive-client', id);
-      const client = google.accounts.oauth2.initTokenClient({client_id:id,scope:QBDrive.scope,include_granted_scopes:false,
-        callback:response=>{if(!active())return;try{driveClient.authorize(response);void load();}catch(error){status(error.message);}},error_callback:()=>status('Google sign-in was closed or blocked. Click Connect to try again.')});
+      status('Waiting for Google sign-in'+(useAccount?' with the account chooser skipped':'')+'…');
+      const client = google.accounts.oauth2.initTokenClient({...config,
+        callback:response=>{if(!active())return;try{driveClient.authorize(response);void load();}catch(error){status(error.message);}},error_callback:error=>status(QBDrive.authError(error))});
       client.requestAccessToken();
     } catch(error) { status(error.message); }
-  };
+  }
+  field('connect').onclick=()=>void connect(false);
+  field('connect-account').onclick=()=>void connect(true);
   field('disconnect').onclick=()=>{generation++;driveClient.disconnect();rows=[];field('files').innerHTML='';field('import').disabled=true;field('more').style.display='none';status('Disconnected. Local imports remain. Revoke access in your Google account permissions if desired.');};
   field('home').onclick=()=>{folder='root';history=[];field('search').value='';void load();};
   field('back').onclick=()=>{folder=history.pop()||'root';field('search').value='';void load();};
