@@ -20,6 +20,11 @@ const deferred = () => { let resolve, reject; const promise = new Promise((a,b) 
     {path:'duplicate.png',previewable:true,copyOf:'a_PLAYER.png'}, {path:'a.pdf',previewable:false}
   ]}] }] };
   assert.equal(M.candidates(library).length, 1); assert.equal(M.candidates(library)[0].pi, 3);
+  assert.equal(M.suggested({summary:'KARTE: a_PLAYER.png'},library).pi,3);
+  assert.equal(M.suggested({summary:'KARTE: a_GM.png'},library),null);
+  assert.equal(M.suggested({summary:'KARTE: ../NUR_SL/a_PLAYER.png'},library),null);
+  assert.equal(M.suggested({summary:'KARTE: a.png'},library),null);
+  assert.equal(M.suggested({summary:'KARTE: a_PLAYER.png'},{products:[...library.products,...library.products]}),null,'ambiguous filenames never auto-link');
   const bytes = new Blob(['same approved file']); assert.equal(await M.fingerprint(bytes), require('node:crypto').createHash('sha256').update('same approved file').digest('hex'));
   await assert.rejects(M.assets.put({key,url:'https://wrong'}), /readable/);
   await assert.rejects(M.assets.get(key), /cannot save/);
@@ -53,5 +58,8 @@ const deferred = () => { let resolve, reject; const promise = new Promise((a,b) 
   M.pixels=async()=>url;ctx.QB={blobFor:async()=>({blob:bytes,dm:false})};
   await vm.runInContext('sceneMapsSync()',ctx);assert.equal(ctx.playerSpotlight.url,url);assert(images.has(exactKey),'an identical imported image reconnects a backup');
   images.clear();ctx.S.beats[0].playerMap.key=other;await vm.runInContext('sceneMapsSync()',ctx);assert.equal(ctx.playerSpotlight,null,'a changed file with the same name is not silently approved');
+  ctx.S.beats=[{id:'legacy',title:'Old campaign',summary:'KARTE: a_PLAYER.png',status:'active'},{id:'off',title:'Manually unlinked',summary:'KARTE: a_PLAYER.png',playerMapAutoOff:true}];
+  await vm.runInContext('sceneMapsAutoLink()',ctx);assert.equal(ctx.S.beats[0].playerMap.key,exactKey);assert.equal(ctx.S.beats[0].playerMap.auto,true);assert(!ctx.S.beats[1].playerMap,'manual unlink remains respected');assert(images.has(exactKey));
+  ctx.S.beats.push({id:'later',title:'Added after reading',summary:'MAP: a_PLAYER.png'});await vm.runInContext('sceneMapsAutoLink()',ctx);assert.equal(ctx.S.beats[2].playerMap.key,exactKey,'new scenes added to an existing desk also auto-link');
   console.log('PASS: scene-map approval, GM exclusion, hash reconnect, persistent references, missing files, scene/campaign races and manual-display overrides.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

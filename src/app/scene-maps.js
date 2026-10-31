@@ -8,6 +8,15 @@
       .filter(f => f.previewable && !f.copyOf && !dmFile(f))
       .map(f => ({ ...f, pi: product.i, product: product.name, name: f.name || basename(f.path) }))));
   }
+  function hint(beat) {
+    return String(beat?.summary || '').match(/^\s*(?:KARTE|MAP):\s*([^\r\n]+\.(?:png|jpe?g|webp))\s*$/mi)?.[1]?.trim() || '';
+  }
+  function suggested(beat, library) {
+    const name=hint(beat);
+    if(!name || dmFile({path:name}) || !/(?:^|[ _.-])player(?:[ _.-]|$)/i.test(basename(name)))return null;
+    const matches=candidates(library).filter(f=>f.name===basename(name));
+    return matches.length===1?matches[0]:null;
+  }
   function reference(value) {
     if (!value || typeof value !== 'object') return null;
     const key = String(value.key || '');
@@ -86,5 +95,5 @@
       }
     };
   }
-  root.SceneMaps = { imageUrl, basename, dmFile, candidates, reference, fingerprint, pixels, assets, controller };
+  root.SceneMaps = { imageUrl, basename, dmFile, candidates, hint, suggested, reference, fingerprint, pixels, assets, controller };
 })(globalThis);
