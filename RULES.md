@@ -359,3 +359,6 @@ Editing an existing My heroes character offers Save changes on every step. Incom
 
 Existing adventure characters can also be saved with unfinished choices as a marked draft; save controls appear on every editor step. Only a non-empty character name is required to keep these edits. The editor does not silently fill missing choices.
 
+
+The Awareness & subclass sheets dialog offers Edit full character for heroes with saved build data. It closes the dialog and opens that adventure character’s complete editor. The limited form is separately labelled Awareness & subclass only.
+
