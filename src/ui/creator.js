@@ -179,7 +179,7 @@ function crStepBody(c,sheet){
     return `<div class="card stack"><h3>${esc(b.name||'Your hero')}</h3><p>Level ${sheet.level} ${esc(sheet.species)} ${esc(sheet.cls)}${sheet.subclass?' ('+esc(sheet.subclass)+')':''} · ${esc(sheet.background)}</p>
       ${open.length?`<div class="cl-error" role="alert"><b>Still to choose:</b><ul>${open.map(o=>`<li><button class="linklike" data-act="cr-step" data-v="${o.step}">${esc(o.label)}${o.left>1?' ('+o.left+')':''}</button></li>`).join('')}</ul></div>`:'<p class="cr-count done">✓ Every choice is made.</p>'}
       ${sheet.warnings.length?`<ul class="small lt-warning">${sheet.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:''}
-      <div class="row"><button class="btn primary" data-act="${S.role==='dm'&&!c.heroId?'cr-add':'cr-savehero'}" ${open.length?'disabled':''}>${c.heroId?'Save changes to My heroes':S.role==='dm'?'Save & add to party':'Save to My heroes'}</button>${S.role==='dm'?`<button class="btn" data-act="${c.heroId?'cr-add':'cr-savehero'}" ${open.length?'disabled':''}>${c.heroId?'Save & add to party':'Save to My heroes only'}</button>`:''}<button class="btn" data-act="cr-printsheet">Character sheet (print / PDF)</button><button class="btn discord" data-act="discord" data-v="sheet">Preview Discord message</button><button class="btn ghost" data-act="cr-new">Start another</button></div></div>`; }
+      <div class="row"><button class="btn primary" data-act="${c.partyId?'adventure-hero-save':S.role==='dm'&&!c.heroId?'cr-add':'cr-savehero'}" ${!b.name.trim() || (open.length&&!c.heroId&&!c.partyId)?'disabled':''}>${c.partyId?(open.length?'Save draft to adventure':'Save changes to adventure'):c.heroId?(open.length?'Save draft changes':'Save changes to My heroes'):S.role==='dm'?'Save & add to party':'Save to My heroes'}</button>${S.role==='dm'&&!c.partyId?`<button class="btn" data-act="${c.heroId?'cr-add':'cr-savehero'}" ${open.length?'disabled':''}>${c.heroId?'Save & add to party':'Save to My heroes only'}</button>`:''}<button class="btn" data-act="cr-printsheet">Character sheet (print / PDF)</button><button class="btn discord" data-act="discord" data-v="sheet">Preview Discord message</button><button class="btn ghost" data-act="cr-new">Start another</button></div></div>`; }
   }
 }
 // The live sheet: every number calculated from the choices so far.
@@ -202,13 +202,13 @@ function crSheetPanel(c,sheet){
 }
 function vCreate(){
   const c=crState(), sheet=crSheet(c), steps=crSteps(sheet); if(!steps.some(([k])=>k===c.step)) c.step='species';
-  const i=steps.findIndex(([k])=>k===c.step), head=c.step==='review'&&S.role!=='dm'?['Your hero is ready','Save your hero to My heroes, then send it to your DM from there.']:CR_HEAD[c.step];
+  const i=steps.findIndex(([k])=>k===c.step), head=c.step==='review'&&c.partyId?['Review adventure changes','Save to update this adventure’s character copy.']:c.step==='review'&&c.heroId?['Review your changes','Save changes to update this hero in My heroes.']:c.step==='review'&&S.role!=='dm'?['Your hero is ready','Save your hero to My heroes, then send it to your DM from there.']:CR_HEAD[c.step];
   // before a class is chosen, the steps that depend on it are neither open nor done
   const waits=k=>!c.build.cls&&['abilities','skills','spells','equipment'].includes(k);
   const stepper=`<div class="cr-steps" role="list">${steps.map(([k,l])=>{const n=crOpenIn(sheet,c,k);return `<button role="listitem" data-act="cr-step" data-v="${k}" ${k===c.step?'aria-current="step"':''} class="${n||waits(k)||k==='review'?'':'done'}">${l}${k==='review'||waits(k)?'':n?` <span class="badge">${n}</span>`:' ✓'}</button>`;}).join('')}</div>`;
   const foot=`<div class="cr-foot"><button class="btn" data-act="cr-step" data-v="${steps[i-1]?.[0]||''}" ${i===0?'disabled':''}>Back</button>${i<steps.length-1?`<button class="btn primary" data-act="cr-step" data-v="${steps[i+1][0]}">Next: ${steps[i+1][1]}</button>`:''}</div>`;
   return `<div class="pagehead"><div><h2>${head[0]}</h2><p>${head[1]}</p></div></div>
-    <div class="cr-layout"><div class="cr-main">${stepper}${crStepBody(c,sheet)}${crOwnIdea(c.step)}${foot}</div>
+    ${c.heroId||c.partyId?`<div class="row card"><span class="small">${c.partyId?'Editing this adventure’s character':'Editing My heroes'} · save changes before leaving this character.</span><button class="btn primary" data-act="${c.partyId?'adventure-hero-save':'cr-savehero'}" ${!c.build.name.trim()?'disabled':''}>${sheet.open.length?'Save draft changes':'Save changes'}</button></div>`:''}<div class="cr-layout"><div class="cr-main">${stepper}${crStepBody(c,sheet)}${crOwnIdea(c.step)}${foot}</div>
     <details class="cr-sheet-wrap" ${c.sheetOpen?'open':''}><summary data-act="cr-sheet-toggle">${c.sheetOpen?'Hide sheet':'View sheet'}<span>HP ${sheet.hp.max} · AC ${sheet.ac}${sheet.open.length?` · ${sheet.open.reduce((n,o)=>n+o.left,0)} open`:''}</span></summary>${crSheetPanel(c,sheet)}</details></div>`;
 }
 // "Make your own": the steps with things players may invent open the matching Homebrew editor (src/ui/homebrew.js).
@@ -271,7 +271,7 @@ function creatorActions(){ const B=()=>crState().build, D=()=>crData();
   'cr-new':()=>{ S.creator=crNew(); },
   'cr-sheet-toggle':()=>{ const c=crState(); c.sheetOpen=!c.sheetOpen; },
   // Player mode: the hero goes to My heroes in this browser (src/ui/campaigns.js sends it to the DM from there).
-  'cr-savehero':()=>{ const c=crState(), sheet=crSheet(c); if(sheet.open.length||!c.build.name.trim()) { toast('Finish the open choices first.'); return; }
+  'cr-savehero':()=>{ const c=crState(), sheet=crSheet(c); if((sheet.open.length&&!c.heroId)||!c.build.name.trim()) { toast('Finish the open choices first.'); return; }
     const hero=crStoreHero(c);
     toast(`${hero.build.name} is saved in My heroes. Send them to your DM from there.`); S.creator=crNew(); S.tab='heroes'; },
   'cr-add':()=>{ const c=crState(), sheet=crSheet(c); if(sheet.open.length||!c.build.name.trim()) { toast('Finish the open choices first.'); return; }
