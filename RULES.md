@@ -345,3 +345,6 @@ Drive folders show the current path and a Back button that restores the previous
 
 Import feedback stays in a collapsed Last import summary on the library and DM overview. It reports completed files, adventure reading failures with reasons, and current library maps/copies. Failed downloads do not discard completed files; reopening Drive offers retry/resume and reuses completed downloads in memory for the same campaign until reload. Reading retry targets failed adventure products only. Session check is a collapsed reminder for named-but-unlinked maps, missing heroes and basic hero fields; a separate private action checks actual cached map pixels. It does not certify character builds or encounter balance.
 
+
+Class skill choices show background-granted skills as checked, gray and disabled, labelled included from background. They do not consume class skill choices or satisfy the class-choice counter. Old duplicate entries are ignored by validation and removed when class skills or background are deliberately changed; existing proficiency and Expertise remain derived from the background. Imported skill bonuses are preserved.
+

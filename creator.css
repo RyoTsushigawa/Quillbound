@@ -92,3 +92,6 @@
 
 /* ---------- player mode (src/ui/campaigns.js): tabs and buttons the mode hides ---------- */
 .tab[hidden],#player-btn[hidden]{display:none!important}
+
+.cr-check.cr-granted{background:var(--surface-2);border-color:var(--line);color:var(--muted);opacity:.65}.cr-check.cr-granted label,.cr-check.cr-granted input{cursor:not-allowed}
+

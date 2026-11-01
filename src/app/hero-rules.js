@@ -265,7 +265,7 @@
     need('background', 'Background', bg ? 1 : 0, 1);
     if (bg) need('background', 'Background ability increases', boostCheck(b) ? 0 : 1, 1);
     if (bg?.toolChoice) need('background', bg.toolChoice.desc, b.toolChoice ? 1 : 0, 1);
-    if (c?.skillChoice) need('skills', `${c.name} skills`, (b.skills || []).filter(x => c.skillChoice.from.includes(x)).length, c.skillChoice.choose);
+    if (c?.skillChoice) need('skills', `${c.name} skills`, (b.skills || []).filter(x => c.skillChoice.from.includes(x) && !(bg?.skills || []).includes(x)).length, c.skillChoice.choose);
     need('skills', 'Expertise', expert.size, expertiseCount(b));
     if (lore) need('skills', 'College of Lore: three skills', (b.featPicks?.lore || []).length, 3);
     if ((styleLevel[b.cls] && level >= styleLevel[b.cls]) || levelsUpTo(b).some(l => l.features.some(f => /-fighting-style$/.test(f)) && c?.homebrew)) need('class', 'Fighting Style feat', b.fightingStyle ? 1 : 0, 1);

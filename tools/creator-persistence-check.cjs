@@ -72,3 +72,7 @@ input('creator.asiUI.12.feat','ability-score-improvement');input('creator.asiUI.
 const higher=snapshot();run(`ACT['cr-savehero']();render();ACT['cm-edit']({id:S.myHeroes.at(-1).id});render();`);
 assert.deepEqual(snapshot(),higher,'each level retains its own choice and ability increases');
 console.log('PASS: fresh Bard save/reload/export, imported and local edit round trips, split ASI, feat +1, all-three background boosts, Lore skills, Expertise, and deliberate changes.');
+run(`S.creator=crNew();S.creator.build.level=5;ACT['cr-quick']({v:'rogue'});S.creator.build.background='criminal';S.creator.build.skills=['acrobatics','deception','sleight-of-hand','stealth'];S.creator.build.expertise=['sleight-of-hand','stealth'];S.creator.step='skills';`);
+let skillView=run('crStepBody(S.creator,crSheet(S.creator))');assert.equal((skillView.split('<h3>Expertise</h3>')[0].match(/checked disabled/g)||[]).length,2);assert(skillView.includes('Choose 2 of 4 skills'));assert.equal(run("crSheet(S.creator).skills.stealth.expert"),true);assert.equal(run("crSheet(S.creator).open.find(x=>x.label==='Rogue skills').left"),2);
+run(`ACT['cr-toggle']({k:'skills',v:'investigation',max:4});ACT['cr-toggle']({k:'skills',v:'perception',max:4});`);assert.equal(run('S.creator.build.skills.length'),4);assert.equal(run("crSheet(S.creator).open.some(x=>x.label==='Rogue skills')"),false);assert.equal(run('crSheet(S.creator).skills.stealth.expert'),true);
+console.log('PASS: granted background skills are disabled, excluded from class choices, remain trained and retain Expertise.');

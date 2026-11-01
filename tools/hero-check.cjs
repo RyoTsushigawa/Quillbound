@@ -32,7 +32,7 @@ console.log('PASS: Human Fighter 1: STR 17, HP 12, AC 17 (chain mail + Defense),
 
 /* 2: High Elf Wizard 5, Sage, INT raised at 4 */
 const wizard={name:'Wren',species:'elf',sub:'elven-lineage-high-elf',keenSense:'perception',cls:'wizard',level:5,abilities:{method:'array',base:arr(['INT','CON','DEX','WIS','CHA','STR'])},
-  background:'sage',boost:{INT:2,CON:1},skills:['arcana','investigation'],asi:{4:{feat:'ability-score-improvement',plus:{INT:2}}},gear:{cls:0,bg:0},hp:{method:'average'},
+  background:'sage',boost:{INT:2,CON:1},skills:['insight','investigation'],asi:{4:{feat:'ability-score-improvement',plus:{INT:2}}},gear:{cls:0,bg:0},hp:{method:'average'},
   spells:{cantrips:['fire-bolt','light','mage-hand','prestidigitation'],prepared:['magic-missile','shield','sleep','detect-magic','mage-armor','misty-step','scorching-ray','fireball','burning-hands']}};
 s=sheet(wizard);
 assert.equal(s.scores.INT,19);assert.equal(s.hp.max,32,'6+2, then 4 × (4+2)');assert.equal(s.ac,11);assert.equal(s.prof,3);
@@ -114,7 +114,7 @@ console.log('PASS: hero records keep the full attack list for combat (name, bonu
 {const c3=vm.createContext({crypto:require('crypto').webcrypto});for(const f of ['srd-heroes','phb-feats','phb-backgrounds','hero-rules'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',f+'.js'),'utf8'),c3);
 const H3=c3.QBHERO,R3=c3.QBHeroRules;assert.equal(H3.backgrounds.length,16,'4 SRD + 12 Player’s Handbook backgrounds');
 for(const bg of H3.backgrounds){assert.equal(bg.abilities.length,3);assert.equal(bg.skills.length,2);assert(H3.feats.some(f=>f.id===bg.feat.id&&f.type==='origin'),bg.name+': an origin feat');if(bg.source==='phb-2024')assert(bg.equipment.choices[0].items.every(i=>H3.equipment[i.id]),bg.name+': kit items exist');
-  const b={...R3.quickBuild('fighter','T',1),background:bg.id,boost:{[bg.abilities[0]]:2,[bg.abilities[1]]:1},toolChoice:''};R3.fillDefaults(b);assert.deepEqual(plain(R3.derive(b).open),[],bg.name+': nothing left open');}
+  const b={...R3.quickBuild('fighter','T',1),background:bg.id,skills:H3.classes.find(c=>c.id==='fighter').skillChoice.from.filter(id=>!bg.skills.includes(id)).slice(0,2),boost:{[bg.abilities[0]]:2,[bg.abilities[1]]:1},toolChoice:''};R3.fillDefaults(b);assert.deepEqual(plain(R3.derive(b).open),[],bg.name+': nothing left open');}
 const base={...R3.quickBuild('fighter','T',4),boost:{STR:2,CON:1}},farmer=R3.derive({...base,background:'farmer'}),soldier=R3.derive({...base,background:'soldier'});
 assert.equal(farmer.scores.CON,soldier.scores.CON);assert.equal(farmer.hp.max-soldier.hp.max,8,'Farmer: Tough gives +2 HP per level');}
 console.log('PASS: all 16 backgrounds of the 2024 rules (12 from the Player’s Handbook as summaries) build complete heroes; Farmer’s Tough adds its hit points.');
@@ -139,7 +139,7 @@ const H5=c5.QBHERO,R5=c5.QBHeroRules,B5=c5.QBHomebrew;assert.equal(H5.background
 assert.deepEqual(plain(H5.backgrounds.filter(b=>b.source==='adventure').map(b=>b.id+' '+b.name+' '+b.tools[0])),["hb-bg-sammler-quinn Nachtbastlerin Thieves' Tools",'hb-bg-sammler-camilla Hüterin der Zugabe Flute',"hb-bg-sammler-toxic Nachtingenieur Tinker's Tools"],'the Sammlersache backgrounds keep their ids');
 for(const bg of H5.backgrounds.filter(b=>['playtest','classic','adventure'].includes(b.source))){assert.equal(bg.abilities.length,3,bg.name);assert.equal(new Set(bg.abilities).size,3,bg.name);assert(H5.feats.some(f=>f.id===bg.feat.id&&f.type==='origin'),bg.name);
   assert(bg.equipment.choices[0].items.every(i=>H5.equipment[i.id]),bg.name+': kit items exist');const ch=bg.equipment.choices[0];if(['classic','adventure'].includes(bg.source))assert(B5.kitValue({items:ch.items,gp:ch.gp})>=40&&B5.kitValue({items:ch.items,gp:ch.gp})<=60,bg.name+': kit about 50 GP');
-  const b={...R5.quickBuild('rogue','T',1),background:bg.id,boost:{[bg.abilities[0]]:1,[bg.abilities[1]]:1,[bg.abilities[2]]:1},toolChoice:'',expertise:[]};R5.fillDefaults(b);assert.deepEqual(plain(R5.derive(b).open),[],bg.name+': nothing left open');}}
+  const b={...R5.quickBuild('rogue','T',1),background:bg.id,skills:H5.classes.find(c=>c.id==='rogue').skillChoice.from.filter(id=>!bg.skills.includes(id)).slice(0,4),boost:{[bg.abilities[0]]:1,[bg.abilities[1]]:1,[bg.abilities[2]]:1},toolChoice:'',expertise:[]};R5.fillDefaults(b);assert.deepEqual(plain(R5.derive(b).open),[],bg.name+': nothing left open');}}
 console.log('PASS: 33 backgrounds: SRD, Player’s Handbook, 2022 playtest (with a third ability), 11 classic ones converted to the 2024 structure and the 3 of Die Sammlersache; each builds a complete hero.');
 
 /* fan-made subclasses (5.5 fan wiki), after the SRD and Player's Handbook ones */
