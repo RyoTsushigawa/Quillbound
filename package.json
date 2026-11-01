@@ -7,7 +7,7 @@
     "scan": "node tools/scan.js",
     "read": "node tools/read.js",
     "regress": "node tools/regress.js",
-    "test": "node tools/combat-check.cjs && node tools/mixed-attack-check.cjs && node tools/encounter-foundation-check.cjs && node tools/encounter-lifecycle-check.cjs && node tools/player-check.cjs && node tools/clarity-check.cjs && node tools/library-check.cjs && node tools/hp-check.cjs && node tools/hero-check.cjs && node tools/homebrew-check.cjs && node tools/sheet-check.cjs && node tools/campaign-check.cjs && node tools/hero-import-check.cjs && node tools/creator-persistence-check.cjs && node tools/scene-objectives-check.cjs && node tools/scene-maps-check.cjs && node tools/package-drive-check.cjs && node tools/drive-ui-check.cjs && node tools/session-overview-check.cjs && node tools/security-alert-check.cjs && node tools/player-dice-check.cjs"
+    "test": "node tools/combat-check.cjs && node tools/mixed-attack-check.cjs && node tools/encounter-foundation-check.cjs && node tools/encounter-lifecycle-check.cjs && node tools/player-check.cjs && node tools/clarity-check.cjs && node tools/library-check.cjs && node tools/hp-check.cjs && node tools/hero-check.cjs && node tools/homebrew-check.cjs && node tools/sheet-check.cjs && node tools/campaign-check.cjs && node tools/hero-import-check.cjs && node tools/creator-persistence-check.cjs && node tools/scene-objectives-check.cjs && node tools/scene-maps-check.cjs && node tools/package-drive-check.cjs && node tools/drive-ui-check.cjs && node tools/session-overview-check.cjs && node tools/security-alert-check.cjs && node tools/player-dice-check.cjs && node tools/player-hp-check.cjs"
   },
   "keywords": [],
   "author": "",

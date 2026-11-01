@@ -107,3 +107,8 @@ console.log('PASS: awareness sheet dialog offers full character editing separate
 
 assert.equal(run('typeof QBPlayerDice.roll'),'function','the player dice engine is loaded by the app');
 
+assert.equal(run('typeof QBPlayerHP.change'),'function');
+run(`S.tab='heroes';playerHpDialog(S.myHeroes.at(-1).id);globalThis.updateDialog.querySelector('#player-hp-amount').value='5';`);const hpMax=run('cmSheet(S.myHeroes.at(-1).build).hp.max'),partyHpBefore=plain(run('S.party.map(p=>p.hpNow)'));
+run(`globalThis.updateDialog.querySelector('#player-hp-damage').onclick();S=load();`);assert.equal(run('S.myHeroes.at(-1).hpTracker.current'),Math.max(0,hpMax-5));assert.deepEqual(plain(run('S.party.map(p=>p.hpNow)')),partyHpBefore);assert(run('vHeroes()').includes('Track HP'));
+run(`ACT['cm-edit']({id:S.myHeroes.at(-1).id});S.creator.story.want='HP survives sheet editing';ACT['cr-savehero']();render();S=load();`);assert.equal(run('S.myHeroes.at(-1).hpTracker.current'),Math.max(0,hpMax-5));
+console.log('PASS: player HP dialog saves damage, survives browser reload and character editing, and does not change adventure HP.');
