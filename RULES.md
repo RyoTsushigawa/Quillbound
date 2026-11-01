@@ -377,3 +377,8 @@ The player roller’s Guidance & modifiers section adds optional Guidance (+1d4 
 
 My heroes shows a current/max HP meter and Track HP for every readable character. Personal HP starts full and supports damage, healing, direct entry, Full HP and ten Undo steps; values stay between zero and the sheet maximum. HP play state persists on that hero in this browser through edits and reloads, outside the build/story export. It does not sync to adventure HP, spend rest resources or automate death saves. Maximum-HP decreases clamp the displayed saved current HP.
 
+
+Character sheets show explicit weapon, armor/shield, tool/instrument and additional training from the existing rules model, in the live Skills tab, My heroes and printable German/English sheets. No extra proficiency is granted by displaying it.
+
+Story includes Begleiter & Familiars: named companion records with type, AC, maximum HP, speed and manual notes. A Madame Croissant homebrew template is available. Companions persist in the build through saves, exports and reviewed adventure updates, and print with the sheet. They do not grant spells, attacks, extra familiar slots or automatic actions. Save the character after editing a companion.
+
