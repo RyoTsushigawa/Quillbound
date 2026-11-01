@@ -3,6 +3,7 @@ function adventureHeroButtons(p){return `<span class="row">${p.build?`<button cl
 function adventureHeroPanel(){return `<details class="card ov-adventure-heroes" id="adventure-characters"><summary>Adventure characters · ${S.party?.length || 0}</summary><p class="small muted">Edit this adventure’s copies. Send a player update file so its owner can review and apply permanent sheet changes in My heroes. Current combat HP and conditions stay at the table.</p>${(S.party || []).map(p=>`<div class="row hb-item"><span><b>${esc(p.name)}</b> · ${esc(p.cls)} ${p.level || 1}${p.sheetDraft?' · draft':''}</span>${adventureHeroButtons(p)}</div>`).join('') || '<p>No characters in this adventure yet.</p>'}<button class="btn sm" data-act="rd-sheets">Table stats & subclass notes</button></details>`;}
 function adventureHeroEdit(id){
  if(S.role!=='dm')return;const p=(S.party || []).find(p=>p.id===id);if(!p?.build)return;
+ document.getElementById('app-dialog')?.close?.();
  S.creator=crRestoreSelections({...crNew(),build:JSON.parse(JSON.stringify({...p.build,name:p.name})),story:{...crNew().story,...p.heroStory,want:p.want || ''},partyId:p.id,partyCampaign:S.campaigns.current,step:'review'});S.tab='create';
 }
 function adventureHeroSave(){
