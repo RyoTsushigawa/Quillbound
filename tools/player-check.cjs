@@ -47,3 +47,12 @@ receiver.onmessage({data:{type:'snapshot',payload:{...shown,cards:[{title:'Clue'
 receiver.onmessage({data:{type:'snapshot',payload:{...shown,spotlight:{...shown.spotlight,url:'data:image/png;base64,BB=='}}}});assert.equal(writes,3);assert.notEqual(view.image,original,'a changed map receives a new image');
 receiver.onmessage({data:{type:'snapshot',payload:{...shown,spotlight:null}}});assert.equal(view.image,null,'hiding a map removes it');
 console.log('PASS: identical heartbeat snapshots do not repaint; text changes preserve map identity; changing or hiding maps still updates.');
+// Competing DM windows and legacy app tabs cannot alternate the chosen display.
+const beforeSources=writes;
+receiver.onmessage({data:{type:'snapshot',sourceId:'dm-A',payload:shown}});assert.equal(writes,beforeSources+1);const lockedImage=view.image;
+receiver.onmessage({data:{type:'snapshot',sourceId:'dm-B',payload:{...shown,spotlight:null}}});assert.equal(writes,beforeSources+1);assert.equal(view.image,lockedImage);
+receiver.onmessage({data:{type:'snapshot',payload:{...shown,spotlight:null}}});assert.equal(view.image,lockedImage,'legacy background tabs cannot blank an explicitly sourced display');
+receiver.onmessage({data:{type:'source-activate',sourceId:'dm-B'}});receiver.onmessage({data:{type:'snapshot',sourceId:'dm-B',payload:{...shown,spotlight:null}}});assert.equal(view.image,null,'explicit use-this-tab switches the display');
+receiver.onmessage({data:{type:'snapshot',sourceId:'dm-A',payload:shown}});assert.equal(view.image,null);
+const protectedView=playerNodes.get('player-view').innerHTML;vm.runInContext("S.role='player';S.npcs[0].player={visible:true,title:'BACKGROUND TAB',text:'Must not publish'};publishPlayer(true);",dm);assert.equal(playerNodes.get('player-view').innerHTML,protectedView,'player mode never publishes even when old display settings remain saved');
+console.log('PASS: one selected DM publisher, explicit takeover, legacy snapshot rejection and no broadcasts from player-mode tabs.');
