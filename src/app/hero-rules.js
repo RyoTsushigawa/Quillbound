@@ -279,9 +279,13 @@
 
     const gear = inventory(b);
     if (gear.gp < 0) warn.push(`The extra gear costs ${gear.spent} GP, but the kits give ${gear.startGp} GP: ${-gear.gp} GP short. Choose the gold option of a kit, buy less, or ask the DM to grant it.`);
-    const tools = [...new Set([...classProfs(b).filter(p => /^tool:|kit$|supplies$|tools$/i.test(p)).map(p => p.replace(/^Tool:\s*/i, '')), ...(bg?.tools || []), ...(b.toolChoice ? [b.toolChoice] : [])])];
+    const tools = [...new Set([...classProfs(b).filter(p => /^tool:|kit$|supplies$|tools$|instruments?/i.test(p)).map(p => p.replace(/^Tool:\s*/i, '')), ...(bg?.tools || []), ...(b.toolChoice ? [b.toolChoice] : [])])];
     if ((b.training || []).length) features.push({ name: 'Training granted by the DM', level: 1, source: 'House rule', desc: (b.training || []).map(g => TRAINING[g] || item(g)?.name || g).join(', ') + '. Not part of the class; your DM allowed it.' });
-    return { tools, name: b.name || '', level, prof, species: sp?.name || '', sub: sub?.name || '', cls: c?.name || '', subclass: level >= 3 ? subOf(b)?.name || '' : '', background: bg?.name || '',
+    const granted=[...(b.training || []),...featTraining(b)].map(g=>TRAINING[g] || item(g)?.name || g),labels=[...new Set([...classProfs(b),...granted])];
+    const weaponNames=new Set(Object.values(data.equipment).filter(x=>x.kind==='weapon').flatMap(x=>[x.name.toLowerCase(),x.name.toLowerCase()+'s']));
+    const proficiencies={weapons:labels.filter(x=>/weapons?/i.test(x)||weaponNames.has(x.toLowerCase())),armor:labels.filter(x=>/armor|shields?/i.test(x)),tools,granted};
+    const companions=(Array.isArray(b.companions)?b.companions:[]).filter(x=>x&&typeof x==='object').slice(0,10).map(x=>({name:String(x.name || 'Companion').slice(0,100),kind:String(x.kind || '').slice(0,100),ac:Number.isInteger(x.ac)?x.ac:null,hp:Number.isInteger(x.hp)?x.hp:null,speed:String(x.speed || '').slice(0,100),notes:String(x.notes || '').slice(0,4000)}));
+    return { tools, proficiencies, companions, name: b.name || '', level, prof, species: sp?.name || '', sub: sub?.name || '', cls: c?.name || '', subclass: level >= 3 ? subOf(b)?.name || '' : '', background: bg?.name || '',
       size: sp?.size || b.size || '', scores: s, mods: m, saves, skills, passive: 10 + skills.perception.bonus, initiative: m.DEX + (hasFeat('alert') ? prof : 0), speed,
       senses: (sp?.traits || []).filter(t => /^darkvision/.test(t.id)).map(t => t.name),
       hp: { max: hpMax, perLevel }, hitDice: { die: c?.hitDie || 8, count: level }, ac: ac.ac, acFrom: ac.from, attacks, spellcasting, features, feats,

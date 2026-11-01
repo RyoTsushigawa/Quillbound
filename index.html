@@ -266,20 +266,21 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/app/fan-subclasses.js"></script>
 <script src="src/app/phb-species.js"></script>
 <script src="src/app/extra-backgrounds.js"></script>
-<script src="src/app/hero-rules.js?v=20261101-skills1"></script>
+<script src="src/app/hero-rules.js?v=20261101-profs1"></script>
 <script src="src/app/player-dice.js?v=20261101-modifiers1" data-ui></script>
 <script src="src/app/player-hp.js" data-ui></script>
 <script src="src/app/homebrew.js"></script>
-<script src="src/app/sheet-export.js"></script>
+<script src="src/app/sheet-export.js?v=20261101-profs1"></script>
 <script src="src/app/campaigns.js?v=20261101-dice1" data-ui></script>
 <script src="src/app/hero-import.js" data-ui></script>
 <script src="src/app/table-homebrew.js"></script>
 <script src="src/app/combat-rules.js"></script>
 <script src="src/app/encounter-design.js"></script>
 <script src="src/app/conditions.js"></script>
-<script src="src/ui/creator.js?v=20261101-skills1"></script>
+<script src="src/ui/character-extras.js"></script>
+<script src="src/ui/creator.js?v=20261101-profs1"></script>
 <script src="src/ui/homebrew.js"></script>
-<script src="src/ui/campaigns.js?v=20261101-hp1"></script>
+<script src="src/ui/campaigns.js?v=20261101-profs1"></script>
 <script src="src/ui/adventure-heroes.js?v=20261101-fullsheet2"></script>
 <script src="src/ui/player-dice.js?v=20261101-modifiers1"></script>
 <script src="src/ui/player-hp.js"></script>
@@ -1280,7 +1281,7 @@ async function playerMap(path) {
     };
   }catch(error){toast(error.message);}
 }
-Object.assign(ACT,{'player-hp':d=>playerHpDialog(d.id),'player-dice':d=>playerDiceDialog(d.id),'player-setup':playerSetup,'player-edit':d=>playerEdit(d.kind,d.id),'spot-text':d=>playerReadAloud(d.id),'lib-show':d=>playerMap(d.path),'scene-map':d=>sceneMapDialog(d.id),'scene-map-show':d=>sceneMapShow(d.id),'drive-open':driveDialog,...sessionOverviewActions(),...securityActions(),...adventureHeroActions()});
+Object.assign(ACT,{'player-hp':d=>playerHpDialog(d.id),'player-dice':d=>playerDiceDialog(d.id),'player-setup':playerSetup,'player-edit':d=>playerEdit(d.kind,d.id),'spot-text':d=>playerReadAloud(d.id),'lib-show':d=>playerMap(d.path),'scene-map':d=>sceneMapDialog(d.id),'scene-map-show':d=>sceneMapShow(d.id),'drive-open':driveDialog,...sessionOverviewActions(),...securityActions(),...adventureHeroActions(),...characterExtrasActions()});
 window.addEventListener('pagehide',()=>playerChannel?.channel.close());
 
 /* ---------- clarity integration ---------- */

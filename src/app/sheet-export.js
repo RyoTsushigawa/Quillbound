@@ -51,6 +51,9 @@
       ${spellList.length ? `<p><b>${L.cantrips}:</b> ${esc(spellList.filter(x => !x.level).map(x => x.name).join(', ') || L.none)}</p><p><b>${L.prepared}:</b> ${esc(spellList.filter(x => x.level).map(x => `${x.name} (${x.level})`).join(', ') || L.none)}</p>`
         : `<p class="ps-muted">${L.cantrips} ${sc.cantrips} · ${L.prepared} ${sc.prepared}</p>`}</section>` : '';
     const feats = (s.features || []).map(f => `<li><b>${esc(f.name)}</b>${f.level > 1 ? ` <span class="ps-muted">(${L.level} ${f.level})</span>` : ''}${f.desc ? ': ' + esc(brief(f.desc)) : ''}</li>`).join('');
+    const pr=s.proficiencies;
+    const training=pr?`<section class="ps-box"><h3>${de?'Übungen & Training':'Proficiencies & Training'}</h3><p><b>${de?'Waffen':'Weapons'}:</b> ${esc(pr.weapons.join(', ') || L.none)}</p><p><b>${de?'Rüstungen & Schilde':'Armor & shields'}:</b> ${esc(pr.armor.join(', ') || L.none)}</p><p><b>${L.tools}:</b> ${esc(pr.tools.join(', ') || L.none)}</p>${pr.granted.length?`<p><b>${de?'Zusätzlich / durch Talente':'Additional / feats'}:</b> ${esc(pr.granted.join(', '))}</p>` : ''}</section>`:'';
+    const companions=(s.companions || []).length?`<section class="ps-box"><h3>${de?'Begleiter & Familiars':'Companions & Familiars'}</h3>${s.companions.map(p=>`<p><b>${esc(p.name)}</b> · ${esc(p.kind)}${p.ac!==null?' · '+L.ac+' '+p.ac:''}${p.hp!==null?' · '+L.hp+' '+p.hp:''}${p.speed?' · '+esc(p.speed):''}<br>${esc(brief(p.notes,1200))}</p>`).join('')}</section>`:'';
     const st = opts.story || {};
     const head = n => `<header class="ps-head"><div><h1>${esc(s.name || 'Hero')}</h1><p>${esc(title)}</p></div><div class="ps-page">${L.page} ${n}</div></header>`;
     return `<article class="ps-sheet" lang="${de ? 'de' : 'en'}">
@@ -64,11 +67,12 @@
         <section class="ps-box ps-track"><p><b>${L.hp}:</b> ____ / ${s.hp.max}  <b>Temp:</b> ____</p><p><b>${L.stamina}:</b> ${boxes(s.stamina, L.stamina)}  <b>${L.hitDice}:</b> ${s.hitDice.count}d${s.hitDice.die} ${boxes(s.hitDice.count, L.hitDice)}</p>
           <p><b>${L.deathSaves}:</b> ${L.success} ${boxes(3, L.success)}  ${L.fail} ${boxes(3, L.fail)}</p></section>
         <section class="ps-box"><h3>${L.gear}</h3><p>${gear || L.none}${s.gear?.gp != null ? ` · ${s.gear.gp} ${L.gp}` : ''}</p>${(s.tools || []).length ? `<p><b>${L.tools}:</b> ${esc(s.tools.join(', '))}</p>` : ''}</section>
-        ${(st.want || st.fear || st.look) ? `<section class="ps-box"><h3>${L.story}</h3>${st.look ? `<p>${esc(st.look)}</p>` : ''}${st.want ? `<p><b>${L.want}:</b> ${esc(st.want)}</p>` : ''}${st.fear ? `<p><b>${L.fear}:</b> ${esc(st.fear)}</p>` : ''}</section>` : ''}
+        ${training}${(st.want || st.fear || st.look) ? `<section class="ps-box"><h3>${L.story}</h3>${st.look ? `<p>${esc(st.look)}</p>` : ''}${st.want ? `<p><b>${L.want}:</b> ${esc(st.want)}</p>` : ''}${st.fear ? `<p><b>${L.fear}:</b> ${esc(st.fear)}</p>` : ''}</section>` : ''}
         <section class="ps-box ps-table-rules"><h3>${L.table}</h3><p>${L.tableText}</p></section></div>
     </div></section>
   <section class="ps-pg">${head(2)}
     ${spells}
+    ${companions}
     <section class="ps-box"><h3>${L.features}</h3><ul class="ps-feats">${feats}</ul></section>
     <section class="ps-box ps-notes"><h3>${L.notes}</h3>${'<div class="ps-line"></div>'.repeat(6)}</section>
     <footer class="ps-foot">Quillbound · D&amp;D 2024 (SRD 5.2, CC-BY 4.0)</footer></section>
