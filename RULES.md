@@ -371,3 +371,6 @@ The player screen treats periodic DM replies as a connection heartbeat. It ignor
 
 Only DM-mode app tabs publish to the player screen. Snapshots identify their publishing tab; the player screen locks onto one publisher and ignores other tabs, including legacy replies without a publisher ID. Opening Player screen settings or choosing Use this DM tab explicitly selects that tab and sends its current reveal. A player screen can be reopened from a cache-versioned link. If a selected DM tab is closed/reloaded, use Player screen settings on the intended DM tab to select it again; the last reveal stays visible while waiting.
 
+
+The player roller’s Guidance & modifiers section adds optional Guidance (+1d4 on the chosen skill check), Bless/Bane (±1d4 on attacks/saves), Bardic Inspiration, a flat bonus/penalty and custom bonus dice. Invalid built-in effects are disabled for known roll types; custom d20 checks require the table to choose applicable effects. Advantage/disadvantage affects only the base d20, not bonus dice. All modifiers validate before dice are consumed, appear individually in results/copies/history, and can be cleared together. Effects are chosen manually and do not cast spells, check concentration or spend resources.
+
