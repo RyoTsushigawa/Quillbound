@@ -14,3 +14,9 @@ field('#player-dice-choice').value='skill:stealth';field('#player-dice-mode').va
 dice=[1,20];field('#player-dice-mode').value='advantage';field('#player-dice-roll').onclick();assert.match(field('#player-dice-result').innerHTML,/<h2>30<\/h2>/);
 dice=[12];field('#player-dice-choice').value='attack:0';field('#player-dice-mode').value='normal';field('#player-dice-roll').onclick();assert.match(field('#player-dice-result').innerHTML,/<h2>19<\/h2>/);
 console.log('PASS: player dice formulas, natural results, fair-die delegation, advantage/disadvantage, automatic sheet bonuses and no HP changes.');
+const guided=roll('1d20+5',{mode:'advantage',die:seq([2,18,3]),bonuses:[{label:'Guidance',formula:'1d4'},{label:'Bonus',formula:'2'}]});assert.equal(guided.total,28);assert.equal(guided.natural,18);assert.equal(guided.bonuses[0].total,3);
+assert.equal(roll('1d20+5',{die:seq([10,4]),bonuses:[{label:'Bane',formula:'-1d4'}]}).total,11);
+let consumed=0;assert.throws(()=>roll('1d20',{die:()=>{consumed++;return 1;},bonuses:[{formula:'bad input'}]}));assert.equal(consumed,0,'all modifiers validate before any die is rolled');
+assert.throws(()=>ctx.playerDiceBonuses('skill:stealth','1d20+10',{bless:true}),/does not apply/);assert.throws(()=>ctx.playerDiceBonuses('damage:0','1d4+4',{guidance:true}),/does not apply/);
+dice=[12,3];field('#player-dice-choice').value='skill:stealth';field('#player-dice-guidance').checked=true;field('#player-dice-mode').value='normal';field('#player-dice-roll').onclick();assert.match(field('#player-dice-result').innerHTML,/<h2>25<\/h2>/);assert.match(field('#player-dice-result').innerHTML,/Guidance/);field('#player-dice-clear').onclick();assert.equal(field('#player-dice-guidance').checked,false);assert.equal(field('#player-dice-flat').value,'0');
+console.log('PASS: separate modifier dice with advantage, Guidance/Bane arithmetic, applicability checks, pre-roll validation and clear modifiers.');
