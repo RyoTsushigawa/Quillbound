@@ -36,3 +36,14 @@ vm.runInContext("S.npcs[0].secret='PRIVATE-SENTINEL-947';S.npcs[0].player={visib
 assert(playerNodes.get('player-view').innerHTML.includes('A familiar face'));assert(!playerNodes.get('player-view').innerHTML.includes(secret));
 vm.runInContext('S.npcs[0].player.visible=false;render();',dm);assert(!playerNodes.get('player-view').innerHTML.includes('A familiar face'));
 console.log('PASS: full app initializes; DM desk repaired; paired player receives updates and hides revoked cards without reading DM storage.');
+// Heartbeats must not recreate images; other visible changes retain the decoded map node.
+let writes=0,receiver,time=1000,timer;const screenStatus={},view={image:null,querySelector(){return this.image;},set innerHTML(html){writes++;this.image=html.includes('<img')?{replaceWith(image){view.image=image;}}:null;}};
+const screen=vm.createContext({location:{hash:'#'+'a'.repeat(32)},document:{getElementById:id=>id==='connection'?screenStatus:id==='player-view'?view:{},documentElement:{}},BroadcastChannel:class{constructor(){receiver=this;}postMessage(){}close(){}},Date:{now:()=>time},setInterval:f=>timer=f,window:{addEventListener(){}},PlayerFeed:Feed});
+vm.runInContext(fs.readFileSync(root+'/src/app/player-screen.js','utf8'),screen);
+const shown={version:1,updated:1,cards:[],party:[],combat:null,spotlight:{type:'image',title:'Map',url:'data:image/png;base64,AA=='}};
+receiver.onmessage({data:{type:'snapshot',payload:shown}});const original=view.image;assert(original);assert.equal(writes,1);
+time+=4000;receiver.onmessage({data:{type:'snapshot',payload:{...shown,updated:2}}});assert.equal(writes,1,'timestamp-only heartbeat does not rebuild the display');assert.equal(screenStatus.textContent,'Connected to your DM');
+receiver.onmessage({data:{type:'snapshot',payload:{...shown,cards:[{title:'Clue',text:'A visible clue'}]}}});assert.equal(writes,2);assert.equal(view.image,original,'other reveals keep the same image node');
+receiver.onmessage({data:{type:'snapshot',payload:{...shown,spotlight:{...shown.spotlight,url:'data:image/png;base64,BB=='}}}});assert.equal(writes,3);assert.notEqual(view.image,original,'a changed map receives a new image');
+receiver.onmessage({data:{type:'snapshot',payload:{...shown,spotlight:null}}});assert.equal(view.image,null,'hiding a map removes it');
+console.log('PASS: identical heartbeat snapshots do not repaint; text changes preserve map identity; changing or hiding maps still updates.');
