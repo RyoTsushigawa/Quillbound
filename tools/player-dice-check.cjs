@@ -1,0 +1,16 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const ctx=vm.createContext({console});vm.runInContext(fs.readFileSync('src/app/player-dice.js','utf8'),ctx);const roll=ctx.QBPlayerDice.roll;
+const seq=values=>()=>values.shift();
+assert.equal(roll('1d20+5',{die:seq([1])}).total,6);assert.equal(roll('1d20+5',{die:seq([20])}).natural,20);
+assert.equal(roll('1d20+5',{mode:'advantage',die:seq([1,20])}).total,25);assert.equal(roll('1d20+5',{mode:'disadvantage',die:seq([1,20])}).total,6);
+assert.equal(roll('1d6+4+3d6',{die:seq([2,3,4,5])}).total,18);assert.equal(roll('1d8-2',{die:seq([3])}).total,1);
+for(const expression of ['0d20','101d6','1d3','100000','1d20+alert(1)','1d20++2'])assert.throws(()=>roll(expression,{die:()=>{throw Error('Invalid formula must not consume dice');}}));
+assert.throws(()=>roll('2d6+4',{mode:'advantage'}),/one d20/);
+let dice=[10],saved=0;const nodes=new Map(),field=name=>{if(!nodes.has(name))nodes.set(name,{value:'',disabled:false,innerHTML:'',textContent:''});return nodes.get(name);};
+const hero={build:{name:'Quinn'}},sheet={initiative:4,mods:{DEX:4},skills:{stealth:{name:'Stealth',bonus:10,expert:true}},saves:{DEX:{bonus:7}},attacks:[{name:'Dagger',bonus:7,damage:'1d4+4'}]};
+Object.assign(ctx,{S:{hp:38},cmHero:()=>hero,cmSheet:()=>sheet,fmt:n=>(n>=0?'+':'')+n,esc:s=>String(s),openDialog:()=>({querySelector:selector=>field(selector),querySelectorAll:()=>[]}),save:()=>saved++,toast:()=>{},navigator:{},QBHeroRules:{die:()=>dice.shift()}});
+vm.runInContext(fs.readFileSync('src/ui/player-dice.js','utf8'),ctx);ctx.playerDiceDialog('hero');
+field('#player-dice-choice').value='skill:stealth';field('#player-dice-mode').value='normal';field('#player-dice-roll').onclick();assert.match(field('#player-dice-result').innerHTML,/<h2>20<\/h2>/);assert.equal(saved,1);assert.equal(ctx.S.hp,38);
+dice=[1,20];field('#player-dice-mode').value='advantage';field('#player-dice-roll').onclick();assert.match(field('#player-dice-result').innerHTML,/<h2>30<\/h2>/);
+dice=[12];field('#player-dice-choice').value='attack:0';field('#player-dice-mode').value='normal';field('#player-dice-roll').onclick();assert.match(field('#player-dice-result').innerHTML,/<h2>19<\/h2>/);
+console.log('PASS: player dice formulas, natural results, fair-die delegation, advantage/disadvantage, automatic sheet bonuses and no HP changes.');

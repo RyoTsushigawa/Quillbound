@@ -104,3 +104,6 @@ console.log('PASS: equipment/background/training/story round trip and unsaved-na
 run(`S.role='dm';S.combat=null;ACT['rd-sheets']();`);assert(run('globalThis.updateDialog.body').includes('Edit full character'));assert(run('globalThis.updateDialog.body').includes('Awareness & subclass only'));assert(run('globalThis.updateDialog.body').includes('data-act="adventure-hero-edit"'));
 run(`ACT['adventure-hero-edit']({id:S.party.find(p=>p.build).id});`);assert.equal(run('S.tab'),'create');assert.equal(run('S.creator.partyId'),run('S.party.find(p=>p.build).id'));
 console.log('PASS: awareness sheet dialog offers full character editing separately from awareness-only controls.');
+
+assert.equal(run('typeof QBPlayerDice.roll'),'function','the player dice engine is loaded by the app');
+
