@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /sharedHeroes/{heroId} {
+      function signedIn() { return request.auth != null; }
+      function participant() { return signedIn() && (request.auth.uid == resource.data.dmUid || request.auth.uid == resource.data.playerUid); }
+      function valid() {
+        let d = request.resource.data;
+        return d.keys().hasAll(['dmUid','playerUid','revision','sheetJson','campaignName','updatedBy','updatedAt'])
+          && d.keys().hasOnly(['dmUid','playerUid','revision','sheetJson','campaignName','updatedBy','updatedAt'])
+          && d.dmUid is string && d.dmUid.size() >= 6 && d.dmUid.size() <= 128
+          && d.playerUid is string && d.playerUid.size() >= 6 && d.playerUid.size() <= 128 && d.playerUid != d.dmUid
+          && d.revision is int && d.revision > 0
+          && d.sheetJson is string && d.sheetJson.size() <= 480000
+          && d.campaignName is string && d.campaignName.size() <= 320
+          && d.updatedBy == request.auth.uid && d.updatedAt == request.time;
+      }
+      allow read: if participant();
+      allow create: if signedIn() && valid() && request.resource.data.dmUid == request.auth.uid && request.resource.data.revision == 1;
+      allow update: if participant() && valid()
+        && request.resource.data.dmUid == resource.data.dmUid
+        && request.resource.data.playerUid == resource.data.playerUid
+        && request.resource.data.campaignName == resource.data.campaignName
+        && request.resource.data.revision == resource.data.revision + 1;
+      allow delete: if signedIn() && request.auth.uid == resource.data.dmUid;
+    }
+    match /liveSessions/{sessionId} {
+      function signedIn() { return request.auth != null; }
+      function owner() { return signedIn() && request.auth.uid == sessionId; }
+      function validSession() {
+        let d = request.resource.data;
+        return d.keys().hasAll(['dmUid','members','title','active','expiresAt','publisher','map','epoch','campaignId'])
+          && d.keys().hasOnly(['dmUid','members','title','active','expiresAt','publisher','map','epoch','campaignId'])
+          && d.dmUid == sessionId && d.members is list && d.members.size() <= 6
+          && d.title is string && d.title.size() <= 320
+          && d.campaignId is string && d.campaignId.size() <= 100
+          && d.active is bool && d.expiresAt is timestamp
+          && d.expiresAt <= request.time + duration.value(12, 'h')
+          && (!d.active || d.expiresAt > request.time)
+          && d.publisher is string && d.publisher.size() <= 100
+          && d.epoch is string && d.epoch.matches('^[a-f0-9]{32}$')
+          && (d.map == null || (d.map is map && d.map.keys().hasAll(['id','title','count'])
+            && d.map.keys().hasOnly(['id','title','count']) && d.map.id is string
+            && d.map.id.matches('^[a-f0-9]{32}$') && d.map.title is string && d.map.title.size() <= 640
+            && d.map.count is int && d.map.count >= 1 && d.map.count <= 12));
+      }
+      allow read: if owner() || (signedIn() && (request.auth.uid == resource.data.dmUid || request.auth.uid in resource.data.members));
+      allow create, update: if owner() && validSession();
+      allow delete: if owner();
+      match /runs/{epoch} {
+        function session() { return get(/databases/$(database)/documents/liveSessions/$(sessionId)).data; }
+        function activeMember() {
+          let s = session();
+          return signedIn() && s.epoch == epoch && s.active && request.time < s.expiresAt
+            && (request.auth.uid == s.dmUid || request.auth.uid in s.members);
+        }
+        match /assets/{assetId} {
+          allow read: if owner() || activeMember();
+          allow create, update: if owner() && activeMember()
+            && request.resource.data.keys().hasAll(['data','publisher'])
+            && request.resource.data.keys().hasOnly(['data','publisher'])
+            && request.resource.data.data is string && request.resource.data.data.size() > 0
+            && request.resource.data.data.size() <= 240000
+            && request.resource.data.publisher == session().publisher;
+          allow delete: if owner();
+        }
+        match /messages/{messageId} {
+          allow get: if owner() || activeMember();
+          allow list: if owner() || (activeMember() && request.query.limit <= 100);
+          allow create: if activeMember()
+            && request.resource.data.keys().hasAll(['authorUid','authorName','kind','text','createdAt'])
+            && request.resource.data.keys().hasOnly(['authorUid','authorName','kind','text','createdAt'])
+            && request.resource.data.authorUid == request.auth.uid
+            && request.resource.data.authorName is string && request.resource.data.authorName.size() <= 320
+            && request.resource.data.kind in ['roll','chat']
+            && request.resource.data.text is string && request.resource.data.text.size() > 0
+            && request.resource.data.text.size() <= 16000
+            && request.resource.data.createdAt == request.time;
+          allow update: if false;
+          allow delete: if owner();
+        }
+      }
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

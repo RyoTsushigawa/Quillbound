@@ -5,7 +5,7 @@
   // State that belongs to this browser rather than to one campaign: the creator, homebrew, the player's own heroes,
   // the DM lock, screen settings and the importer's library. Every other key moves with the campaign.
   const SHARED = new Set(['tab', 'role', 'dmLock', 'myHeroes', 'campaigns', 'homebrew', 'hbEdit', 'hbKind', 'hbFight', 'creator', 'importer',
-    'playerDiceLog', 'playerSettings', 'characterOptions', 'sampleAssets', 'deskView', 'filter', 'md', 'modal']);
+    'cloudSettings', 'playerDiceLog', 'playerSettings', 'characterOptions', 'sampleAssets', 'deskView', 'filter', 'md', 'modal']);
   const clone = x => JSON.parse(JSON.stringify(x ?? null));
   const uid = p => p + '-' + (root.crypto?.randomUUID?.() || String(Date.now()) + Math.random()).replace(/[^a-z0-9]/gi, '').slice(0, 10);
   const campaignKeys = s => Object.keys(s).filter(k => !SHARED.has(k));

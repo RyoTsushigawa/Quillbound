@@ -271,20 +271,24 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/app/player-hp.js" data-ui></script>
 <script src="src/app/homebrew.js"></script>
 <script src="src/app/sheet-export.js?v=20261101-profs1"></script>
-<script src="src/app/campaigns.js?v=20261101-dice1" data-ui></script>
+<script src="src/app/campaigns.js?v=20261101-sync1" data-ui></script>
 <script src="src/app/hero-import.js" data-ui></script>
 <script src="src/app/table-homebrew.js"></script>
 <script src="src/app/combat-rules.js"></script>
 <script src="src/app/encounter-design.js"></script>
 <script src="src/app/conditions.js"></script>
 <script src="src/app/table-items.js" data-ui></script>
-<script src="src/ui/custom-items.js"></script>
+<script src="src/app/live-session.js" data-ui></script>
+<script src="src/app/shared-heroes.js" data-ui></script>
+<script src="src/ui/live-session.js?v=20261101-sync1"></script>
+<script src="src/ui/shared-heroes.js?v=20261101-sync1"></script>
+<script src="src/ui/custom-items.js?v=20261101-sync1"></script>
 <script src="src/ui/character-extras.js"></script>
 <script src="src/ui/creator.js?v=20261101-profs1"></script>
 <script src="src/ui/homebrew.js"></script>
-<script src="src/ui/campaigns.js?v=20261101-profs1"></script>
-<script src="src/ui/adventure-heroes.js?v=20261101-items1"></script>
-<script src="src/ui/player-dice.js?v=20261101-modifiers1"></script>
+<script src="src/ui/campaigns.js?v=20261101-sync1"></script>
+<script src="src/ui/adventure-heroes.js?v=20261101-sync1"></script>
+<script src="src/ui/player-dice.js?v=20261101-sync1"></script>
 <script src="src/ui/player-hp.js"></script>
 <script src="src/ui/hero-import.js"></script>
 <script src="src/ui/combat-objectives.js"></script>
@@ -1207,6 +1211,7 @@ function publishPlayer(force = false) {
   if(S.role!=='dm')return;
   playerConnect();
   const data = PlayerFeed.snapshot(S, playerSpotlight);
+  livePublish(data);
   // Ignore the timestamp when comparing so typing private notes sends nothing new.
   const key = JSON.stringify({ ...data, updated: 0 });
   if (force || key !== playerLastPayload) { playerLastPayload = key; playerChannel?.channel.postMessage({ type: 'snapshot', sourceId:playerPublisherId, payload: data }); }
@@ -1283,7 +1288,7 @@ async function playerMap(path) {
     };
   }catch(error){toast(error.message);}
 }
-Object.assign(ACT,{'player-hp':d=>playerHpDialog(d.id),'player-dice':d=>playerDiceDialog(d.id),'player-setup':playerSetup,'player-edit':d=>playerEdit(d.kind,d.id),'spot-text':d=>playerReadAloud(d.id),'lib-show':d=>playerMap(d.path),'scene-map':d=>sceneMapDialog(d.id),'scene-map-show':d=>sceneMapShow(d.id),'drive-open':driveDialog,...sessionOverviewActions(),...securityActions(),...adventureHeroActions(),...characterExtrasActions(),...customItemActions()});
+Object.assign(ACT,{'player-hp':d=>playerHpDialog(d.id),'player-dice':d=>playerDiceDialog(d.id),'player-setup':playerSetup,'player-edit':d=>playerEdit(d.kind,d.id),'spot-text':d=>playerReadAloud(d.id),'lib-show':d=>playerMap(d.path),'scene-map':d=>sceneMapDialog(d.id),'scene-map-show':d=>sceneMapShow(d.id),'drive-open':driveDialog,...sessionOverviewActions(),...securityActions(),...adventureHeroActions(),...characterExtrasActions(),...customItemActions(),...sharedHeroActions(),...liveActions()});
 window.addEventListener('pagehide',()=>playerChannel?.channel.close());
 
 /* ---------- clarity integration ---------- */
@@ -1319,12 +1324,15 @@ document.addEventListener('input',e=>{if(e.target.dataset.bind==='draft.name'){c
 /* ---------- wiring ---------- */
 function render(){
   const disclosureState=overviewCaptureDisclosures();
+  const liveState=liveCapture();
   sceneMapsSync();
   publishPlayer();
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.v===S.tab));
   cmShell(); // player or DM mode (src/ui/campaigns.js)
   $('#view').innerHTML={home:S.role==='dm'?vHome:vPlayerHome,create:vCreate,heroes:vHeroes,campaigns:vCampaigns,import:vImport,desk:vDesk,combat:vCombat,homebrew:vHomebrew}[S.tab]();
   overviewRestoreDisclosures(disclosureState);
+  liveRestore(liveState);
+  sharedTick();
   save();
   if(S.tab==='desk' && S.deskView!=='campaign') void sessionOverviewHydrate();
 }
