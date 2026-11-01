@@ -13,7 +13,7 @@ assert.equal(model.state(local,changed),'conflict');
 assert.equal(model.state({...clone(hero),cloudLink:link},changed),'incoming');
 assert.equal(model.state({...local,cloudLink:{...link,revision:2,baseJson:changed.sheetJson}},{...changed,sheetJson:model.sheet(local)}),'same');
 assert.throws(()=>model.read('{"build":{}}',()=>({cls:'Rogue'})));
-assert.throws(()=>model.sheet({...hero,build:{...hero.build,notes:'x'.repeat(120001)}}),/groß/);
+assert.throws(()=>model.sheet({...hero,build:{...hero.build,notes:'x'.repeat(120001)}}),/large/);
 assert.equal(model.stable({z:1,a:{z:2,a:3}}),model.stable({a:{a:3,z:2},z:1}));
 
 // Minimal UI environment: no SDK, network or account is used by these tests.
@@ -49,7 +49,7 @@ run(`sharedCloud.user={uid:'unrelated-user'};sharedReconcile();`);assert.equal(c
  let stored=clone(remote);const adapter={transaction:async(id,fn)=>{stored=clone(fn(stored));return stored;}};
  const first=await model.update(adapter,'shared-quinn',1,model.sheet(local),'player-user');assert.equal(first.revision,2);
  await assert.rejects(()=>model.update(adapter,'shared-quinn',1,base,'dm-user'),/CONFLICT/,'stale DM cannot overwrite player update');
- await assert.rejects(()=>model.update(adapter,'shared-quinn',2,base,'unrelated-user'),/Zugriff/);
+ await assert.rejects(()=>model.update(adapter,'shared-quinn',2,base,'unrelated-user'),/access/);
  assert.equal(stored.playerUid,'player-user');assert.equal(stored.dmUid,'dm-user');
  // Exercise the actual UI flush through a transaction adapter, including a grant.
  ctx.S.party=[{...clone(hero),heroStory:hero.story,want:hero.story.want,cloudLink:{...link}}];

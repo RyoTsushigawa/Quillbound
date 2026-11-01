@@ -24,8 +24,8 @@ run('liveCloud.session=session;liveCloud.selected=session.id;liveCloud.wanted={i
  run('liveCloud.session={...session,epoch:"epoch-two"};');await run('liveUpload()');assert.equal(rootDoc.map.title,'Player map','old run cannot write to a new session');
  run('liveCloud.session=session;');await run('liveSend("Quinn: 1d20+7 = 21", "roll")');
  assert.equal(writes[0].data.authorUid,'dm-user');assert.equal(writes[0].data.kind,'roll');assert(writes[0].ref[0].includes('epoch-one'));
- run('sharedCloud.user={uid:"stranger"};');await assert.rejects(()=>run('liveSend("forged")'),/aktive/);assert.equal(writes.length,1);
- run('sharedCloud.user={uid:"player-user",displayName:"Player"};liveCloud.session={...session,active:false};');await assert.rejects(()=>run('liveSend("ended")'),/aktive/);
+ run('sharedCloud.user={uid:"stranger"};');await assert.rejects(()=>run('liveSend("forged")'),/active/);assert.equal(writes.length,1);
+ run('sharedCloud.user={uid:"player-user",displayName:"Player"};liveCloud.session={...session,active:false};');await assert.rejects(()=>run('liveSend("ended")'),/active/);
  run('liveCloud.session=session;liveCloud.mapUrl=imageUrl;liveCloud.mapKey="old-map";liveClear();');assert.equal(run('liveCloud.mapUrl'),'');assert.equal(run('liveCloud.messages.length'),0);
  console.log('PASS: bounded raster chunks, complete map assembly, session expiry/membership, map publisher and generation guards, authenticated roll chat and clear-on-end.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
