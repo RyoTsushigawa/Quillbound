@@ -374,3 +374,6 @@ Only DM-mode app tabs publish to the player screen. Snapshots identify their pub
 
 The player roller’s Guidance & modifiers section adds optional Guidance (+1d4 on the chosen skill check), Bless/Bane (±1d4 on attacks/saves), Bardic Inspiration, a flat bonus/penalty and custom bonus dice. Invalid built-in effects are disabled for known roll types; custom d20 checks require the table to choose applicable effects. Advantage/disadvantage affects only the base d20, not bonus dice. All modifiers validate before dice are consumed, appear individually in results/copies/history, and can be cleared together. Effects are chosen manually and do not cast spells, check concentration or spend resources.
 
+
+My heroes shows a current/max HP meter and Track HP for every readable character. Personal HP starts full and supports damage, healing, direct entry, Full HP and ten Undo steps; values stay between zero and the sheet maximum. HP play state persists on that hero in this browser through edits and reloads, outside the build/story export. It does not sync to adventure HP, spend rest resources or automate death saves. Maximum-HP decreases clamp the displayed saved current HP.
+
