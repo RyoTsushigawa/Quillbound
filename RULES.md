@@ -394,3 +394,6 @@ An optional Live-Tisch uses separate Firestore liveSessions records. The DM star
 
 
 My heroes presents compact character cards with HP, Roll dice and Edit as the primary actions. Characterdetails folds contain attacks, training, companions and homebrew item rules; More contains PDF, file sharing/update, synchronization review, restore and deletion. Connection/import/recovery tools are grouped in one collapsed section. An active live table stays visible outside that section. Open character/tool disclosures survive in-place renders without changing saved builds or action behavior.
+
+
+The app interface uses English consistently, including the compact My heroes controls, shared-character connection, live session, item and companion dialogs. There is no interface language switch or runtime translation service. Authored adventure text, character names, item descriptions and companion templates retain their original language.
