@@ -54,6 +54,7 @@
     const pr=s.proficiencies;
     const training=pr?`<section class="ps-box"><h3>${de?'Übungen & Training':'Proficiencies & Training'}</h3><p><b>${de?'Waffen':'Weapons'}:</b> ${esc(pr.weapons.join(', ') || L.none)}</p><p><b>${de?'Rüstungen & Schilde':'Armor & shields'}:</b> ${esc(pr.armor.join(', ') || L.none)}</p><p><b>${L.tools}:</b> ${esc(pr.tools.join(', ') || L.none)}</p>${pr.granted.length?`<p><b>${de?'Zusätzlich / durch Talente':'Additional / feats'}:</b> ${esc(pr.granted.join(', '))}</p>` : ''}</section>`:'';
     const companions=(s.companions || []).length?`<section class="ps-box"><h3>${de?'Begleiter & Familiars':'Companions & Familiars'}</h3>${s.companions.map(p=>`<p><b>${esc(p.name)}</b> · ${esc(p.kind)}${p.ac!==null?' · '+L.ac+' '+p.ac:''}${p.hp!==null?' · '+L.hp+' '+p.hp:''}${p.speed?' · '+esc(p.speed):''}<br>${esc(brief(p.notes,1200))}</p>`).join('')}</section>`:'';
+    const customItems=(s.customItems || []).length?`<section class="ps-box"><h3>Homebrew</h3>${s.customItems.map(x=>`<p><b>${esc(x.name)} ×${x.quantity}</b> · ${esc(x.rarity)}${x.attunement?' · '+(de?'Einstimmung erforderlich':'Requires attunement'):''}${x.maxCharges>0?' · '+x.charges+'/'+x.maxCharges:''}<br>${esc(brief(x.description,1600))}</p>`).join('')}</section>`:'';
     const st = opts.story || {};
     const head = n => `<header class="ps-head"><div><h1>${esc(s.name || 'Hero')}</h1><p>${esc(title)}</p></div><div class="ps-page">${L.page} ${n}</div></header>`;
     return `<article class="ps-sheet" lang="${de ? 'de' : 'en'}">
@@ -72,7 +73,7 @@
     </div></section>
   <section class="ps-pg">${head(2)}
     ${spells}
-    ${companions}
+    ${companions}${customItems}
     <section class="ps-box"><h3>${L.features}</h3><ul class="ps-feats">${feats}</ul></section>
     <section class="ps-box ps-notes"><h3>${L.notes}</h3>${'<div class="ps-line"></div>'.repeat(6)}</section>
     <footer class="ps-foot">Quillbound · D&amp;D 2024 (SRD 5.2, CC-BY 4.0)</footer></section>

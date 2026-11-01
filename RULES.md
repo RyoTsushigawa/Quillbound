@@ -382,3 +382,6 @@ Character sheets show explicit weapon, armor/shield, tool/instrument and additio
 
 Story includes Begleiter & Familiars: named companion records with type, AC, maximum HP, speed and manual notes. A Madame Croissant homebrew template is available. Companions persist in the build through saves, exports and reviewed adventure updates, and print with the sheet. They do not grant spells, attacks, extra familiar slots or automatic actions. Save the character after editing a companion.
 
+
+DM adventure character controls include Item geben. A self-contained homebrew item can be created or selected from the ten optional magical items discussed at this table; own templates may be saved per campaign. Records include name, quantity, rarity, attunement requirement, charge counters and full rules text. They are in the character build/inventory and transfer through player-update files; My Heroes, the live Gear tab and printed sheets show the rules. The Equipment step can edit/remove records. Effects, weapon bonuses and attunement are manual and do not silently alter attacks, HP, training or spell resources. Direct grants affect the adventure copy, not players on other devices.
+
