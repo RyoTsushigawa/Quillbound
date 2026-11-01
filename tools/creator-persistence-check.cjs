@@ -76,3 +76,10 @@ run(`S.creator=crNew();S.creator.build.level=5;ACT['cr-quick']({v:'rogue'});S.cr
 let skillView=run('crStepBody(S.creator,crSheet(S.creator))');assert.equal((skillView.split('<h3>Expertise</h3>')[0].match(/checked disabled/g)||[]).length,2);assert(skillView.includes('Choose 2 of 4 skills'));assert.equal(run("crSheet(S.creator).skills.stealth.expert"),true);assert.equal(run("crSheet(S.creator).open.find(x=>x.label==='Rogue skills').left"),2);
 run(`ACT['cr-toggle']({k:'skills',v:'investigation',max:4});ACT['cr-toggle']({k:'skills',v:'perception',max:4});`);assert.equal(run('S.creator.build.skills.length'),4);assert.equal(run("crSheet(S.creator).open.some(x=>x.label==='Rogue skills')"),false);assert.equal(run('crSheet(S.creator).skills.stealth.expert'),true);
 console.log('PASS: granted background skills are disabled, excluded from class choices, remain trained and retain Expertise.');
+run(`openDialog=()=>({querySelector:()=>({}),close(){}});`);
+bard();run(`S.role='dm';S.creator.build.name='DM-created hero';`);
+const partyBefore=run('S.party.length'),mineBefore=run('(S.myHeroes||[]).length');
+run(`ACT['cr-add']();render();`);assert.equal(run('S.party.length'),partyBefore+1);assert.equal(run('S.myHeroes.length'),mineBefore+1);assert.equal(run('S.myHeroes.at(-1).build.name'),'DM-created hero');
+run(`ACT['cm-edit']({id:S.myHeroes.at(-1).id});S.creator.build.name='Edited DM hero';ACT['cr-savehero']();render();`);assert.equal(run('S.party.length'),partyBefore+1);assert.equal(run('S.myHeroes.length'),mineBefore+1);assert.equal(run('S.myHeroes.at(-1).build.name'),'Edited DM hero');
+run(`S.myHeroes=S.myHeroes.filter(h=>h.id!==S.party.at(-1).myHeroId);ACT['cm-save-party']();render();`);assert.equal(run('cmUnsavedParty().length'),0);const recovered=run('S.myHeroes.length');run(`ACT['cm-save-party']();render();S=load();`);assert.equal(run('S.myHeroes.length'),recovered);
+console.log('PASS: DM Add to party also saves My heroes; editing updates without adding a party copy; explicit party recovery is persistent and repeat-safe.');
