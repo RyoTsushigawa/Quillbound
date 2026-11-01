@@ -2,7 +2,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="clarity.css">
-<link rel="stylesheet" href="creator.css?v=20261101-herosave1">
+<link rel="stylesheet" href="creator.css?v=20261101-adventureheroes1">
 <link rel="stylesheet" href="combat.css">
 <link rel="stylesheet" href="drama.css">
 <link rel="stylesheet" href="session-overview.css">
@@ -277,11 +277,12 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/app/conditions.js"></script>
 <script src="src/ui/creator.js?v=20261101-skills1"></script>
 <script src="src/ui/homebrew.js"></script>
-<script src="src/ui/campaigns.js?v=20261101-herosave1"></script>
+<script src="src/ui/campaigns.js?v=20261101-adventureheroes1"></script>
+<script src="src/ui/adventure-heroes.js"></script>
 <script src="src/ui/hero-import.js"></script>
 <script src="src/ui/combat-objectives.js"></script>
 <script src="src/ui/scene-maps.js"></script>
-<script src="src/ui/session-overview.js?v=20261031-ready1"></script>
+<script src="src/ui/session-overview.js?v=20261101-adventureheroes1"></script>
 <script src="src/ui/security-alert.js"></script>
 <script src="src/ui/package-import.js"></script>
 <script src="src/ui/drive.js?v=20261031-drive4"></script>
@@ -1270,7 +1271,7 @@ async function playerMap(path) {
     };
   }catch(error){toast(error.message);}
 }
-Object.assign(ACT,{'player-setup':playerSetup,'player-edit':d=>playerEdit(d.kind,d.id),'spot-text':d=>playerReadAloud(d.id),'lib-show':d=>playerMap(d.path),'scene-map':d=>sceneMapDialog(d.id),'scene-map-show':d=>sceneMapShow(d.id),'drive-open':driveDialog,...sessionOverviewActions(),...securityActions()});
+Object.assign(ACT,{'player-setup':playerSetup,'player-edit':d=>playerEdit(d.kind,d.id),'spot-text':d=>playerReadAloud(d.id),'lib-show':d=>playerMap(d.path),'scene-map':d=>sceneMapDialog(d.id),'scene-map-show':d=>sceneMapShow(d.id),'drive-open':driveDialog,...sessionOverviewActions(),...securityActions(),...adventureHeroActions()});
 window.addEventListener('pagehide',()=>playerChannel?.channel.close());
 
 /* ---------- clarity integration ---------- */
@@ -1298,6 +1299,7 @@ const clRun=ACT['enc-run'];ACT['enc-run']=d=>{if(S.combat)clConfirm('Start a new
 const clDel=ACT['enc-del'];ACT['enc-del']=d=>clConfirm('Remove this saved fight?','This removes the saved fight from the DM desk. It does not delete the enemy entries or change a fight already running.',()=>clDel(d),'Remove saved fight');
 const clForget=ACT['camp-forget'];ACT['camp-forget']=d=>clConfirm('Remove this adventure from the planner?','The adventure profile and its place in the order will be removed. Notes already sent to the DM desk remain. You can read the book again to add it back.',()=>clForget(d),'Remove from planner');
 const clSend=ACT['res-send'];ACT['res-send']=()=>{clSend();S.deskView='session';};
+const heroTabAction=ACT.tab;ACT.tab=d=>{if(!heroConfirmLeave(d.v))heroTabAction(d);};
 const clAddHero=ACT['cr-add'];ACT['cr-add']=()=>{const name=crState().build.name.trim(),before=S.party.length;clAddHero();if(S.party.length===before)return;const dlg=openDialog('Hero added to the party',`<p><b>${esc(name)}</b> is saved in My heroes and your party. Their story answers were added to your private DM notes.</p><p>You can start playing with this hero or create another one.</p><button class="btn primary" id="cl-hero-desk">Open the DM desk</button><p class="small muted">Close this message to create another hero.</p>`);dlg.querySelector('#cl-hero-desk').onclick=()=>{dlg.close();S.tab='desk';S.deskView='session';render();};};
 Object.assign(ACT,{'cl-help':helpScreen,'cl-go':d=>{S.tab=d.v;window.scrollTo(0,0);},'cl-session':()=>{S.tab='desk';S.deskView='session';window.scrollTo(0,0);},'cl-campaign':()=>{S.tab='desk';S.deskView='campaign';window.scrollTo(0,0);},'cl-fight':()=>{S.tab=S.combat?'combat':'desk';if(!S.combat)S.deskView='session';window.scrollTo(0,0);}});
 document.addEventListener('input',e=>{if(e.target.dataset.bind==='draft.name'){const button=document.querySelector('[data-act="enc-save"]');if(button)button.disabled=!(e.target.value.trim()&&S.draft.foes.length);}});
@@ -1348,7 +1350,7 @@ sendReaderResult=function(s,r){const n=rdSend(s,r);s.characterOptions??=[];let a
 const rdResults=vResults;
 vResults=function(){const r=S.importer.result;return rdResults()+((r.characterOptions||[]).length?`<section class="card stack"><h3>Character options · review before use</h3><p>These are third-party subclasses. Features remain readable references for DM adjudication; they are not silently converted into damage or automatic reactions.</p>${r.characterOptions.map((o,i)=>`<details><summary>${esc(o.baseClass)} · ${esc(o.name)} · ${o.features.length} features</summary><label><input type="checkbox" data-bind="importer.result.characterOptions.${i}.include" ${o.include!==false?'checked':''}> Keep this subclass</label><p>${esc(o.description)}</p><p class="small muted">${esc(o.source)} · PDF page ${o.page}</p>${o.features.map(f=>`<h4>${esc(f.name)}${f.level?' · level '+f.level:''}</h4><p>${esc(f.text)}</p><p class="small muted">PDF page ${f.page} · manual resolution</p>`).join('')}</details>`).join('')}</section>`:'')+((r.importWarnings||[]).length?`<section class="card"><h3>Check these sources</h3>${r.importWarnings.map(x=>`<p>${esc(x)}</p>`).join('')}</section>`:'');};
 const rdDesk=vDesk;
-vDesk=function(){return rdDesk()+`<section class="card stack"><h3>Character sheets</h3><div class="row"><button class="btn" data-act="rd-sheets">Awareness & subclass sheets</button></div><p class="small muted">Set each hero’s actual Perception bonus before checking clues. Imported subclasses can be attached to heroes of their base class.</p></section>`;};
+vDesk=function(){return rdDesk();};
 const rdCombat=vCombat;
 vCombat=function(){let html=rdCombat();if(!S.combat)return html;const d=EncounterDesign.init(S),l=Stakes.init(S);return html+`<section class="card stack" style="margin-top:18px"><div class="row"><h3>Behind the scene · DM only</h3><button class="btn sm" data-act="rd-group">Group matching enemies</button><button class="btn sm" data-act="rd-sheets">Hero sheets</button><button class="btn sm" data-act="rd-clue">Add layered clue</button></div><label class="f">Encounter complexity<select data-bind="combat.design.mode" data-rerender>${[['simple','Simple · clues & private plans'],['standard','Standard · add goal clocks'],['boss','Boss · add phase reminders']].map(([v,t])=>`<option value="${v}" ${d.mode===v?'selected':''}>${t}</option>`).join('')}</select></label><p class="small muted">Complexity adds tools, not extra enemy hit points or hidden difficulty bonuses. Changing mode preserves your notes. Complete clocks and trigger phases when the fiction calls for them.</p><div class="results">${S.combat.foes.map(f=>`<article class="card"><h4>${esc(f.name)}${f.concealed?' · concealed':''}</h4><p>${esc(f.privatePlan||'No private plan set.')}</p><p class="small">Observable tell: ${esc(f.observableTell||'None prepared')}</p><div class="row"><button class="btn sm" data-act="rd-enemy" data-id="${esc(f.id)}">Edit plan & visibility</button>${f.observableTell?`<button class="btn sm" data-act="rd-tell" data-id="${esc(f.id)}">Review tell for players</button>`:''}</div></article>`).join('')}</div><h4>Layered observations</h4><p class="small muted">Preview who notices each layer, then record the discovery. Tell that player privately at the table, or explicitly share it on the common display. Revealing a clue does not reveal its source enemy.</p>${d.clues.map(c=>`<article class="card stack"><div class="row"><b>${esc(c.title)}</b><button class="btn sm" data-act="rd-clue" data-id="${esc(c.id)}">Edit</button></div><p class="small">Where: ${esc(c.zone==='any'?'Any area':l.zones[c.zone])}</p>${EncounterDesign.eligible(S,c).map(p=>`<div><b>${esc(p.name)}</b> · passive ${p.passive}${p.layers.length?'': ' · notices no prepared layer'}${c.layers.map((layer,i)=>p.layers.includes(layer)?`<p>${esc(layer.text)} <button class="btn sm" data-act="rd-discover" data-id="${esc(c.id)}" data-hero="${esc(p.id)}" data-index="${i}" ${d.discoveries.some(x=>x.clue===c.id&&x.hero===p.id&&x.layer===i)?'disabled':''}>Record discovery</button></p>`:'').join('')}</div>`).join('')}</article>`).join('')||'<p>No clues yet. Add observable details without stating the secret behind them.</p>'}${d.discoveries.map(x=>`<p><b>${esc(x.heroName)}</b>: ${esc(x.text)} <button class="btn sm" data-act="rd-share-clue" data-id="${esc(x.id)}">${x.shared?'Hide from common display':'Share on common display'}</button></p>`).join('')}${d.mode!=='simple'?`<h4>Goal clocks</h4><button class="btn sm" data-act="rd-clock-add">Add clock</button>${d.clocks.map(k=>`<article class="card"><b>${esc(k.name)} · ${k.filled}/${k.size}</b><p>${esc(k.outcome)}</p><div class="row"><button class="btn sm" data-act="rd-clock" data-id="${esc(k.id)}" data-delta="-1">−</button><button class="btn sm" data-act="rd-clock" data-id="${esc(k.id)}" data-delta="1">+</button><button class="btn sm" data-act="rd-clock-share" data-id="${esc(k.id)}">${k.shared?'Hide clock':'Share reviewed clock title'}</button></div></article>`).join('')}`:''}${d.mode==='boss'?`<h4>Phase reminders</h4><button class="btn sm" data-act="rd-phase-add">Add phase</button>${d.phases.map(p=>`<article class="card"><b>${esc(p.name)}</b><p>Trigger: ${esc(p.when)}</p><p>Change: ${esc(p.change)}</p><button class="btn sm" data-act="rd-phase" data-id="${esc(p.id)}" ${p.triggered?'disabled':''}>${p.triggered?'Triggered':'Trigger phase & record change'}</button></article>`).join('')}`:''}</section>`;};
 function rdBusy(){if(S.combat?.lite?.pending){toast('Confirm or cancel the current roll first.');return true;}return false;}

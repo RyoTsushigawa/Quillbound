@@ -351,3 +351,11 @@ Class skill choices show background-granted skills as checked, gray and disabled
 
 DM hero creation offers Save & add to party, which also saves a linked copy in My heroes, or Save to My heroes only. Editing an existing My heroes entry defaults to Save changes without adding another party member. My heroes offers an explicit Copy party characters action for older non-example party characters with build data; repeated recovery does not create duplicates. Existing party data is preserved.
 
+
+Adventure characters is a collapsed DM overview section with Edit character, Player update file and Remove; the campaign party list has the same actions. Full character edits save back to that adventure in place, preserve current resources and unchanged table adjustments, and are blocked during encounters. Removal confirms and retains a My heroes copy. Player update files contain only one character’s saved build/story, never the campaign; players choose Update from adventure on their own saved hero, review and apply, with one previous version available to restore. This is manual file handoff across devices, not network synchronization. Live combat HP/conditions and table-only stat adjustments are not part of the player build update.
+
+Editing an existing My heroes character offers Save changes on every step. Incomplete choices can be saved as a labelled draft. Leaving the creator with unsaved edits offers Save & continue, Keep editing or Discard. Equipment, background, training and story edits are saved to the existing record without creating a duplicate party member.
+
+
+Existing adventure characters can also be saved with unfinished choices as a marked draft; save controls appear on every editor step. Only a non-empty character name is required to keep these edits. The editor does not silently fill missing choices.
+
