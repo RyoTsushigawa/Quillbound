@@ -348,3 +348,6 @@ Import feedback stays in a collapsed Last import summary on the library and DM o
 
 Class skill choices show background-granted skills as checked, gray and disabled, labelled included from background. They do not consume class skill choices or satisfy the class-choice counter. Old duplicate entries are ignored by validation and removed when class skills or background are deliberately changed; existing proficiency and Expertise remain derived from the background. Imported skill bonuses are preserved.
 
+
+DM hero creation offers Save & add to party, which also saves a linked copy in My heroes, or Save to My heroes only. Editing an existing My heroes entry defaults to Save changes without adding another party member. My heroes offers an explicit Copy party characters action for older non-example party characters with build data; repeated recovery does not create duplicates. Existing party data is preserved.
+

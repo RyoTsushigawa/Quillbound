@@ -29,6 +29,13 @@ function crNew(){return {v:2,step:'species',tab:'summary',swap:null,boostUI:{mod
   build:{name:'',level:1,abilities:{method:'array',base:null},boost:{},skills:[],expertise:[],mastery:[],asi:{},hp:{method:'average',rolls:{}},gear:{cls:0,bg:0},spells:{cantrips:[],prepared:[]},featPicks:{}},
   story:{left:'',want:'',fear:''}};}
 function crState(){ if(S.creator?.v!==2) S.creator=crNew(); return S.creator; }
+function crStoreHero(c){
+  crKeepHomebrew(c.build);S.myHeroes??=[];
+  const hero={id:c.heroId||uid('ph'),build:JSON.parse(JSON.stringify({...c.build,name:c.build.name.trim()})),story:{...c.story},saved:Date.now()};
+  const index=S.myHeroes.findIndex(h=>h.id===hero.id);
+  if(index>=0)S.myHeroes[index]={...S.myHeroes[index],...hero};else S.myHeroes.push(hero);
+  return hero;
+}
 // Saved/exported heroes carry build choices, not the creator's temporary picker state.
 // Restore those pickers before crSheet/crSync can write their values back to the build.
 function crRestoreSelections(c){
@@ -172,7 +179,7 @@ function crStepBody(c,sheet){
     return `<div class="card stack"><h3>${esc(b.name||'Your hero')}</h3><p>Level ${sheet.level} ${esc(sheet.species)} ${esc(sheet.cls)}${sheet.subclass?' ('+esc(sheet.subclass)+')':''} · ${esc(sheet.background)}</p>
       ${open.length?`<div class="cl-error" role="alert"><b>Still to choose:</b><ul>${open.map(o=>`<li><button class="linklike" data-act="cr-step" data-v="${o.step}">${esc(o.label)}${o.left>1?' ('+o.left+')':''}</button></li>`).join('')}</ul></div>`:'<p class="cr-count done">✓ Every choice is made.</p>'}
       ${sheet.warnings.length?`<ul class="small lt-warning">${sheet.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:''}
-      <div class="row"><button class="btn primary" data-act="${S.role==='dm'?'cr-add':'cr-savehero'}" ${open.length?'disabled':''}>${S.role==='dm'?'Add to party':(c.heroId?'Save changes to My heroes':'Save to My heroes')}</button><button class="btn" data-act="cr-printsheet">Character sheet (print / PDF)</button><button class="btn discord" data-act="discord" data-v="sheet">Preview Discord message</button><button class="btn ghost" data-act="cr-new">Start another</button></div></div>`; }
+      <div class="row"><button class="btn primary" data-act="${S.role==='dm'&&!c.heroId?'cr-add':'cr-savehero'}" ${open.length?'disabled':''}>${c.heroId?'Save changes to My heroes':S.role==='dm'?'Save & add to party':'Save to My heroes'}</button>${S.role==='dm'?`<button class="btn" data-act="${c.heroId?'cr-add':'cr-savehero'}" ${open.length?'disabled':''}>${c.heroId?'Save & add to party':'Save to My heroes only'}</button>`:''}<button class="btn" data-act="cr-printsheet">Character sheet (print / PDF)</button><button class="btn discord" data-act="discord" data-v="sheet">Preview Discord message</button><button class="btn ghost" data-act="cr-new">Start another</button></div></div>`; }
   }
 }
 // The live sheet: every number calculated from the choices so far.
@@ -265,12 +272,12 @@ function creatorActions(){ const B=()=>crState().build, D=()=>crData();
   'cr-sheet-toggle':()=>{ const c=crState(); c.sheetOpen=!c.sheetOpen; },
   // Player mode: the hero goes to My heroes in this browser (src/ui/campaigns.js sends it to the DM from there).
   'cr-savehero':()=>{ const c=crState(), sheet=crSheet(c); if(sheet.open.length||!c.build.name.trim()) { toast('Finish the open choices first.'); return; }
-    crKeepHomebrew(c.build); S.myHeroes??=[]; const hero={id:c.heroId||uid('ph'),build:JSON.parse(JSON.stringify({...c.build,name:c.build.name.trim()})),story:{...c.story},saved:Date.now()};
-    const i=S.myHeroes.findIndex(h=>h.id===hero.id); if(i>=0) S.myHeroes[i]=hero; else S.myHeroes.push(hero);
+    const hero=crStoreHero(c);
     toast(`${hero.build.name} is saved in My heroes. Send them to your DM from there.`); S.creator=crNew(); S.tab='heroes'; },
   'cr-add':()=>{ const c=crState(), sheet=crSheet(c); if(sheet.open.length||!c.build.name.trim()) { toast('Finish the open choices first.'); return; }
     crKeepHomebrew(c.build); // the hero keeps its own copy
     const p=QBHeroRules.toHero(JSON.parse(JSON.stringify(c.build)),sheet,{id:uid('p'),want:c.story.want}); p.name=c.build.name.trim(); heroDefaults(p); S.party.push(p);
+    const saved=crStoreHero(c);saved.sourcePartyId=p.id;p.myHeroId=saved.id;
     [['want','wants'],['left','left behind'],['fear','fears']].forEach(([k,l])=>{ if(c.story[k].trim()) S.hooks.push({id:uid('h'),text:`${p.name} ${l}: ${c.story[k].trim()}`,status:'dangling',clock:0,source:'Character'}); });
     toast(`${p.name} joined the party. Their story answers are now leads on the DM desk.`); S.creator=crNew(); }
   };

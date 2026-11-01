@@ -38,11 +38,12 @@ function vPlayerHome() {
     </div>
     <p class="small muted" style="margin-top:14px">Your heroes are saved in this browser only. Send your DM the hero file (it works in Discord or by email); keep a copy as a backup. Are you the DM? Use <b>I’m the DM</b> at the top.</p>`;
 }
+function cmUnsavedParty(){return (S.party || []).filter(p=>p.build && !p.example && !(S.myHeroes || []).some(h=>h.id===p.myHeroId || h.id==='ph-'+p.id || h.sourcePartyId===p.id || JSON.stringify(h.build)===JSON.stringify({...p.build,name:p.name})));}
 function vHeroes() {
   const list = S.myHeroes || [];
   return `<div class="pagehead"><div><div class="eyebrow">My heroes</div><h2>Your heroes</h2><p>Saved in this browser. <b>Send to DM</b> downloads a hero file: attach it in Discord or an email to your DM. <b>Copy as text</b> works for chats that don’t take files.</p></div>
       <div class="row"><button class="btn primary" data-act="cm-newhero">Create a hero</button><label class="btn">Open a hero file…<input type="file" id="cm-my-file" accept=".json,application/json" hidden></label><button class="btn" data-act="hi-open" data-v="mine">Import from a sheet…</button></div></div>
-    <div class="results">${list.map(h => { const s = cmSheet(h.build); return `<article class="card stack"><h3>${esc(h.build.name || 'Hero')}</h3><p>${cmHeroLine(h.build, s)}</p>
+    ${S.role==='dm'&&cmUnsavedParty().length?`<p class="small">${cmUnsavedParty().length} party characters are not in My heroes yet. <button class="btn sm" data-act="cm-save-party">Copy party characters to My heroes</button></p>`:''}<div class="results">${list.map(h => { const s = cmSheet(h.build); return `<article class="card stack"><h3>${esc(h.build.name || 'Hero')}</h3><p>${cmHeroLine(h.build, s)}</p>
       ${s ? `<p class="small muted">AC ${s.ac} · HP ${s.hp.max} · ${esc((s.attacks || []).filter(a => !a.sneak).slice(0, 2).map(a => `${a.name} ${a.save ? 'save ' + a.save : (a.bonus >= 0 ? '+' : '') + a.bonus}, ${a.damage}`).join(' · '))}</p>` : '<p class="cl-error">This hero can’t be read in this browser.</p>'}
       <div class="row"><button class="btn primary" data-act="cm-send" data-id="${esc(h.id)}">Send to DM</button><button class="btn" data-act="cm-copy" data-id="${esc(h.id)}">Copy as text</button>
         <button class="btn" data-act="cm-print" data-id="${esc(h.id)}">Character sheet (print / PDF)</button><button class="btn" data-act="cm-edit" data-id="${esc(h.id)}">Edit</button><button class="btn ghost" data-act="cm-delhero" data-id="${esc(h.id)}">Delete</button></div></article>`; }).join('')
@@ -109,6 +110,7 @@ function campaignActions() { return {
   'cm-unlock': () => cmUnlockDialog(),
   'hi-open': d => hiDialog(d.v === 'party' && isDm() ? 'party' : 'mine'), // src/ui/hero-import.js
   'cm-lock': () => { S.role = 'player'; S.tab = 'home'; toast('DM mode is locked.'); },
+  'cm-save-party':()=>{if(S.role!=='dm')return;const missing=cmUnsavedParty();for(const p of missing){const saved=crStoreHero({build:{...p.build,name:p.name},story:{...crNew().story,want:p.want||''}});saved.sourcePartyId=p.id;p.myHeroId=saved.id;}toast(missing.length+' party characters copied to My heroes.');},
   'cm-newhero': () => { S.creator = crNew(); S.tab = 'create'; },
   'cm-edit': d => { const h = cmHero(d.id); if (!h) return; S.creator = crRestoreSelections({ ...crNew(), build: JSON.parse(JSON.stringify(h.build)), story: { ...crNew().story, ...h.story }, heroId: h.id, step: 'review' }); S.tab = 'create'; window.scrollTo(0, 0); },
   'cm-print': d => { const h = cmHero(d.id); if (h) openSheet(h.build, h.story); },
