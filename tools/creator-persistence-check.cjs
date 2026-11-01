@@ -123,3 +123,16 @@ run(`globalThis.updateDialog.querySelector('#item-template').value=[...QBItemTem
 assert.equal(run('S.party.find(p=>p.build).build.customItems[0].name'),'Damoklesschwert');assert.equal(run('S.party.find(p=>p.build).hpNow'),grantHp);assert.deepEqual(plain(run('S.party.find(p=>p.build).attacks')),grantAttacks);assert(run('cmSheet(S.party.find(p=>p.build).build).gear.items.some(x=>x.name===\'Damoklesschwert\')'));
 run(`ACT['adventure-hero-export']({id:S.party.find(p=>p.build).id});`);assert.equal(JSON.parse(exported).hero.build.customItems[0].attunement,true);assert(JSON.parse(exported).hero.build.customItems[0].description.includes('2W6'));
 console.log('PASS: ten table item templates, direct adventure grants, inventory persistence/export and no silent stat or HP changes.');
+
+// A granted weapon becomes an equipped, attuned attack only through explicit controls.
+run(`ACT['adventure-hero-edit']({id:S.party.find(p=>p.build).id});S.creator.step='equipment';`);
+assert(run('creatorCustomItems(S.creator)').includes('Equip'));
+run(`ACT['custom-item-equip']({id:S.creator.build.customItems[0].id});ACT['custom-item-attune']({id:S.creator.build.customItems[0].id});ACT['adventure-hero-save']();render();S=load();`);
+assert.equal(run('S.party.find(p=>p.build).hpNow'),grantHp);
+assert(run('S.party.find(p=>p.build).attacks.some(a=>a.name===\'Damoklesschwert\')'));
+run(`ACT['adventure-hero-export']({id:S.party.find(p=>p.build).id});`);
+assert.equal(JSON.parse(exported).hero.build.customItems[0].weapon.base,'longsword');
+assert.equal(JSON.parse(exported).hero.build.customItems[0].weapon.magicBonus,1);
+assert.equal(JSON.parse(exported).hero.build.customItems[0].attuned,true);
+assert.equal(run('cmSheet(S.party.find(p=>p.build).build).customItems[0].equipped'),true);
+console.log('PASS: item-menu Equip/Attune controls, adventure save/reload and player-update export retain structured weapon stats without changing HP.');
