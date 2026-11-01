@@ -286,7 +286,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/ui/character-extras.js"></script>
 <script src="src/ui/creator.js?v=20261101-profs1"></script>
 <script src="src/ui/homebrew.js"></script>
-<script src="src/ui/campaigns.js?v=20261101-sync1"></script>
+<script src="src/ui/campaigns.js?v=20261101-cleanheroes1"></script>
 <script src="src/ui/adventure-heroes.js?v=20261101-sync1"></script>
 <script src="src/ui/player-dice.js?v=20261101-sync1"></script>
 <script src="src/ui/player-hp.js"></script>
@@ -1325,6 +1325,7 @@ document.addEventListener('input',e=>{if(e.target.dataset.bind==='draft.name'){c
 function render(){
   const disclosureState=overviewCaptureDisclosures();
   const liveState=liveCapture();
+  const heroDisclosures=heroDisclosureCapture();
   sceneMapsSync();
   publishPlayer();
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.v===S.tab));
@@ -1332,6 +1333,7 @@ function render(){
   $('#view').innerHTML={home:S.role==='dm'?vHome:vPlayerHome,create:vCreate,heroes:vHeroes,campaigns:vCampaigns,import:vImport,desk:vDesk,combat:vCombat,homebrew:vHomebrew}[S.tab]();
   overviewRestoreDisclosures(disclosureState);
   liveRestore(liveState);
+  heroDisclosureRestore(heroDisclosures);
   sharedTick();
   save();
   if(S.tab==='desk' && S.deskView!=='campaign') void sessionOverviewHydrate();
