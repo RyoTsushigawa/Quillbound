@@ -368,3 +368,6 @@ My heroes includes Roll dice, both per hero and without a sheet. Hero rolls use 
 
 The player screen treats periodic DM replies as a connection heartbeat. It ignores timestamp-only updates instead of rebuilding visible content, and preserves the loaded map image node when other visible information changes. New maps and hidden/revoked reveals still update normally.
 
+
+Only DM-mode app tabs publish to the player screen. Snapshots identify their publishing tab; the player screen locks onto one publisher and ignores other tabs, including legacy replies without a publisher ID. Opening Player screen settings or choosing Use this DM tab explicitly selects that tab and sends its current reveal. A player screen can be reopened from a cache-versioned link. If a selected DM tab is closed/reloaded, use Player screen settings on the intended DM tab to select it again; the last reveal stays visible while waiting.
+

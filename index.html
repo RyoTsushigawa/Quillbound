@@ -1183,6 +1183,7 @@ document.addEventListener('drop',e=>{const z=e.target.closest?.('[data-zone]'); 
 let playerSpotlight = null;
 let playerChannel = null;
 let playerLastPayload = '';
+const playerPublisherId=uid('display');
 function playerSettings() {
   if (!S.playerSettings) S.playerSettings = { token: '', party: false, combat: false };
   if (!/^[a-f0-9]{32}$/.test(S.playerSettings.token)) S.playerSettings.token = Array.from(crypto.getRandomValues(new Uint8Array(16)), x => x.toString(16).padStart(2,'0')).join('');
@@ -1194,14 +1195,16 @@ function playerConnect() {
   playerChannel?.channel.close();
   const channel = new BroadcastChannel('quillbound-player-' + cfg.token);
   playerChannel = { channel, token: cfg.token };
-  channel.onmessage = e => { if (e.data?.type === 'hello') publishPlayer(true); };
+  channel.onmessage = e => { if (e.data?.type === 'hello' && (!e.data.sourceId || e.data.sourceId===playerPublisherId)) publishPlayer(true); };
 }
+function playerClaim(){if(S.role!=='dm')return;playerConnect();playerChannel?.channel.postMessage({type:'source-activate',sourceId:playerPublisherId});publishPlayer(true);}
 function publishPlayer(force = false) {
+  if(S.role!=='dm')return;
   playerConnect();
   const data = PlayerFeed.snapshot(S, playerSpotlight);
   // Ignore the timestamp when comparing so typing private notes sends nothing new.
   const key = JSON.stringify({ ...data, updated: 0 });
-  if (force || key !== playerLastPayload) { playerLastPayload = key; playerChannel?.channel.postMessage({ type: 'snapshot', payload: data }); }
+  if (force || key !== playerLastPayload) { playerLastPayload = key; playerChannel?.channel.postMessage({ type: 'snapshot', sourceId:playerPublisherId, payload: data }); }
 }
 function eye(kind, record) {
   const visible = record.player?.visible === true;
@@ -1217,16 +1220,18 @@ function openDialog(title, body, { wide = false } = {}) {
   dlg.addEventListener('close', () => dlg.remove()); dlg.showModal(); return dlg;
 }
 function playerSetup() {
+  if(S.role!=='dm')return;playerClaim();
   const cfg = playerSettings();
   const shown = ['beats','hooks','npcs','items'].flatMap(kind => (S[kind]||[]).filter(x=>x.player?.visible).map(x=>({kind,record:x})));
   const dlg = openDialog('Player screen', `<p>Open a second window for your table or TV. Keep it in the same browser and keep this DM page open. Reveals update live.</p>
-    <a class="btn primary" id="player-open" href="player.html#${cfg.token}" target="_blank" rel="noopener">Open player screen</a><p class="small muted">This is a presentation screen on your computer. It does not provide accounts or access control for remote players.</p>
-    <label><input id="share-party" type="checkbox" ${cfg.party?'checked':''}> Show party names, classes and current conditions</label>
+    <a class="btn primary" id="player-open" href="player.html?v=single-source2&source=${playerPublisherId}#${cfg.token}" target="_blank" rel="noopener">Open player screen</a><p class="small muted">This is a presentation screen on your computer. It does not provide accounts or access control for remote players.</p>
+    <button class="btn" id="player-use-tab">Use this DM tab for the player screen</button><p class="small muted">The player display follows one DM tab. Use this button if another open tab was showing a different scene.</p><label><input id="share-party" type="checkbox" ${cfg.party?'checked':''}> Show party names, classes and current conditions</label>
     <label><input id="share-combat" type="checkbox" ${cfg.combat?'checked':''}> Show the fight, positions and conditions</label>
     <p class="small muted">Combat sharing shows only enemies you have not concealed, using their player-facing names. It shares positions, conditions, and each hero's HP and stamina. Enemies show only Fresh, Hurt, Bloodied, Wavering or Down, never their numbers. Player dice are always public, even with this switch off. Enemy stats, plans and the DM log remain private.</p>
     <h4>Revealed cards · ${shown.length}</h4>${shown.length?shown.map(x=>`<div class="row" style="justify-content:space-between"><span>${esc(x.record.player.title||'Untitled')}</span><button class="btn sm" data-player-hide="${esc(x.record.id)}" data-kind="${x.kind}">Hide</button></div>`).join(''):'<p>No cards revealed yet. Use Reveal… on the DM desk.</p>'}
     <p>${playerSpotlight?'A map, handout or read-aloud is on screen.':'No map or read-aloud on screen.'}</p><button class="btn" id="player-clear-spot">Clear map / read-aloud</button><button class="btn" id="player-hide-all">Hide revealed content</button>`);
-  dlg.querySelector('#player-open').onclick = () => { publishPlayer(true); save(); };
+  dlg.querySelector('#player-open').onclick = () => { playerClaim(); save(); };
+  dlg.querySelector('#player-use-tab').onclick=()=>{playerClaim();toast('The player screen now follows this DM tab.');};
   for (const [id, key] of [['share-party','party'],['share-combat','combat']]) dlg.querySelector('#'+id).onchange = e => { cfg[key] = e.target.checked; publishPlayer(true); save(); };
   dlg.querySelectorAll('[data-player-hide]').forEach(b=>b.onclick=()=>{const record=S[b.dataset.kind].find(x=>x.id===b.dataset.playerHide); if(record?.player) record.player.visible=false; publishPlayer(true); render(); dlg.close(); playerSetup();});
   dlg.querySelector('#player-clear-spot').onclick = () => { sceneMapsPause(); playerSpotlight=null; publishPlayer(true); dlg.close(); playerSetup(); };
