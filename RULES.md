@@ -365,3 +365,6 @@ The Awareness & subclass sheets dialog offers Edit full character for heroes wit
 
 My heroes includes Roll dice, both per hero and without a sheet. Hero rolls use derived skill (including proficiency/Expertise), saving throw, ability, initiative and attack bonuses; damage formulas use sheet damage. Custom formulas support common dice and modifiers with bounded counts; advantage/disadvantage rolls two fair d20s and keeps the appropriate result. The roller delegates to the existing crypto rejection-sampled die and never weights naturals. Rolls do not apply HP/resource changes and do not automatically reach the DM. Players can copy a result to Discord. Recent results stay in this browser, outside campaign exports.
 
+
+The player screen treats periodic DM replies as a connection heartbeat. It ignores timestamp-only updates instead of rebuilding visible content, and preserves the loaded map image node when other visible information changes. New maps and hidden/revoked reveals still update normally.
+
