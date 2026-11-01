@@ -103,7 +103,20 @@
   const featAllowed = (b, f, lv) => !featBlockers(b, f, lv).length;
 
   /* ---- gear ---- */
-  const item = id => H().equipment[id];
+  // Resolve character-owned weapons without adding them to the global shop or granting proficiency.
+  function customWeapon(x){
+    if(!x||typeof x!=='object'||! /^[a-zA-Z0-9_-]{1,100}$/.test(String(x.id || '')))return null;
+    const legacy=!x.kind&&/^damokles[ -]?schwert$/i.test(String(x.name || ''));
+    if(x.kind!=='weapon'&&!legacy)return null;
+    const config=x.weapon || {},baseId=config.base || (legacy?'longsword':''),base=H().equipment[baseId];
+    if(!base||base.kind!=='weapon')return null;
+    const rawBonus=Number(config.magicBonus ?? (legacy?1:0)),magicBonus=Number.isInteger(rawBonus)?Math.max(-3,Math.min(3,rawBonus)):0;
+    const requiresAttunement=x.attunement===true||(legacy&&x.attunement===undefined),attuned=x.attuned===true,activeBonus=requiresAttunement&&!attuned?0:magicBonus;
+    const dice=/^(?:[1-9]|1[0-2])d(?:4|6|8|10|12)$/.test(config.dice || '')?config.dice:base.dice;
+    const type=['acid','bludgeoning','cold','fire','force','lightning','necrotic','piercing','poison','psychic','radiant','slashing','thunder'].includes(config.damageType)?config.damageType:base.type;
+    return {...base,id:'custom-'+x.id,kind:'weapon',baseWeapon:baseId,name:String(x.name || base.name).slice(0,120),dice,type,props:[...base.props],magicBonus:activeBonus,configuredBonus:magicBonus,requiresAttunement,attuned,custom:true};
+  }
+  const item = (id,b) => b&&String(id).startsWith('custom-')?customWeapon((b.customItems || []).find(x=>'custom-'+x?.id===id)):H().equipment[id];
   const gpOf = cost => { const m = String(cost || '').match(/([\d.]+)\s*(gp|sp|cp)/i); return m ? +m[1] * ({ gp: 1, sp: 0.1, cp: 0.01 })[m[2].toLowerCase()] : 0; };
   // The price of `count` of an item (ammunition is sold in bundles: 20 arrows for 1 GP).
   const priceOf = (id, count = 1) => { const e = item(id); return e ? Math.round(gpOf(e.cost) * count / (e.bundle || 1) * 100) / 100 : 0; };
@@ -118,16 +131,16 @@
     let spent = 0;
     for (const x of b.gear?.extra || []) { const e = item(x.id); if (!e) continue; const count = Math.max(1, Number(x.count) || 1);
       items.push({ id: x.id, name: e.name, count, from: x.how === 'grant' ? 'Granted by the DM' : 'Bought' }); if (x.how !== 'grant') spent += priceOf(x.id, count); }
-    for(const x of (Array.isArray(b.customItems)?b.customItems:[]).filter(x=>x&&typeof x==='object').slice(0,100))items.push({id:'custom-'+String(x.id || ''),name:String(x.name || 'Homebrew item').slice(0,120),count:Math.max(1,Math.min(999,Number(x.quantity)||1)),from:'Homebrew · manual effects'});
+    for(const x of (Array.isArray(b.customItems)?b.customItems:[]).filter(x=>x&&typeof x==='object').slice(0,100))items.push({id:'custom-'+String(x.id || ''),name:String(x.name || 'Homebrew item').slice(0,120),count:Math.max(1,Math.min(999,Number(x.quantity)||1)),from:customWeapon(x)?'Homebrew weapon':'Homebrew item'});
     return { items, gp: Math.round((startGp - spent) * 100) / 100, startGp, spent: Math.round(spent * 100) / 100 };
   }
   // What the hero is wearing and wielding: the player's picks, or the best of what they own.
   function equipped(b) {
     const own = inventory(b).items.map(i => i.id), e = b.equip || {};
     // By default only armor and shields the class is trained in are put on; the player can still choose otherwise.
-    const armor = e.armor !== undefined ? e.armor : own.filter(id => item(id)?.kind === 'armor' && proficientWith(b, id)).sort((x, y) => item(y).ac - item(x).ac)[0] || null;
-    const shield = e.shield !== undefined ? !!e.shield : own.some(id => item(id)?.kind === 'shield') && proficientWith(b, 'shield');
-    const weapons = e.weapons || [...new Set(own.filter(id => item(id)?.kind === 'weapon'))];
+    const armor = e.armor !== undefined ? e.armor : own.filter(id => item(id,b)?.kind === 'armor' && proficientWith(b, id)).sort((x, y) => item(y,b).ac - item(x,b).ac)[0] || null;
+    const shield = e.shield !== undefined ? !!e.shield : own.some(id => item(id,b)?.kind === 'shield') && proficientWith(b, 'shield');
+    const weapons = e.weapons || [...new Set(own.filter(id => item(id,b)?.kind === 'weapon'))];
     return { armor, shield, weapons };
   }
   // Proficiency with a weapon or armor, from the class's list ("Simple Weapons", "Martial Weapons that have the Finesse or Light property", …).
@@ -137,9 +150,9 @@
   const featsOf = b => [byId(H().backgrounds, b.background)?.feat?.id, b.speciesFeat, b.fightingStyle, ...Object.values(b.asi || {}).map(x => x?.feat)].map(id => id && byId(H().feats, id)).filter(Boolean);
   const featTraining = b => featsOf(b).flatMap(f => f.effects?.training || []);
   function proficientWith(b, id) {
-    const it = item(id), granted = [...(b.training || []), ...featTraining(b)];
-    const profs = [...classProfs(b), ...granted.map(g => TRAINING[g] || (item(g) ? item(g).name + 's' : ''))].map(p => p.toLowerCase()); if (!it) return false;
-    if (it.kind === 'weapon') return profs.some(p => p === `${it.group} weapons` || (p.startsWith(`${it.group} weapons that have`) && it.props.some(x => p.includes(x.replace(/-/g, ' ')))) || p === it.name.toLowerCase() + 's');
+    const it = item(id,b), granted = [...(b.training || []), ...featTraining(b)];
+    const profs = [...classProfs(b), ...granted.map(g => TRAINING[g] || (item(g,b) ? item(g,b).name + 's' : ''))].map(p => p.toLowerCase()); if (!it) return false;if(granted.includes(id))return true;
+    if (it.kind === 'weapon') return profs.some(p => p === `${it.group} weapons` || (p.startsWith(`${it.group} weapons that have`) && it.props.some(x => p.includes(x.replace(/-/g, ' ')))) || p === (it.baseWeapon?item(it.baseWeapon).name:it.name).toLowerCase() + 's');
     if (it.kind === 'shield') return profs.includes('shields');
     return profs.includes('all armor') || profs.includes(`${it.group} armor`);
   }
@@ -217,12 +230,12 @@
     // Sneak Attack is its own line beside the plain one: it needs Advantage or an ally next to the target, once per turn, so the table picks it.
     const withSneak = a => { attacks.push(a); if (a.sneakable && sneak) attacks.push({ ...a, name: a.name + ' + Sneak Attack', damage: a.damage + `+${sneak.dice_count}d${sneak.dice_value}`, note: [a.note, 'Advantage or an ally next to the target; once per turn'].filter(Boolean).join('; '), sneak: true }); delete a.sneakable; };
     for (const id of eq.weapons) {
-      const w = item(id); if (!w || w.kind !== 'weapon') continue;
+      const w = item(id,b); if (!w || w.kind !== 'weapon') continue;
       const monkWeapon = martial && (w.group === 'simple' && !w.ranged || w.group === 'martial' && w.props.includes('light'));
       const ab = w.ranged ? 'DEX' : (w.props.includes('finesse') || monkWeapon) && m.DEX > m.STR ? 'DEX' : 'STR';
-      const proficient = proficientWith(b, id), dice = monkWeapon && Number(w.dice.split('d')[1] || 0) < martial ? '1d' + martial : w.dice;
-      const bonus = m[ab] + (proficient ? prof : 0) + (w.ranged && hasFeat('archery') ? 2 : 0);
-      withSneak({ name: w.name, bonus, damage: dice + (m[ab] ? fmt(m[ab]) : ''), sneakable: w.ranged || w.props.includes('finesse'), count, type: w.type, mastery: w.mastery, note: proficient ? '' : 'not proficient', kind: 'weapon' });
+      const proficient = proficientWith(b, id), dice = monkWeapon && /^1d/.test(w.dice) && Number(w.dice.split('d')[1] || 0) < martial ? '1d' + martial : w.dice;
+      const magic=w.magicBonus || 0,bonus = m[ab] + (proficient ? prof : 0) + (w.ranged && hasFeat('archery') ? 2 : 0) + magic,damageMod=m[ab]+magic;
+      withSneak({ name: w.name, bonus, damage: dice + (damageMod ? fmt(damageMod) : ''), sneakable: w.ranged || w.props.includes('finesse'), count, type: w.type, mastery: w.mastery, note: [proficient?'':'not proficient',w.requiresAttunement&&!w.attuned?'not attuned: magic bonus inactive':''].filter(Boolean).join('; '), kind: 'weapon' });
     }
     // natural weapons from a (homebrew) species: always proficient; finesse ones may use Dexterity
     for (const n of sp?.effects?.natural || []) { const ab = n.finesse && m.DEX > m.STR ? 'DEX' : 'STR';
@@ -286,7 +299,7 @@
     const weaponNames=new Set(Object.values(data.equipment).filter(x=>x.kind==='weapon').flatMap(x=>[x.name.toLowerCase(),x.name.toLowerCase()+'s']));
     const proficiencies={weapons:labels.filter(x=>/weapons?/i.test(x)||weaponNames.has(x.toLowerCase())),armor:labels.filter(x=>/armor|shields?/i.test(x)),tools,granted};
     const companions=(Array.isArray(b.companions)?b.companions:[]).filter(x=>x&&typeof x==='object').slice(0,10).map(x=>({name:String(x.name || 'Companion').slice(0,100),kind:String(x.kind || '').slice(0,100),ac:Number.isInteger(x.ac)?x.ac:null,hp:Number.isInteger(x.hp)?x.hp:null,speed:String(x.speed || '').slice(0,100),notes:String(x.notes || '').slice(0,4000)}));
-    const customItems=(Array.isArray(b.customItems)?b.customItems:[]).filter(x=>x&&typeof x==='object').slice(0,100).map(x=>({name:String(x.name || 'Homebrew item').slice(0,120),quantity:Math.max(1,Math.min(999,Number(x.quantity)||1)),rarity:String(x.rarity || '').slice(0,80),attunement:x.attunement===true,maxCharges:Number.isInteger(x.maxCharges)?Math.max(0,x.maxCharges):0,charges:Number.isInteger(x.charges)?Math.max(0,x.charges):0,description:String(x.description || '').slice(0,6000)}));
+    const customItems=(Array.isArray(b.customItems)?b.customItems:[]).filter(x=>x&&typeof x==='object').slice(0,100).map(x=>({name:String(x.name || 'Homebrew item').slice(0,120),quantity:Math.max(1,Math.min(999,Number(x.quantity)||1)),rarity:String(x.rarity || '').slice(0,80),attunement:x.attunement===true||customWeapon(x)?.requiresAttunement===true,maxCharges:Number.isInteger(x.maxCharges)?Math.max(0,x.maxCharges):0,charges:Number.isInteger(x.charges)?Math.max(0,x.charges):0,description:String(x.description || '').slice(0,6000),weapon:customWeapon(x),kind:customWeapon(x)?'weapon':'item',equipped:eq.weapons.includes('custom-'+x.id)}));
     return { tools, proficiencies, companions, customItems, name: b.name || '', level, prof, species: sp?.name || '', sub: sub?.name || '', cls: c?.name || '', subclass: level >= 3 ? subOf(b)?.name || '' : '', background: bg?.name || '',
       size: sp?.size || b.size || '', scores: s, mods: m, saves, skills, passive: 10 + skills.perception.bonus, initiative: m.DEX + (hasFeat('alert') ? prof : 0), speed,
       senses: (sp?.traits || []).filter(t => /^darkvision/.test(t.id)).map(t => t.name),
@@ -362,5 +375,5 @@
     return b;
   }
 
-  root.QBHeroRules = { subOf, featAllowed, featBlockers, getHomebrew, spellList, classProfs, TRAINING, priceOf, setHomebrew, data: () => H(), ABIL, ARRAY, POINT_COST, POINTS, mod, profFor, die, rollAbilities, rollTotal, rollHp, derive, toHero, quickBuild, fillDefaults, inventory, equipped, proficientWith, asiLevels, expertiseCount, abilityChecks, boostCheck };
+  root.QBHeroRules = { customWeapon, equipmentItem:(b,id)=>item(id,b), subOf, featAllowed, featBlockers, getHomebrew, spellList, classProfs, TRAINING, priceOf, setHomebrew, data: () => H(), ABIL, ARRAY, POINT_COST, POINTS, mod, profFor, die, rollAbilities, rollTotal, rollHp, derive, toHero, quickBuild, fillDefaults, inventory, equipped, proficientWith, asiLevels, expertiseCount, abilityChecks, boostCheck };
 })(globalThis);
