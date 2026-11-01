@@ -362,3 +362,6 @@ Existing adventure characters can also be saved with unfinished choices as a mar
 
 The Awareness & subclass sheets dialog offers Edit full character for heroes with saved build data. It closes the dialog and opens that adventure character’s complete editor. The limited form is separately labelled Awareness & subclass only.
 
+
+My heroes includes Roll dice, both per hero and without a sheet. Hero rolls use derived skill (including proficiency/Expertise), saving throw, ability, initiative and attack bonuses; damage formulas use sheet damage. Custom formulas support common dice and modifiers with bounded counts; advantage/disadvantage rolls two fair d20s and keeps the appropriate result. The roller delegates to the existing crypto rejection-sampled die and never weights naturals. Rolls do not apply HP/resource changes and do not automatically reach the DM. Players can copy a result to Discord. Recent results stay in this browser, outside campaign exports.
+
