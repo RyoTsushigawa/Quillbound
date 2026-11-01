@@ -1,0 +1,71 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const root=path.join(__dirname,'..'),ctx=vm.createContext({console,setTimeout:()=>0,clearTimeout(){}});
+vm.runInContext(fs.readFileSync(path.join(root,'src/app/shared-heroes.js'),'utf8'),ctx);
+const model=ctx.QBSharedHeroes,clone=x=>JSON.parse(JSON.stringify(x));
+const hero={id:'quinn',name:'Quinn',build:{name:'Quinn',cls:'rogue',species:'human',customItems:[{name:'Test',description:'A rule'}]},story:{want:'Freedom'},privateNotes:'DO NOT SHARE',hpNow:13};
+const base=model.sheet(hero),link={id:'shared-quinn',uid:'dm-user',revision:1,baseJson:base};
+const local={...clone(hero),cloudLink:link},remote={dmUid:'dm-user',playerUid:'player-user',sheetJson:base,revision:1};
+assert(!base.includes('DO NOT SHARE'));assert(!base.includes('hpNow'));
+assert.equal(model.state(local,remote),'same');
+local.build.customItems.push({name:'Damoklesschwert'});assert.equal(model.state(local,remote),'outgoing');
+const changed={...remote,revision:2,sheetJson:base.replace('Freedom','Museum')};
+assert.equal(model.state(local,changed),'conflict');
+assert.equal(model.state({...clone(hero),cloudLink:link},changed),'incoming');
+assert.equal(model.state({...local,cloudLink:{...link,revision:2,baseJson:changed.sheetJson}},{...changed,sheetJson:model.sheet(local)}),'same');
+assert.throws(()=>model.read('{"build":{}}',()=>({cls:'Rogue'})));
+assert.throws(()=>model.sheet({...hero,build:{...hero.build,notes:'x'.repeat(120001)}}),/groß/);
+assert.equal(model.stable({z:1,a:{z:2,a:3}}),model.stable({a:{a:3,z:2},z:1}));
+
+// Minimal UI environment: no SDK, network or account is used by these tests.
+Object.assign(ctx,{S:{role:'dm',tab:'desk',campaigns:{current:'local-campaign'},party:[],myHeroes:[],creator:{}},cmSheet:()=>({cls:'Rogue',ac:16,hp:{max:38},skills:{perception:{bonus:5}}}),QBHeroRules:{toHero:(build,sheet,keep)=>({...keep,build,ac:sheet.ac,hp:sheet.hp.max})},heroDefaults(){},uid:()=> 'generated-id',render(){},save(){},toast(){},document:{querySelectorAll:()=>[]},QBCampaigns:{}});
+vm.runInContext(fs.readFileSync(path.join(root,'src/ui/shared-heroes.js'),'utf8'),ctx);
+const run=s=>vm.runInContext(s,ctx);
+ctx.remoteDoc={...remote,id:'shared-quinn'};
+run(`sharedCloud.user={uid:'player-user'};sharedCloud.docs.set(remoteDoc.id,remoteDoc);sharedReconcile();`);
+assert.equal(ctx.S.myHeroes.length,1,'assigned hero appears without a file import');
+run('sharedReconcile()');assert.equal(ctx.S.myHeroes.length,1,'repeated updates do not duplicate a hero');
+ctx.remoteDoc={...changed,id:'shared-quinn'};
+run('sharedCloud.docs.set(remoteDoc.id,remoteDoc);sharedReconcile()');
+assert.equal(ctx.S.myHeroes[0].story.want,'Museum','remote story updates a clean player copy');
+assert.equal(ctx.S.myHeroes[0].previousVersion.story.want,'Freedom','previous version remains recoverable');
+ctx.S.myHeroes[0].build.name='Unsaved local';
+ctx.remoteDoc={...changed,id:'shared-quinn',revision:3,sheetJson:base.replace('Freedom','New remote')};
+run('sharedCloud.docs.set(remoteDoc.id,remoteDoc);sharedReconcile()');
+assert.equal(ctx.S.myHeroes[0].build.name,'Unsaved local','remote cannot overwrite local changes');
+assert.equal(run('sharedStatus(S.myHeroes[0],false)'),'conflict');
+ctx.S.myHeroes[0].build.name='Quinn';
+ctx.S.tab='create';ctx.S.creator.heroId=ctx.S.myHeroes[0].id;
+run('sharedReconcile()');assert.equal(ctx.S.myHeroes[0].story.want,'Museum','active editor holds incoming update');
+ctx.S.tab='heroes';run('sharedReconcile()');assert.equal(ctx.S.myHeroes[0].story.want,'New remote');
+ctx.S.party=[{...clone(hero),heroStory:hero.story,want:hero.story.want,cloudLink:{...link},hpNow:13,ac:19,hp:40,perceptionBonus:7}];
+run(`sharedCloud.user={uid:'dm-user'};sharedReconcile();`);
+assert.equal(ctx.S.party[0].hpNow,13);assert.equal(ctx.S.party[0].ac,19);assert.equal(ctx.S.party[0].hp,40);
+ctx.S.combat={};ctx.remoteDoc={...remote,id:'shared-quinn',revision:4,sheetJson:base.replace('Freedom','After combat')};
+run('sharedCloud.docs.set(remoteDoc.id,remoteDoc);sharedReconcile()');assert.notEqual(ctx.S.party[0].want,'After combat','combat holds incoming build');
+ctx.S.combat=null;run('sharedReconcile()');assert.equal(ctx.S.party[0].want,'After combat');
+run(`sharedCloud.user={uid:'unrelated-user'};sharedReconcile();`);assert.equal(ctx.S.myHeroes.length,1,'another account cannot import someone else’s hero');
+
+(async()=>{
+ let stored=clone(remote);const adapter={transaction:async(id,fn)=>{stored=clone(fn(stored));return stored;}};
+ const first=await model.update(adapter,'shared-quinn',1,model.sheet(local),'player-user');assert.equal(first.revision,2);
+ await assert.rejects(()=>model.update(adapter,'shared-quinn',1,base,'dm-user'),/CONFLICT/,'stale DM cannot overwrite player update');
+ await assert.rejects(()=>model.update(adapter,'shared-quinn',2,base,'unrelated-user'),/Zugriff/);
+ assert.equal(stored.playerUid,'player-user');assert.equal(stored.dmUid,'dm-user');
+ // Exercise the actual UI flush through a transaction adapter, including a grant.
+ ctx.S.party=[{...clone(hero),heroStory:hero.story,want:hero.story.want,cloudLink:{...link}}];
+ ctx.S.party[0].build.customItems.push({name:'Dirigentenstab',description:'Applaus'});
+ let database=clone(remote),writes=0;
+ ctx.fakeApi={store:{},db:{doc:()=>({}),serverTimestamp:()=>123,runTransaction:async(store,fn)=>fn({get:async()=>({exists:()=>true,data:()=>clone(database)}),set:(ref,next)=>{database=clone(next);writes++;}})}};
+ run(`sharedCloud.user={uid:'dm-user'};sharedCloud.api=fakeApi;sharedCloud.docs.clear();sharedCloud.errors.clear();sharedCloud.docs.set('shared-quinn',remoteDoc);`);
+ // Use a matching cache while the authoritative transaction still verifies its revision.
+ ctx.remoteDoc={...remote,id:'shared-quinn'};run(`sharedCloud.docs.set('shared-quinn',remoteDoc);`);
+ await run('sharedFlush()');assert.equal(writes,1);assert(database.sheetJson.includes('Dirigentenstab'));
+ assert(!database.sheetJson.includes('DO NOT SHARE'));assert.equal(ctx.S.party[0].cloudLink.revision,2);
+ await run('sharedFlush()');assert.equal(writes,1,'clean saves produce no repeated network writes');
+ ctx.S.party[0].build.name='Offline edit';database.revision=3;
+ await run('sharedFlush()');assert.equal(writes,1,'concurrent database write is never overwritten');
+ assert.equal(ctx.S.party[0].build.name,'Offline edit','failed save retains local edit');
+ assert.equal(ctx.S.party[0].cloudLink.revision,2,'failed save does not advance the local base');
+ run(`sharedCloud.user={uid:'unrelated-user'};`);await run('sharedFlush()');assert.equal(writes,1);
+ console.log('PASS: character-only payload, assigned player import, repeat-safe real-time updates, item/story transfer, local/editor/combat protection, revision conflicts and unauthorized writer rejection.');
+})().catch(e=>{console.error(e);process.exitCode=1;});
