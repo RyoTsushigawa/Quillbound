@@ -474,6 +474,8 @@ function readAloudOf(sec) {
   return out;
 }
 
+// Chapters about using the book, not places the party goes: kept to read, never a location to move players to.
+const SETUP_HEAD = /^(plug-?in adventure|running the adventure|adventure (background|summary|overview)|how to (run|use)|using this|level selection|scaling the adventure|omeria placement)\b/i;
 function findStory(sections, enemies, npcs) {
   const lv = chapterLevel(sections);
   const beats = [], hooks = [], locations = [], summary = [];
@@ -500,7 +502,7 @@ function findStory(sections, enemies, npcs) {
     const area = s.raw.match(AREA_RE);
     if (area && s.level > lv - 1 && !/^\d{4}$/.test(area[1])) {
       const beat = ancestors(s).find(a => a.level === lv);
-      locations.push({ id: uid('l'), key: area[1], name: prettyCaps(area[2]), text: firstSentences(sectionText(s), 3), page: s.page, beat: beat ? beat.title : '', why: 'numbered area heading' });
+      locations.push({ id: uid('l'), key: area[1], name: prettyCaps(area[2]), text: firstSentences(sectionText(s), 3), fullText: sectionText(s), readAloud: readAloudOf(s), page: s.page, beat: beat ? beat.title : '', why: 'numbered area heading' });
     }
     if (s.level !== lv || /^appendix|^anhang/i.test(s.title) || s.heading.statName || ACTION_HEADS.test(s.title) || s.roleplayFor) return;
     const text = sectionText(s);
@@ -513,8 +515,9 @@ function findStory(sections, enemies, npcs) {
     const child = re => s.children.find(c => re.test(c.title));
     const dq = child(/dramatic question|leitfrage/i), tr = child(/^transition|übergang/i);
     const all = sentences(text);
+    const notPlace = SETUP_HEAD.test(s.title) || foeNames.includes(s.title);
     beats.push({
-      id: uid('s'), title: s.title, page: s.page,
+      id: uid('s'), title: s.title, page: s.page, ...(notPlace ? { reference: true } : {}), fullText: text,
       summary: firstSentences(prose[0]?.b.text || paras[0]?.b.text || '', 2),
       question: dq ? sectionText(dq).replace(/\n/g, ' ').trim() : '',
       transition: tr ? sectionText(tr).replace(/\n/g, ' ').trim() : '',
@@ -531,6 +534,19 @@ function findStory(sections, enemies, npcs) {
   // other same-size sections (appendices, charts, credits) become reference sections.
   const PART = /^(part|chapter|act|scene|episode|teil|kapitel|akt|szene)\s*[\dIVX]+|^(introduction|prologue|conclusion|epilogue|aftermath|finale|ending|einleitung|prolog|epilog|abschluss|finale)\b/i;
   let reference = [];
+  // A short book keyed by room plays room by room, so each room becomes a location with its whole text.
+  // A chapter holding rooms stays to read: it describes the place as a whole.
+  if (locations.length >= 3 && locations.length <= 40) {
+    const out = [];
+    for (const b of beats) {
+      const rooms = locations.filter(l => l.beat === b.title);
+      if (rooms.length < 3) { out.push({ ...b, summary: (b.fullText || b.summary).replace(/\n/g, '\n\n') }); continue; }
+      const own = (b.fullText || '').split(/\n/).filter(line => line.trim() && !rooms.some(r => r.fullText.includes(line.trim()))).join('\n\n');
+      out.push({ ...b, reference: true, summary: own || b.summary });
+      for (const r of rooms) out.push({ id: uid('s'), title: r.key + '. ' + r.name, page: r.page, summary: r.fullText.replace(/\n/g, '\n\n'), question: '', transition: '', branches: [], readAloud: r.readAloud.slice(0, 2), senses: [], scenes: [], npcs: npcNames.filter(n => r.fullText.includes(n)), foes: foeNames.filter(n => new RegExp(`\\b${n.split(/[ ,]/)[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i').test(r.fullText)), why: 'numbered room' });
+    }
+    beats.length = 0; beats.push(...out);
+  }
   if (beats.filter(b => PART.test(b.title)).length >= 2) {
     const firstPart = beats.findIndex(b => PART.test(b.title));
     const lastPart = beats.length - 1 - [...beats].reverse().findIndex(b => PART.test(b.title));

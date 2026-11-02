@@ -58,6 +58,16 @@ function buildLines(items, pageW) {
   return lines.filter(l => l.text);
 }
 
+// Some layouts draw text twice, one copy over the other, for a shadow or outline. Keep the first copy.
+export function dropOverprint(items) {
+  const seen = new Map();
+  return items.filter(it => {
+    const near = seen.get(it.str) || [];
+    if (near.some(o => Math.abs(o.x - it.x) < Math.max(2, it.size * 0.3) && Math.abs(o.y - it.y) < Math.max(2, it.size * 0.3))) return false;
+    near.push(it); seen.set(it.str, near); return true;
+  });
+}
+
 // Order lines: full-width lines split the page into bands; inside a band, columns left to right.
 function readingOrder(lines, pageW) {
   const mid = pageW / 2;
@@ -114,7 +124,7 @@ export async function extractPdf(pdfjsLib, data, { onPage, maxPages = 400 } = {}
       const size = Math.hypot(it.transform[2], it.transform[3]) || it.height || 10;
       items.push({ str: it.str, x: it.transform[4], y: it.transform[5], w: it.width, size, ...fontInfo(page, it.fontName, tc.styles) });
     }
-    const lines = readingOrder(buildLines(items, vp.width), vp.width).map(l => ({ ...l, page: i }));
+    const lines = readingOrder(buildLines(dropOverprint(items), vp.width), vp.width).map(l => ({ ...l, page: i }));
     pages.push({ n: i, width: vp.width, height: vp.height, lines, images, imageCover: imageArea / (vp.width * vp.height) });
     page.cleanup();
     if (onPage) onPage(i, doc.numPages);
