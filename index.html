@@ -231,7 +231,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
   @keyframes pop{from{transform:scale(.97);opacity:.6}to{transform:none;opacity:1}}
 }
 </style>
-<link rel="stylesheet" href="campaign-ui.css?v=20261102-choices6">
+<link rel="stylesheet" href="campaign-ui.css?v=20261102-glossary9">
 <body class="qb-app">
 <a class="skip-link" href="#view">Skip to content</a>
 <header class="top">
@@ -297,7 +297,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/ui/shared-heroes.js?v=20261101-english1"></script>
 <script src="src/ui/custom-items.js?v=20261101-weapons1"></script>
 <script src="src/ui/character-extras.js?v=20261101-english1"></script>
-<script src="src/ui/creator.js?v=20261102-species-detail8"></script>
+<script src="src/ui/creator.js?v=20261102-glossary9"></script>
 <script src="src/ui/homebrew.js"></script>
 <script src="src/ui/campaign-home.js?v=20261102-home-steps1"></script>
 <script src="src/ui/campaigns.js?v=20261102-share1"></script>
@@ -1353,6 +1353,7 @@ function render(){
   save();
   if(S.tab==='desk' && S.deskView!=='campaign') void sessionOverviewHydrate();
 }
+document.addEventListener('click',e=>{const term=e.target.closest('[data-cr-glossary]');if(term){e.preventDefault();e.stopPropagation();term.focus();}},true);
 document.addEventListener('click',e=>{
   const el=e.target.closest('[data-act]'); if(!el||el.disabled) return;
   const fn=ACT[el.dataset.act]; if(!fn) return;
