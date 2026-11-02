@@ -117,12 +117,14 @@ async function inviteApprove(item,dlg){
   const parsed=QBSharedHeroes.read(pending.data().sheetJson,cmSheet),campaign=QBCampaigns.current(S);
   const ref=db.doc(db.store,'sharedHeroes',item.id+'-'+encodeURIComponent(item.uid));
   const existing=await db.getDoc(ref);
-  if(existing.exists())throw Error('This request already has an approved shared character. Refresh the campaign before retrying.');
+  if(existing.exists() && (existing.data().dmUid!==user.uid || existing.data().playerUid!==item.uid || existing.data().sheetJson!==pending.data().sheetJson))throw Error('This invitation has a different existing connection. Review it before proceeding.');
   const payload={dmUid:user.uid,playerUid:item.uid,revision:1,sheetJson:pending.data().sheetJson,campaignName:campaign.name.slice(0,80),updatedBy:user.uid,updatedAt:db.serverTimestamp()};
-  await db.setDoc(ref,payload);
+  if(!existing.exists())await db.setDoc(ref,payload);
   if(sharedCloud.user!==user||S.campaigns?.current!==campaignId||S.role!=='dm')throw Error('Character connected, but the active campaign changed. Reopen this campaign before importing.');
   const p=QBHeroRules.toHero(parsed.build,parsed.sheet,{id:uid('p'),want:parsed.story.want});
-  p.heroStory=parsed.story;p.cloudLink={id:ref.id,uid:user.uid,revision:1,baseJson:pending.data().sheetJson};heroDefaults(p);S.party.push(p);
+  const activeRecord=existing.exists()?existing.data():payload;
+  p.heroStory=parsed.story;p.cloudLink={id:ref.id,uid:user.uid,revision:activeRecord.revision,baseJson:activeRecord.sheetJson};heroDefaults(p);
+  if(!(S.party||[]).some(x=>x.cloudLink?.id===ref.id))S.party.push(p);
   await db.deleteDoc(pendingRef);
   dlg.close();render();toast('Character approved and added to the party.');
  }catch(e){inviteError(e);}
