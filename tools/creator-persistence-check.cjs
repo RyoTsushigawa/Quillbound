@@ -138,4 +138,6 @@ assert.equal(JSON.parse(exported).hero.build.customItems[0].weapon.base,'longswo
 assert.equal(JSON.parse(exported).hero.build.customItems[0].weapon.magicBonus,1);
 assert.equal(JSON.parse(exported).hero.build.customItems[0].attuned,true);
 assert.equal(run('cmSheet(S.party.find(p=>p.build).build).customItems[0].equipped'),true);
+const training=run("characterTraining({proficiencies:{weapons:['Simple Weapons','Longbow','Martial Weapons'],armor:[],tools:['Flute'],granted:['Longbow','Martial Weapons']}})");assert(!training.includes('Longbow')&&!training.includes('Other training')&&!training.includes('Armor')&&training.includes('Flute'),'training lists stay free of repeats');
+const folded=run("customItemsView({customItems:[{name:'Sword<b>',quantity:1,rarity:'Rare',attunement:true,maxCharges:0,description:'Long text'}]},'hero')");assert(folded.includes('<details')&&folded.includes('data-hero-disclosure="hero-item-0"')&&folded.includes('Needs attunement')&&!folded.includes('Sword<b>'),'item text folds under an escaped name');
 console.log('PASS: item-menu Equip/Attune controls, adventure save/reload and player-update export retain structured weapon stats without changing HP.');

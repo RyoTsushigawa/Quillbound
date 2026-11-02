@@ -1,8 +1,19 @@
 function characterTraining(sheet){
  const p=sheet.proficiencies;if(!p)return '';
- return `<div class="small"><p><b>Weapons:</b> ${esc(p.weapons.join(', ') || '—')}</p><p><b>Armor & shields:</b> ${esc(p.armor.join(', ') || '—')}</p><p><b>Tools:</b> ${esc(p.tools.join(', ') || '—')}</p>${p.granted.length?`<p><b>Additional training / feats:</b> ${esc(p.granted.join(', '))}</p>`:''}</div>`;
+ // A named weapon adds nothing beside its whole category, and training the DM granted is already in the lists.
+ const gear=Object.values(QBHeroRules.data().equipment),group={simple:'Simple Weapons',martial:'Martial Weapons'};
+ const weapons=p.weapons.filter(x=>!p.weapons.includes(group[gear.find(e=>e.name===x)?.group])),other=p.granted.filter(x=>![...p.weapons,...p.armor,...p.tools].includes(x));
+ const row=(label,list)=>list.length?'<div><dt>'+label+'</dt><dd>'+esc(list.join(', '))+'</dd></div>':'';
+ return '<dl class="training-list small">'+row('Weapons',weapons)+row('Armor & shields',p.armor)+row('Tools',p.tools)+row('Other training',other)+'</dl>';
 }
-function characterCompanions(sheet){return (sheet.companions || []).map(p=>`<article><h4>${esc(p.name)}</h4><p>${esc(p.kind)}${p.ac!==null?' · AC '+p.ac:''}${p.hp!==null?' · HP '+p.hp:''}${p.speed?' · '+esc(p.speed):''}</p><p class="small" style="white-space:pre-wrap">${esc(p.notes)}</p></article>`).join('');}
+// One companion or item: a chip line up top, its long text below. With foldKey the text stays closed until asked for.
+function characterEntry(name,chips,text,foldKey){
+ const line=chips.filter(Boolean).map(([label,tone])=>'<span class="chip'+(tone?' '+tone:'')+'">'+esc(label)+'</span>').join('');
+ const head='<b class="entry-name">'+esc(name)+'</b>'+(line?'<span class="entry-chips">'+line+'</span>':'');
+ const body=text?'<p class="entry-text small">'+esc(text)+'</p>':'';
+ return foldKey&&body?'<details class="character-entry" data-hero-disclosure="'+esc(foldKey)+'"><summary>'+head+'</summary>'+body+'</details>':'<article class="character-entry"><div class="entry-head">'+head+'</div>'+body+'</article>';
+}
+function characterCompanions(sheet,foldKey){return (sheet.companions || []).map((p,i)=>characterEntry(p.name,[p.kind&&[p.kind],p.ac!==null&&['AC '+p.ac],p.hp!==null&&['HP '+p.hp],p.speed&&[p.speed]],p.notes,foldKey&&foldKey+'-companion-'+i)).join('');}
 function creatorCompanions(c){return `<details class="card"><summary>Companions & Familiars (${c.build.companions?.length || 0})</summary><p class="small muted">Companions are saved and exported with this character. You clarify actions and permission to have a familiar at the table.</p>${(c.build.companions || []).map(p=>`<div class="row"><b>${esc(p.name)}</b><button class="btn sm" data-act="cr-companion-edit" data-id="${esc(p.id)}">Edit</button><button class="btn sm" data-act="cr-companion-remove" data-id="${esc(p.id)}">Remove</button></div>`).join('')}<div class="row"><button class="btn" data-act="cr-companion-new">Add companion</button><button class="btn" data-act="cr-companion-madame">Add Madame Croissant</button></div></details>`;}
 const COMPANION_MADAME={name:'Madame Croissant',kind:'Familiar · winzige himmlische Taube',ac:12,hp:5,speed:'3 m; Flug 18 m',notes:'ST 2 · GE 14 · KO 10 · IN 12 · WE 14 · CH 14. Wahrnehmung +4, Menschenkenntnis +4; passive Wahrnehmung 14.\nVersteht Gemeinsprache. Telepathische Verständigung mit ihrer gebundenen Person innerhalb von 30 m.\nAltert nicht, benötigt keine Nahrung, besteht aber auf Gebäck. Bei 0 TP verschwindet sie in warmen Krümeln; Rückkehr über erneute Beschwörung.\nKann nicht angreifen. Helfen nur, wenn die üblichen Voraussetzungen erfüllt sind.\nKrümelkorrespondenz: einmal pro langer Rast bis zu zehn Wörter in vorhandene Krümel schreiben.\nPersönlichkeit: trocken, klug, herrisch; vergibt Schnabelabdrücke statt Lob.'};
 // partyId: the DM gives a familiar straight to an adventure hero, as Give item does.
