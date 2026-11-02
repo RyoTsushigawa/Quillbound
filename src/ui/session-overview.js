@@ -15,8 +15,9 @@ function overviewRestoreDisclosures(saved){
   for(const panel of document.querySelectorAll('.ov-grid details, .sec-meter details, .ov-preparation, .ov-readiness, #import-summary')){const key=overviewDisclosureKey(panel);if(saved.panels.has(key))panel.open=saved.panels.get(key);}
 }
 if(typeof document!=='undefined')document.addEventListener('click',event=>{
-  const link=event.target.closest('.ov-reading-nav a');
+  const link=event.target.closest('.ov-reading-nav a, .ov-quick-links a');
   if(link?.getAttribute('href')==='#ov-details'){const panel=document.getElementById('ov-details');if(panel)panel.open=true;}
+  if(link?.getAttribute('href')==='#ov-preparation'){const panel=document.getElementById('ov-preparation');if(panel)panel.open=true;}
 });
 if(typeof document!=='undefined')document.addEventListener('keydown',event=>{
   const tab=event.target.closest('.ov-speakers [role="tab"]');if(!tab || !['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
