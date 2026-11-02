@@ -297,7 +297,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/ui/shared-heroes.js?v=20261101-english1"></script>
 <script src="src/ui/custom-items.js?v=20261101-weapons1"></script>
 <script src="src/ui/character-extras.js?v=20261101-english1"></script>
-<script src="src/ui/creator.js?v=20261102-spell-glossary11"></script>
+<script src="src/ui/creator.js?v=20261102-combat-glossary12"></script>
 <script src="src/ui/homebrew.js"></script>
 <script src="src/ui/campaign-home.js?v=20261102-home-steps1"></script>
 <script src="src/ui/campaigns.js?v=20261102-share1"></script>
@@ -1133,6 +1133,7 @@ function vCombat(){
   return `${clHint(hint[0],hint[1])}
   <div class="pagehead lt-heading"><div><div class="eyebrow">Stakes combat · round ${c.round}</div><h2>${esc(c.name)}</h2>${c.goal?`<p><b>They want:</b> ${esc(c.goal)}</p>`:'<p>Pick a token. Choose an action. Let the die decide.</p>'}</div>
     <div class="row"><button class="btn" data-act="lt-undo" ${l.history.length?'':'disabled'}>↶ Undo</button><button class="btn" data-act="lt-round" ${l.pending?'disabled':''}>Next round</button><button class="btn ghost" data-act="c-end">End fight</button></div></div>
+  <p class="small muted" aria-label="Combat terms explained">Combat terms: ${crGlossaryTerm('Advantage')} · ${crGlossaryTerm('Disadvantage')} · ${crGlossaryTerm('Saving Throw')} · ${crGlossaryTerm('Death Save')} · ${crGlossaryTerm('Opportunity Attack')}</p>
   <div class="row hd-controls"><button class="btn sm" data-act="hd-guide">Conditions guide</button><button class="btn sm" data-act="hd-secret">DM secret roll</button><button class="btn sm" data-act="co-edit" ${l.pending?'disabled':''}>Prepare objective…</button></div>
   <div class="lt-layout"><div class="lt-stage">
     <div class="lt-scenehead"><span class="eyebrow">The scene · ${esc(c.where||'')}</span><button class="btn sm ghost" data-act="lt-zones" ${l.pending?'disabled':''}>Name areas</button></div>
