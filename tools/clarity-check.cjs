@@ -52,3 +52,20 @@ vm.runInContext("S.role='player';S.tab='home';ACT['home-switch']({id:'not-a-camp
 console.log('PASS: campaign home resumes the current scene without movement, skips references, escapes names, protects pending rolls, and offers empty-campaign and player entry points.');
 
 vm.runInContext("S.role='dm';S.tab='home';S.deskView='campaign';ACT.tab({v:'desk'});",ctx);assert.equal(vm.runInContext('S.deskView',ctx),'session','Session navigation opens the session even after adventure planning');
+
+// Combat help follows the controls that actually use the rule.
+vm.runInContext("S=fresh();S.role='dm';S.tab='combat';Stakes.init(S);combatPick(S.party[0].id);",ctx);
+let combatHelp=vm.runInContext('vCombat()',ctx);
+assert(!combatHelp.includes('Combat terms:'),'no separate glossary row');
+assert(!combatHelp.includes('data-cr-glossary="advantage"'),'no opening help without an opening');
+assert(!combatHelp.includes('data-cr-glossary="death save"'),'no death-save help for healthy heroes');
+vm.runInContext('S.combat.lite.openings[S.party[0].id]=true;',ctx);
+combatHelp=vm.runInContext('combatComposer()',ctx);
+assert(combatHelp.includes('data-cr-glossary="advantage"'),'opening reminder explains advantage');
+assert(combatHelp.indexOf('data-cr-glossary="advantage"')<combatHelp.indexOf('data-act="lt-roll"'),'help precedes the roll control');
+vm.runInContext('S.party[0].hpNow=0;S.party[0].dying={s:0,f:0,stable:false};',ctx);
+combatHelp=vm.runInContext('vCombat()',ctx);
+assert(/data-cr-glossary="death save"[\s\S]*?data-act="hd-death"/.test(combatHelp),'dying card explains death saves beside their control');
+vm.runInContext('S.party[0].dying.stable=true;',ctx);
+assert(!vm.runInContext('vCombat()',ctx).includes('data-cr-glossary="death save"'),'stable hero no longer needs death-save help');
+console.log('PASS: combat glossary help appears only for active openings and dying heroes, beside the relevant roll controls.');
