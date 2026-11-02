@@ -22,8 +22,8 @@ async function cmRestoreZip(file, prepared) {
     const { campaignPackage } = await import('../importer/package.js');
     const pack = prepared || await campaignPackage(file, QBCampaigns.parseCampaign);
     if (S.role !== 'dm' || S.campaigns?.current !== owner) throw Error('Campaign changed. Choose the ZIP again.');
-    const dlg = openDialog('Import a campaign package', `<p>Restore a new campaign with its maps and PDFs. Your existing campaigns stay saved. Nothing is uploaded.</p><label class="f">Campaign<select id="package-choice">${pack.campaigns.map((c,i)=>`<option value="${i}">${esc(c.name)} — ${esc(c.path)}</option>`).join('')}</select></label><p>${pack.files.length} files found, including nested ZIP contents.</p><button class="btn primary" id="package-restore">Restore as a new campaign</button><p id="package-status" role="status"></p>`);
-    dlg.querySelector('#package-restore').onclick = async e => {
+    const dlg = openDialog('Import a campaign package', `<p>Add this package to the current campaign to play it with your party and connected players, or restore it as its own campaign. Its maps and PDFs come along. Nothing you have now is replaced, and nothing is uploaded.</p><label class="f">Campaign<select id="package-choice">${pack.campaigns.map((c,i)=>`<option value="${i}">${esc(c.name)} — ${esc(c.path)}</option>`).join('')}</select></label><p>${pack.files.length} files found, including nested ZIP contents.</p><div class="row"><button class="btn primary" id="package-adventure">Add to this campaign as an adventure</button><button class="btn" id="package-restore">Restore as a new campaign</button></div><p id="package-status" role="status"></p>`);
+    const restore = asAdventure => async e => {
       e.target.disabled = true;
       try {
         if (S.role !== 'dm' || S.campaigns?.current !== owner) throw Error('Campaign changed. Close this dialog and choose the ZIP again.');
@@ -33,12 +33,14 @@ async function cmRestoreZip(file, prepared) {
         const library = await QB.addFileList(media);
         await cachePackageMaps(selected.data.beats, library, QB);
         if (!dlg.isConnected || S.role !== 'dm' || S.campaigns?.current !== owner) throw Error('Campaign changed. Choose the ZIP again.');
-        QBCampaigns.importCampaign(S, selected);
+        if (asAdventure) cmAdoptAdventure(selected); else QBCampaigns.importCampaign(S, selected);
         S.importer = { lib: library, phase: 'library', pi: null, versions: {}, status: '' };
-        S.tab = 'desk'; sceneMapsRetryMissing(); dlg.close(); render();
-        toast('Campaign restored with its maps and PDFs. Linked player maps are ready.');
+        S.tab = asAdventure ? 'campaigns' : 'desk'; sceneMapsRetryMissing(); dlg.close(); render();
+        if (!asAdventure) toast('Campaign restored with its maps and PDFs. Linked player maps are ready.');
       } catch (error) { e.target.disabled = false; dlg.querySelector('#package-status').textContent = error.message; }
     };
+    dlg.querySelector('#package-restore').onclick = restore(false);
+    dlg.querySelector('#package-adventure').onclick = restore(true);
   } catch (error) { toast(error.message); }
   finally { packageImportBusy = false; }
 }

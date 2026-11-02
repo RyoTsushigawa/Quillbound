@@ -41,6 +41,41 @@
   }
   function rename(s, id, name) { const x = ensure(s).list.find(c => c.id === id); if (x) x.name = String(name || '').trim().slice(0, 80) || x.name; }
 
+  /* ---- adventures inside a campaign ---- */
+  // The party and how players reach it stay with the campaign, so changing the adventure needs no new invitations.
+  // Every other campaign key travels with the adventure, including ones added later.
+  const TABLE_KEYS = new Set(['party', 'inviteTokens', 'customItemTemplates', 'adventures', 'campaign', 'driveSources', 'adventureShelf']);
+  const adventureKeys = s => campaignKeys(s).filter(k => !TABLE_KEYS.has(k));
+  const pickAdventure = s => Object.fromEntries(adventureKeys(s).map(k => [k, clone(s[k])]));
+  const blankAdventure = () => { const { party, adventures, ...rest } = blank(); return rest; };
+  const shelf = s => { s.adventureShelf ??= { name: '', parked: [] }; s.adventureShelf.parked ??= []; return s.adventureShelf; };
+  const adventureName = s => shelf(s).name || (s.beats || []).find(b => b.source)?.source || 'Current adventure';
+  const hasAdventure = s => ['beats', 'hooks', 'npcs', 'encounters', 'maps', 'items', 'tables'].some(k => s[k]?.length);
+  const adventureLabel = name => String(name || '').trim().slice(0, 80);
+  function parkAdventure(s) {
+    if (s.combat) throw Error('Finish the current fight before changing the adventure.');
+    const box = shelf(s);
+    if (hasAdventure(s) || box.name) box.parked.push({ id: uid('a'), name: adventureName(s), updated: Date.now(), data: pickAdventure(s) });
+    for (const k of adventureKeys(s)) delete s[k];
+    return box;
+  }
+  function switchAdventure(s, id) {
+    const to = shelf(s).parked.find(x => x.id === id);
+    if (!to) throw Error('That adventure no longer exists.');
+    const box = parkAdventure(s); box.parked = box.parked.filter(x => x !== to); box.name = to.name;
+    Object.assign(s, blankAdventure(), clone(to.data));
+  }
+  function newAdventure(s, name) { const box = parkAdventure(s); box.name = adventureLabel(name) || 'New adventure'; Object.assign(s, blankAdventure()); }
+  // Adds an adventure from a backup or another campaign without playing it. Its heroes and any running fight are left behind.
+  function addAdventure(s, name, data) {
+    const clean = Object.fromEntries(Object.entries(clone(data) || {}).filter(([k]) => !SHARED.has(k) && !TABLE_KEYS.has(k)));
+    const id = uid('a'); shelf(s).parked.push({ id, name: adventureLabel(name) || 'Adventure', updated: Date.now(), data: { ...clean, combat: null } });
+    for (const a of data?.adventures || []) { s.adventures ??= []; if (!s.adventures.some(x => x.id === a.id)) s.adventures.push(clone(a)); }
+    return id;
+  }
+  function removeAdventure(s, id) { const box = shelf(s); box.parked = box.parked.filter(x => x.id !== id); }
+  function renameAdventure(s, name) { const label = adventureLabel(name); if (label) shelf(s).name = label; }
+
   /* ---- campaign backup files ---- */
   const CAMPAIGN_FORMAT = 'quillbound-campaign';
   function exportCampaign(s) { const c = current(s); return JSON.stringify({ format: CAMPAIGN_FORMAT, version: 1, exported: new Date().toISOString(), name: c.name, data: pick(s) }, null, 1); }
@@ -79,5 +114,5 @@
   async function setLock(s, pass) { if (String(pass || '').length < 4) throw Error('Use at least 4 characters.'); const salt = uid('s'); s.dmLock = { salt, hash: await hash(pass, salt) }; }
   async function unlock(s, pass) { if (!s.dmLock) return false; return (await hash(String(pass || ''), s.dmLock.salt)) === s.dmLock.hash; }
 
-  root.QBCampaigns = { SHARED, campaignKeys, blank, ensure, current, switchTo, create, remove, rename, exportCampaign, parseCampaign, importCampaign, heroFile, parseHero, setLock, unlock, HERO_FORMAT, CAMPAIGN_FORMAT };
+  root.QBCampaigns = { adventureName, hasAdventure, switchAdventure, newAdventure, addAdventure, removeAdventure, renameAdventure, shelf, SHARED, campaignKeys, blank, ensure, current, switchTo, create, remove, rename, exportCampaign, parseCampaign, importCampaign, heroFile, parseHero, setLock, unlock, HERO_FORMAT, CAMPAIGN_FORMAT };
 })(globalThis);

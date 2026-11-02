@@ -63,6 +63,28 @@ function heroDisclosureCapture(){return S.tab==='heroes'?[...document.querySelec
 function heroDisclosureRestore(ids){if(S.tab!=='heroes')return;document.querySelectorAll('[data-hero-disclosure]').forEach(el=>{el.open=ids.includes(el.dataset.heroDisclosure);});}
 
 /* ---------- the Adventure manager (DM) ---------- */
+// After a change of adventure the players' map clears until the DM shows one.
+function cmAdventureChanged(){sceneMapsPause();playerSpotlight=null;if(typeof liveCloud!=='undefined')liveCloud.hidden=null;sceneMapHold=sceneMapContext().token;publishPlayer(true);}
+function cmAdventures(){
+  const count=(n,word)=>n+' '+word+(n===1?'':'s'),parked=QBCampaigns.shelf(S).parked;
+  return `<section class="card stack"><h3>Adventures</h3><p class="small muted">Change the adventure whenever you like. Your party, connected players and invitations stay. Scenes, leads, people, maps and fights stay with their adventure and wait here.</p>
+      <div class="row hb-item"><span class="row"><input class="adventure-name" data-act-change="cm-advrename" value="${esc(QBCampaigns.adventureName(S))}" maxlength="80" aria-label="Name of the current adventure"><span class="chip ok">Playing</span></span><span class="small muted">${count((S.beats || []).length,'scene')}</span></div>
+      ${parked.map(a=>`<div class="row hb-item"><span><b>${esc(a.name)}</b> <span class="small muted">${count((a.data?.beats || []).length,'scene')} · saved ${new Date(a.updated).toLocaleDateString()}</span></span><span class="row"><button class="btn sm primary" data-act="cm-advplay" data-id="${esc(a.id)}">Play this</button><button class="btn sm ghost" data-act="cm-advdel" data-id="${esc(a.id)}">Delete</button></span></div>`).join('')}
+      <div class="row"><input id="cm-adv-name" placeholder="Name of the next adventure" maxlength="80" aria-label="New adventure name"><button class="btn" data-act="cm-advnew">New adventure</button></div>
+      <p class="small muted">A new adventure starts empty, then opens Import adventure. To add one you already have, use <b>Restore campaign / ZIP…</b> above, or <b>Bring adventure here</b> under Your campaigns.</p></section>`;
+}
+// A backup can join this party as an adventure, or stay a campaign of its own.
+function cmAdoptAdventure(parsed){
+  const id=QBCampaigns.addAdventure(S,parsed.name,parsed.data),left=(parsed.data?.party || []).length;
+  if(!QBCampaigns.hasAdventure(S)&&!S.combat){QBCampaigns.switchAdventure(S,id);cmAdventureChanged();}
+  toast(parsed.name+' added to this campaign.'+(left?' Your party stays; the backup’s '+left+' saved heroes were left out.':''));
+}
+function cmRestoreChoice(parsed){
+  const owner=S.campaigns?.current,dlg=openDialog('Restore '+parsed.name,'<p>Add it to this campaign to play it with your current party and connected players, or keep it apart as its own campaign. Nothing you have now is replaced.</p><div class="row"><button class="btn primary" id="cm-restore-adventure">Add to this campaign as an adventure</button><button class="btn" id="cm-restore-campaign">Restore as a new campaign</button></div>');
+  const go=run=>()=>{if(S.role!=='dm'||owner!==S.campaigns?.current){dlg.close();return;}try{run();}catch(e){toast(e.message);}dlg.close();render();};
+  dlg.querySelector('#cm-restore-adventure').onclick=go(()=>cmAdoptAdventure(parsed));
+  dlg.querySelector('#cm-restore-campaign').onclick=go(()=>{QBCampaigns.importCampaign(S,parsed);toast('Restored '+parsed.name+' as a new campaign.');});
+}
 function vCampaigns() {
   const c = QBCampaigns.ensure(S), cur = QBCampaigns.current(S), others = c.list.filter(x => x.id !== cur.id);
   return `<div class="pagehead"><div><div class="eyebrow">Adventure manager · DM only</div><h2>${esc(cur.name)}</h2><p>Each campaign has its own party, session, adventures and combat. Switching saves this one and opens the other.</p></div>
@@ -70,6 +92,7 @@ function vCampaigns() {
     ${livePanel()}<div class="stack"><section class="card stack"><h3>This campaign</h3><label class="f">Name<input data-act-change="cm-rename" value="${esc(cur.name)}" maxlength="80"></label>
       <p class="small muted">${(S.adventures || []).length} adventure${(S.adventures || []).length === 1 ? '' : 's'} · ${(S.beats || []).length} scenes on the desk · ${(S.encounters || []).length} prepared fights${S.combat ? ' · a fight is running' : ''}</p>
       <div class="row"><button class="btn" data-act="tab" data-v="desk">Open Session</button><button class="btn" data-act="tab" data-v="import">Import an adventure</button></div></section>
+    ${cmAdventures()}
     <section class="card stack"><h3>Party</h3>
       ${(S.party || []).map(p => `<div class="row hb-item"><span><b>${esc(p.name)}</b> · ${esc(p.cls)} ${p.level || 1}${p.fromPlayer ? ' <span class="chip">from a player</span>' : ''}${p.example ? ' <span class="chip">example</span>' : ''}</span>
         <span class="row">${p.build ? `<button class="btn sm" data-act="sheet-print" data-id="${esc(p.id)}">Sheet</button>` : ''}${adventureHeroButtons(p)}</span></div>`).join('') || '<p class="muted">No heroes yet.</p>'}
@@ -80,7 +103,7 @@ function vCampaigns() {
       <h4>Connect players online</h4><div class="row">${inviteButtons(true)}</div>${sharedPanel()}</section>
     <section class="card stack"><h3>Your campaigns</h3>
       ${c.list.map(x => `<div class="row hb-item"><span><b>${esc(x.name)}</b>${x.id === cur.id ? ' <span class="chip ok">open</span>' : ` <span class="small muted">${(x.data?.party || []).length} heroes · saved ${new Date(x.updated).toLocaleDateString()}</span>`}</span>
-        ${x.id === cur.id ? '' : `<span class="row"><button class="btn sm" data-act="cm-switch" data-id="${esc(x.id)}">Open</button><button class="btn sm ghost" data-act="cm-delcamp" data-id="${esc(x.id)}">Delete</button></span>`}</div>`).join('')}
+        ${x.id === cur.id ? '' : `<span class="row">${x.data?`<button class="btn sm" data-act="cm-advbring" data-id="${esc(x.id)}">Bring adventure here</button>`:''}<button class="btn sm" data-act="cm-switch" data-id="${esc(x.id)}">Open</button><button class="btn sm ghost" data-act="cm-delcamp" data-id="${esc(x.id)}">Delete</button></span>`}</div>`).join('')}
       <div class="row"><input id="cm-new-name" placeholder="The Night Shift" maxlength="80" aria-label="New campaign name"><button class="btn primary" data-act="cm-newcamp">New campaign</button></div>
       ${others.length ? '' : '<p class="small muted">A new campaign starts empty. Your current one stays here and opens again with one click.</p>'}</section></div>`;
 }
@@ -141,6 +164,11 @@ function campaignActions() { return {
   'cm-copy': d => { const h = cmHero(d.id); if (!h) return; const text = QBCampaigns.heroFile(h); (navigator.clipboard?.writeText(text) || Promise.reject()).then(() => toast('Copied. Paste it in a message to your DM.'), () => toast('Copying is blocked here. Use Send to DM instead.')); },
   'cm-delhero': d => { const h = cmHero(d.id); if (!h) return; clConfirm(`Remove ${h.build.name} from My heroes?`, `This removes the hero from this browser. Heroes your DM already has stay in the campaign.${h.cloudLink?' Syncing stops on this device.':''}`, () => { if(h.cloudLink){S.cloudSettings??={enabled:true};S.cloudSettings.hidden=[...new Set([...(S.cloudSettings.hidden || []),h.cloudLink.id])];}S.myHeroes = S.myHeroes.filter(x => x.id !== h.id); render(); }, 'Remove'); },
   'cm-rename': d => QBCampaigns.rename(S, S.campaigns.current, d.v),
+  'cm-advrename': d => QBCampaigns.renameAdventure(S, d.v),
+  'cm-advplay': d => { if (S.role !== 'dm') return; try { QBCampaigns.switchAdventure(S, d.id); cmAdventureChanged(); toast(`Now playing ${QBCampaigns.adventureName(S)}. Players see no map until you show one.`); } catch (e) { toast(e.message); } },
+  'cm-advnew': () => { if (S.role !== 'dm') return; try { QBCampaigns.newAdventure(S, document.getElementById('cm-adv-name')?.value); cmAdventureChanged(); S.tab = 'import'; window.scrollTo(0, 0); toast('Your party is ready. Import the next adventure here.'); } catch (e) { toast(e.message); } },
+  'cm-advdel': d => { const a = QBCampaigns.shelf(S).parked.find(x => x.id === d.id); if (!a) return; clConfirm(`Delete ${a.name}?`, 'Its scenes, leads, people and fights are removed from this browser. Back up the campaign first if you might want it again.', () => { QBCampaigns.removeAdventure(S, d.id); render(); }, 'Delete'); },
+  'cm-advbring': d => { const x = S.campaigns.list.find(c => c.id === d.id); if (!x?.data || S.role !== 'dm') return; cmAdoptAdventure({ name: x.name, data: x.data }); toast(`A copy of ${x.name} is now an adventure here. ${x.name} itself is unchanged.`); },
   'cm-newcamp': () => { const name = document.getElementById('cm-new-name')?.value; try { QBCampaigns.create(S, name); toast('New campaign. The previous one is saved in the list.'); } catch (e) { toast(e.message); } },
   'cm-switch': d => { try { QBCampaigns.switchTo(S, d.id); toast(`Opened ${QBCampaigns.current(S).name}.`); } catch (e) { toast(e.message); } },
   'cm-delcamp': d => { const x = S.campaigns.list.find(c => c.id === d.id); if (!x) return; clConfirm(`Delete ${x.name}?`, 'Its party, desk and adventures are removed from this browser. Back it up first if you might want it again.', () => { QBCampaigns.remove(S, d.id); render(); }, 'Delete'); },
@@ -157,6 +185,6 @@ document.addEventListener('change', e => {
     if (t.id === 'cm-hero-file') return cmImportHeroes(texts);
     if (t.id === 'cm-my-file') { for (const x of texts) { const r = QBCampaigns.parseHero(x, b => cmSheet(b)); if (r.error) { toast(r.error); continue; } S.myHeroes ??= []; const i = S.myHeroes.findIndex(h => h.id === r.hero.id); const h = { ...(i>=0?S.myHeroes[i]:{}), id: r.hero.id, build: r.hero.build, story: r.hero.story, saved: Date.now() }; if (i >= 0) S.myHeroes[i] = h; else S.myHeroes.push(h); toast(`${r.hero.name} is in My heroes.`); } return render(); }
     const r = QBCampaigns.parseCampaign(texts[0]); if (r.error) return toast(r.error);
-    try { QBCampaigns.importCampaign(S, r); toast(`Restored ${r.name} as a new campaign.`); } catch (er) { toast(er.message); } render();
+    cmRestoreChoice(r);
   }).catch(() => toast('This file could not be read.'));
 });

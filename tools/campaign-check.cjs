@@ -47,6 +47,20 @@ run(`QBCampaigns.switchTo(S,'${night}')`);assert.equal(run('S.party[0].name'),'T
 run(`ACT['cm-export']()`);const back=C.parseCampaign(saved.text);assert.equal(back.name,'The Night Shift');assert.equal(back.data.party[0].name,'Toxik');assert(!('myHeroes' in back.data)&&!('dmLock' in back.data),'a backup holds only the campaign');
 run(`QBCampaigns.importCampaign(S,${JSON.stringify(back)})`);assert.equal(run('S.campaigns.list.length'),3);assert.equal(run('S.party[0].name'),'Toxik');
 assert.throws(()=>run(`QBCampaigns.remove(S,S.campaigns.current)`),/Switch to another/);
+/* a new adventure keeps the party, its connections and invitations */
+run(`S.party[0].cloudLink={id:'doc-1',uid:'dm'};S.party[0].hpNow=3;S.inviteTokens=['tok'];S.beats=[{id:'b1',title:'Vault',status:'active',source:'Le Louvre'}];S.hooks=[{id:'h1',text:'Key'}];S.npcs=[{id:'n1',name:'Guard'}];S.encounters=[{id:'e1'}];S.securityAlert={level:2};S.combat=null;`);
+assert.equal(run('QBCampaigns.adventureName(S)'),'Le Louvre');const campaignNow=run('S.campaigns.current');
+run(`QBCampaigns.newAdventure(S,'Harbor');`);assert.equal(run('S.beats.length'),0);assert.equal(run('S.hooks.length+S.npcs.length+S.encounters.length'),0);assert.equal(run('S.securityAlert'),undefined,'state unknown to the swap still travels with the adventure');
+assert.equal(run('S.party[0].cloudLink.id'),'doc-1');assert.equal(run('S.party[0].hpNow'),3);assert.equal(run('S.inviteTokens[0]'),'tok');assert.equal(run('S.campaigns.current'),campaignNow,'same campaign');assert.equal(run('QBCampaigns.adventureName(S)'),'Harbor');
+run(`S.beats=[{id:'b2',title:'Pier',status:'active'}];S.campaign=S.campaign||{order:[],bridges:[]};`);
+const louvre=run('QBCampaigns.shelf(S).parked[0].id');run(`QBCampaigns.switchAdventure(S,'${louvre}')`);assert.equal(run('S.beats[0].title'),'Vault');assert.equal(run('S.hooks[0].text'),'Key');assert.equal(run('S.securityAlert.level'),2);assert.equal(run('QBCampaigns.shelf(S).parked.length'),1);assert.equal(run('QBCampaigns.shelf(S).parked[0].name'),'Harbor');assert.equal(run('S.party[0].cloudLink.id'),'doc-1');
+run(`S.combat={round:1};`);assert.throws(()=>run(`QBCampaigns.switchAdventure(S,QBCampaigns.shelf(S).parked[0].id)`),/Finish the current fight/);assert.equal(run('S.beats[0].title'),'Vault','a refused change moves nothing');run(`S.combat=null;`);
+const added=run(`QBCampaigns.addAdventure(S,'Backup',{party:[{name:'Stranger'}],beats:[{id:'b3',title:'Crypt'}],combat:{round:9},myHeroes:[1],tab:'x',adventures:[{id:'planner-1'}]})`);assert.equal(run('S.party.some(p=>p.name==="Stranger")'),false,'a backup never changes the party');
+run(`QBCampaigns.switchAdventure(S,'${added}')`);assert.equal(run('S.beats[0].title'),'Crypt');assert.equal(run('S.combat'),null);assert.notEqual(run('S.tab'),'x');assert.equal(run('S.adventures.some(a=>a.id==="planner-1")'),true);
+const backupNow=C.parseCampaign(run('QBCampaigns.exportCampaign(S)'));assert.equal(backupNow.data.adventureShelf.parked.length,2,'a backup keeps the waiting adventures');
+run(`QBCampaigns.removeAdventure(S,QBCampaigns.shelf(S).parked[0].id);`);assert.equal(run('QBCampaigns.shelf(S).parked.length'),1);
+run(`S.role='dm';S.tab='campaigns';render();`);assert(/Play this/.test(run('document.getElementById("app")?.innerHTML || vCampaigns()'))||/Play this/.test(run('vCampaigns()')));
+console.log('PASS: adventures swap inside a campaign; party, connections and invitations stay; waiting adventures survive backups.');
 /* reset keeps the lock, the heroes and the other campaigns */
 run(`ACT.reset()`);assert(run('S.dmLock&&S.myHeroes.length===1&&S.campaigns.list.length===3'));
 /* heroes made before player mode (in this browser's party) are copied into My heroes once */
