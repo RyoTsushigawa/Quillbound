@@ -384,6 +384,8 @@ My heroes shows a current/max HP meter and Track HP for every readable character
 
 Character sheets show explicit weapon, armor/shield, tool/instrument and additional training from the existing rules model, in the live Skills tab, My heroes and printable German/English sheets. No extra proficiency is granted by displaying it.
 
+**Give familiar** (DM, next to Give item in the party list) adds a companion to an adventure hero directly, blank or filled in from the Madame Croissant template. It reaches a connected player through normal sync; for an unconnected hero, use a player update file.
+
 Story includes Begleiter & Familiars: named companion records with type, AC, maximum HP, speed and manual notes. A Madame Croissant homebrew template is available. Companions persist in the build through saves, exports and reviewed adventure updates, and print with the sheet. They do not grant spells, attacks, extra familiar slots or automatic actions. Save the character after editing a companion.
 
 
