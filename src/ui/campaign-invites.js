@@ -1,5 +1,7 @@
 /* Campaign invitations: the DM invites by private link, a player submits one hero, the DM approves. Contract: docs/campaign-invitations.md. */
 const inviteUI={token:null};
+// One hour under the rules' seven-day limit: that limit is measured on Google's clock, and a device clock running even a second ahead would be refused.
+const INVITE_LIFE=7*86400000-3600000;
 const inviteHex=()=>Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('');
 const inviteRef=id=>sharedCloud.api.db.doc(sharedCloud.api.store,'campaignInvites',id);
 const inviteError=e=>toast(sharedError(e));
@@ -29,7 +31,7 @@ async function inviteCreate(){
   }
   if(!token){
    token=inviteHex();
-   await db.setDoc(inviteRef(token),{dmUid:user.uid,campaignName:QBCampaigns.current(S).name.slice(0,100),active:true,createdAt:db.serverTimestamp(),expiresAt:db.Timestamp.fromMillis(Date.now()+7*86400000)});
+   await db.setDoc(inviteRef(token),{dmUid:user.uid,campaignName:QBCampaigns.current(S).name.slice(0,100),active:true,createdAt:db.serverTimestamp(),expiresAt:db.Timestamp.fromMillis(Date.now()+INVITE_LIFE)});
   }
   if(S.role!=='dm'||S.campaigns?.current!==campaignId||sharedCloud.user!==user)return;
   S.inviteTokens??={};S.inviteTokens[campaignId]=token;save();
@@ -126,7 +128,7 @@ async function inviteApprove(item,dlg){
   if(sharedCloud.user!==user||S.role!=='dm'||S.campaigns?.current!==campaignId)throw Error('The active campaign changed. Reopen requests.');
   const parsed=QBSharedHeroes.read(pending.data().sheetJson,cmSheet),campaign=QBCampaigns.current(S);
   const ref=db.doc(sharedCloud.api.store,'sharedHeroes',item.id+'-'+encodeURIComponent(item.uid));
-  const existing=await db.getDoc(ref);
+  const existing=await db.getDoc(ref).catch(e=>{if(e?.code==='permission-denied')return {exists:()=>false};throw e;}); // the rules refuse reading a connection that doesn't exist yet; one that isn't ours is refused again on writing
   if(existing.exists() && (existing.data().dmUid!==user.uid || existing.data().playerUid!==item.uid || existing.data().sheetJson!==pending.data().sheetJson))throw Error('This invitation has a different existing connection. Review it before proceeding.');
   const payload={dmUid:user.uid,playerUid:item.uid,revision:1,sheetJson:pending.data().sheetJson,campaignName:campaign.name.slice(0,80),updatedBy:user.uid,updatedAt:db.serverTimestamp()};
   if(!existing.exists())await db.setDoc(ref,payload);
