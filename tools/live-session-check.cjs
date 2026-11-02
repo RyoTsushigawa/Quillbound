@@ -52,6 +52,12 @@ run('liveCloud.session=session;liveCloud.selected=session.id;liveCloud.wanted={i
  kit.sharedHeroActions()['shared-show']({id:'a'});assert.equal(toxik.cloudLink.id,'a','syncing again relinks the kept hero instead of adding a copy');assert.equal(cloud.S.myHeroes.length,2);
  kit.sharedCloud.user={uid:'dm-account'};cloud.S.party.push(hero('Camilla',{id:'a',uid:'dm-account'}));assert(kit.sharedConnections().includes('Disconnect player'));
  await kit.sharedUnlink('a');await new Promise(r=>setImmediate(r));assert.deepEqual(removed,['a']);assert.equal(cloud.S.party[0].cloudLink,undefined);assert.equal(toxik.cloudLink,undefined);assert(!kit.sharedCloud.docs.has('a'));
+ // A file-imported hero shares no id with its connected copy; the name finds it, and the background separates two heroes of one name.
+ const twin=(name,background)=>({id:name+background,build:{name,background},story:{}}),night=twin('Toxik','night'),crook=twin('Toxik','criminal'),quinn=twin('Quinn','x');
+ cloud.S.role='dm';cloud.S.myHeroes=[night,crook,quinn];cloud.S.party=[{id:'p1',name:'Toxik',build:{name:'Toxik',background:'night'},cloudLink:{id:'b',uid:'dm-account'}}];
+ kit.sharedCloud.docs.set('b',{id:'b',dmUid:'dm-account',playerUid:'player-two',campaignName:'Night Shift',sheetJson:JSON.stringify({build:{name:'Toxik',background:'night'}}),revision:1});
+ assert(kit.heroSyncMark(night).includes('Copy synced')&&kit.heroSyncMark(night).includes('Night Shift'));assert.equal(kit.heroSyncMark(crook),'','the other Toxik is not the synced one');assert.equal(kit.heroSyncMark(quinn),'');
+ cloud.S.party=[];cloud.S.role='player';assert(kit.heroSyncMark(night).includes('Copy synced'),'the shared sheet alone is enough');
  console.log('PASS: synced marks on My heroes; players stop syncing and can resume; DMs disconnect a player for both sides.');
  console.log('PASS: bounded raster chunks, complete map assembly, session expiry/membership, map publisher and generation guards, authenticated roll chat and clear-on-end.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
