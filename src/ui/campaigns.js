@@ -28,16 +28,7 @@ const cmHeroLine = (b, sheet) => `Level ${sheet?.level || b.level} ${esc(sheet?.
 function cmSheet(build) { try { QBHeroRules.setHomebrew(QBHomebrew.forCreator(S.homebrew, build)); return QBHeroRules.derive(build); } catch { return null; } }
 
 /* ---------- player home and My heroes ---------- */
-function vPlayerHome() {
-  const n = (S.myHeroes || []).length;
-  return `<div class="pagehead"><div><div class="eyebrow">Quillbound</div><h2>Welcome, adventurer</h2><p>Build your hero step by step. When it’s done, send it to your DM, who adds it to the campaign.</p></div></div>
-    <div class="results">
-      <article class="card stack"><h3>1. Create a hero</h3><p>Species, class, abilities, background, skills, gear and your story. The sheet on the right updates as you choose.</p><button class="btn primary" data-act="tab" data-v="create">Create a hero</button></article>
-      <article class="card stack"><h3>2. My heroes</h3><p>${n ? `You have ${n} hero${n > 1 ? 'es' : ''} saved in this browser.` : 'Heroes you save appear here.'} Print a character sheet or send a hero to your DM.</p><button class="btn" data-act="tab" data-v="heroes">My heroes</button></article>
-      <article class="card stack"><h3>3. Your own ideas</h3><p>Missing a species, background, subclass or feat? Make your own inside the 2024 rules and send it to your DM.</p><button class="btn" data-act="tab" data-v="homebrew">My homebrew</button></article>
-    </div>
-    <p class="small muted" style="margin-top:14px">Your heroes are saved in this browser only. Send your DM the hero file (it works in Discord or by email); keep a copy as a backup. Are you the DM? Use <b>I’m the DM</b> at the top.</p>`;
-}
+function vPlayerHome() { return playerWelcome(); }
 function cmUnsavedParty(){return (S.party || []).filter(p=>p.build && !p.example && !(S.myHeroes || []).some(h=>h.id===p.myHeroId || h.id==='ph-'+p.id || h.sourcePartyId===p.id || JSON.stringify(h.build)===JSON.stringify({...p.build,name:p.name})));}
 function vHeroes() {
   const list=S.myHeroes || [],live=QBLiveSession.active(liveCloud.session);
@@ -108,7 +99,7 @@ function cmUnlockDialog() {
       if (first) { if (pass !== dlg.querySelector('#cm-pass2').value) return err('The two passphrases differ.'); await QBCampaigns.setLock(S, pass); }
       else if (!(await QBCampaigns.unlock(S, pass))) return err('That passphrase doesn’t match.');
     } catch (e) { return err(e.message); }
-    S.role = 'dm'; S.tab = 'campaigns'; dlg.close(); render(); toast('DM mode. Lock it again before you hand this device to a player.');
+    S.role = 'dm'; S.tab = 'home'; dlg.close(); render(); toast('DM mode. Lock it again before you hand this device to a player.');
   };
   dlg.querySelector('#cm-pass').focus();
 }

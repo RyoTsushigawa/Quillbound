@@ -1,4 +1,7 @@
+<!doctype html>
+<html lang="en">
 <title>Quillbound</title>
+<meta name="description" content="Your heroes, campaign notes and next session, together at one table.">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="clarity.css">
@@ -228,7 +231,9 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
   @keyframes pop{from{transform:scale(.97);opacity:.6}to{transform:none;opacity:1}}
 }
 </style>
-
+<link rel="stylesheet" href="campaign-ui.css">
+<body class="qb-app">
+<a class="skip-link" href="#view">Skip to content</a>
 <header class="top">
   <div class="wrap top-in">
     <div class="brand">
@@ -236,21 +241,29 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
       Quillbound <span class="proto">Prototype</span>
     </div>
     <nav class="tabs" aria-label="Tools">
-      <button class="tab cl-start" data-act="tab" data-v="home">Start here</button>
-      <button class="tab" data-act="tab" data-v="create">Create a hero</button>
-      <button class="tab" data-act="tab" data-v="heroes">My heroes</button>
-      <button class="tab" data-act="tab" data-v="campaigns">Campaigns</button>
-      <button class="tab" data-act="tab" data-v="import">Import adventure</button>
-      <button class="tab" data-act="tab" data-v="desk">DM desk</button>
-      <button class="tab" data-act="tab" data-v="homebrew">Homebrew</button>
-      <button class="tab" data-act="tab" data-v="combat">Combat</button>
+      <div class="nav-caption nav-dm">At the table</div>
+      <button class="tab cl-start" data-act="tab" data-v="home"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1Z"/></svg> Home</button>
+      <button class="tab" data-act="tab" data-v="desk"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg> Session</button>
+      <button class="tab" data-act="tab" data-v="campaigns"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v9H3Z"/></svg> Campaigns</button>
+      <button class="tab" data-act="tab" data-v="combat"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 3 5 2 11 12-3 3L5 9 4 3Zm10 13 6-6M15 5l5-2-1 6-3 3M4 20l4-4M16 8l-3 3"/></svg> Combat</button>
+      <details id="nav-preparation" open>
+        <summary class="nav-caption">Heroes & preparation</summary>
+        <div class="nav-prep-items">
+          <button class="tab" data-act="tab" data-v="heroes"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg> My heroes</button>
+          <button class="tab" data-act="tab" data-v="create"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Create a hero</button>
+          <button class="tab" data-act="tab" data-v="import"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></svg> Import adventure</button>
+          <button class="tab" data-act="tab" data-v="homebrew"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 9-9 9-9-9Z"/><path d="M9 12h6m-3-3v6"/></svg> Homebrew</button>
+        </div>
+      </details>
     </nav>
+    <div class="shell-utilities">
     <button class="btn sm" data-act="player-setup" id="player-btn">Player screen</button>
     <button class="btn sm" data-act="cm-unlock" id="mode-btn">I’m the DM</button>
     <button class="btn ghost sm" data-act="cl-help">Help</button><span class="cl-save" id="save-state" role="status">Saved in this browser</span>
+    </div>
   </div>
 </header>
-<main class="wrap" id="view"></main>
+<main class="wrap" id="view" tabindex="-1"></main>
 <div id="toast"></div>
 
 <script src="src/app/player-core.js"></script>
@@ -286,6 +299,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/ui/character-extras.js?v=20261101-english1"></script>
 <script src="src/ui/creator.js?v=20261101-weapons1"></script>
 <script src="src/ui/homebrew.js"></script>
+<script src="src/ui/campaign-home.js"></script>
 <script src="src/ui/campaigns.js?v=20261101-english1"></script>
 <script src="src/ui/adventure-heroes.js?v=20261101-english1"></script>
 <script src="src/ui/player-dice.js?v=20261101-sync1"></script>
@@ -1294,7 +1308,7 @@ window.addEventListener('pagehide',()=>playerChannel?.channel.close());
 /* ---------- clarity integration ---------- */
 /* First-use guidance. Keep explanations beside the task they support. */
 const SCREEN_HELP={
-  home:{title:'Choose what you want to do',steps:['Players: create a hero. You can keep the recommended choices.','DMs: import an adventure, review what was found, then add it to the DM desk.','Run a session from the DM desk, or open the Combat tab when a fight starts.'],terms:[['DM','The person running the game.'],['Party','The group of player characters.']]},
+  home:{title:'Return to your table',steps:['DMs: Continue session opens your current location. Resume fight returns to a running encounter.','Empty campaigns: import an adventure or restore a campaign file. More tools & other campaigns opens another saved table.','Players: create a hero, or open My heroes to use a saved character. DM tools require your device’s DM passphrase.'],terms:[['DM','The person running the game.'],['Party','The group of player characters.']]},
   create:{title:'Make your first hero',steps:['Choose a hero type, then an ancestry. Both are explained in the cards.','Enter a name. The story questions are optional; suggestions can fill them in.','Keep the recommended abilities unless you want to change them. On the final page, choose Add to party.'],terms:[['Class','Your hero’s role and main abilities, such as fighter or wizard.'],['Ancestry','Your hero’s people, such as human, elf or dwarf.'],['Proficiency','A bonus for something your character is trained to do. The Combat tab adds it automatically.']]},
   import:{title:'Turn an adventure into DM notes',steps:['Choose a folder or files. PDFs and ZIPs can stay together; copies and versions will be grouped.','Open an adventure and choose Read this adventure. A big book may take a little time.','Review the results. Tick what you want to keep, then add the selected entries to the DM desk. Nothing is revealed to players by importing it.'],terms:[['Version','Another edition or presentation of the same book or map, such as print-friendly or player-facing.'],['Read all adventures','Reads all books in the current library so you can connect them in the campaign planner.'],['Scanned PDF','A PDF made from pictures of pages. This reader needs selectable text.']]},
   desk:{title:'Run the session from your notes',steps:['Click a location to enter it and show its linked player map. Use Preview to read ahead.','Read the opening, core guidance and character clues directly. Relevant NPC dialogue, motives and reactions are already visible.','Finish & continue moves to the next unfinished scene in the notes. Other routes remain available on the left. Extra rules and preparation tools stay below. Use Reveal… to share a reviewed card.'],terms:[['Scene','A part of the adventure, such as arriving in town or exploring a tower.'],['Lead','A clue, rumour or request the party could follow.'],['Pressure','A reminder that ignoring a lead may let the world change. It does not automatically damage anyone.']]},
@@ -1304,9 +1318,7 @@ const SCREEN_HELP={
 function helpKey(){return S.tab==='desk'&&S.deskView==='campaign'?'campaign':S.tab;}
 function helpScreen(){const h=SCREEN_HELP[helpKey()]||SCREEN_HELP.home;const dlg=openDialog(h.title,`<ol class="cl-steps">${h.steps.map(t=>`<li>${esc(t)}</li>`).join('')}</ol><details><summary>What do these words mean?</summary><dl class="cl-glossary">${h.terms.map(([a,b])=>`<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('')}</dl></details><details><summary>Credits</summary><p>Hero creator (species, classes, backgrounds, feats, equipment, spells): ${esc(globalThis.QBHERO?.attribution||'')}</p><p>Monster numbers for standard creatures (when a book has no stat block of its own): ${esc(globalThis.QBSRD?.attribution||'')}</p></details><details><summary>Where is my work saved?</summary><p>In this browser, on this computer. Refreshing keeps your saved notes and heroes. Clearing browser data can remove them. The original adventure files must be selected again after a reload; imported notes stay saved.</p><p>The player display works in another tab of the same browser. It does not connect different computers yet. Discord buttons currently show a preview; they do not send anything.</p></details><details><summary>Reset the whole app to examples</summary><p>This replaces your saved work in this browser. Only use this when you want to start over.</p><button class="btn" data-act="reset">Reset to examples…</button></details>`);return dlg;}
 function clHint(title,text){return `<aside class="cl-hint"><b>${esc(title)}</b><p>${esc(text)}</p></aside>`;}
-function vHome(){const examples=S.party.filter(p=>p.example).length;const jobs=[['Create a hero','For players · a guided step-by-step creator. Recommended abilities are already filled in.','cl-go','create'],['Import an adventure','For DMs · turn your PDFs into scenes, people, enemies and items.','cl-go','import'],['Run a session','Open your private notes, follow leads, reveal clues and prepare fights.','cl-session',''],['Connect adventures','Put several adventures in order and choose how they link together.','cl-campaign',''],['Run a fight',S.combat?'Continue the current fight on the Combat tab.':'Prepare a fight on the DM desk, then start it.','cl-fight',''],['Open the player display','Share approved cards, maps and public dice in a second browser tab.','player-setup','']];
-  return `<div class="pagehead"><div><div class="eyebrow">Start here</div><h2>What would you like to do?</h2><p>No setup is required to try the examples. Choose one task below.</p></div><button class="btn" data-act="cl-help">Help with this screen</button></div><div class="cl-home">${jobs.map(([title,text,act,v],i)=>`<button class="cl-task" data-act="${act}" data-v="${v}"><span class="cl-number">${i+1}</span><span><b>${title}</b><small>${text}</small><em>Open →</em></span></button>`).join('')}</div><div class="cl-summary"><h3>Your table</h3><p>${S.party.length} heroes · ${(S.adventures||[]).length} adventures read · ${S.encounters.length} saved fights${examples?' · '+examples+' example heroes included':''}</p><p class="small muted">Your notes are private until you reveal them. Player dice are always public on the connected player display. Your work is saved in this browser.</p></div>`;
-}
+function vHome(){return campaignHome();}
 const clCreate=vCreate;vCreate=function(){const c=crState(),sheet=crSheet(c),steps=crSteps(sheet),i=Math.max(0,steps.findIndex(([k])=>k===c.step)),open=sheet.open.filter(o=>o.step===c.step).map(o=>o.label);if(c.step==='story'&&!c.build.name.trim())open.push('a name');return `<p class="cl-progress">Step ${i+1} of ${steps.length} · ${esc(steps[i][1])}</p>`+clCreate()+(open.length&&c.step!=='review'?`<p class="cl-next" role="status">Still to choose here: ${esc(open.join('; '))}. You can come back later; open choices are marked on the steps.</p>`:'');};
 const clImport=vImport;vImport=function(){const I=S.importer;const message=I.busy?'Reading your files. You can leave this page open and wait for the results.':I.phase==='results'?'Tick the entries you want to keep. Adding them to the DM desk saves private notes; it does not show them to players.':I.phase==='product'?'Choose Read this adventure to extract notes. View opens a file preview; Show players asks you to review the image before sharing.':'1. Choose files or a folder. 2. Open an adventure. 3. Read and review it. 4. Add the results to the DM desk.';return clHint('Your next step',message)+clImport();};
 const clDesk=vDesk;vDesk=function(){const campaignView=S.deskView==='campaign';return (campaignView?clHint('Build your campaign','Add adventures, put them in order, then choose the story links you like. These are suggestions, not changes to the original books.'):'')+clDesk();};
@@ -1316,9 +1328,9 @@ const clRun=ACT['enc-run'];ACT['enc-run']=d=>{if(S.combat)clConfirm('Start a new
 const clDel=ACT['enc-del'];ACT['enc-del']=d=>clConfirm('Remove this saved fight?','This removes the saved fight from the DM desk. It does not delete the enemy entries or change a fight already running.',()=>clDel(d),'Remove saved fight');
 const clForget=ACT['camp-forget'];ACT['camp-forget']=d=>clConfirm('Remove this adventure from the planner?','The adventure profile and its place in the order will be removed. Notes already sent to the DM desk remain. You can read the book again to add it back.',()=>clForget(d),'Remove from planner');
 const clSend=ACT['res-send'];ACT['res-send']=()=>{clSend();S.deskView='session';};
-const heroTabAction=ACT.tab;ACT.tab=d=>{if(!heroConfirmLeave(d.v))heroTabAction(d);};
+const heroTabAction=ACT.tab;ACT.tab=d=>{if(d.v==='desk')S.deskView='session';if(!heroConfirmLeave(d.v))heroTabAction(d);};
 const clAddHero=ACT['cr-add'];ACT['cr-add']=()=>{const name=crState().build.name.trim(),before=S.party.length;clAddHero();if(S.party.length===before)return;const dlg=openDialog('Hero added to the party',`<p><b>${esc(name)}</b> is saved in My heroes and your party. Their story answers were added to your private DM notes.</p><p>You can start playing with this hero or create another one.</p><button class="btn primary" id="cl-hero-desk">Open the DM desk</button><p class="small muted">Close this message to create another hero.</p>`);dlg.querySelector('#cl-hero-desk').onclick=()=>{dlg.close();S.tab='desk';S.deskView='session';render();};};
-Object.assign(ACT,{'cl-help':helpScreen,'cl-go':d=>{S.tab=d.v;window.scrollTo(0,0);},'cl-session':()=>{S.tab='desk';S.deskView='session';window.scrollTo(0,0);},'cl-campaign':()=>{S.tab='desk';S.deskView='campaign';window.scrollTo(0,0);},'cl-fight':()=>{S.tab=S.combat?'combat':'desk';if(!S.combat)S.deskView='session';window.scrollTo(0,0);}});
+Object.assign(ACT,{'home-resume':homeResume,'home-switch':homeSwitch,'cl-help':helpScreen,'cl-go':d=>{S.tab=d.v;window.scrollTo(0,0);},'cl-session':()=>{S.tab='desk';S.deskView='session';window.scrollTo(0,0);},'cl-campaign':()=>{S.tab='desk';S.deskView='campaign';window.scrollTo(0,0);},'cl-fight':()=>{S.tab=S.combat?'combat':'desk';if(!S.combat)S.deskView='session';window.scrollTo(0,0);}});
 document.addEventListener('input',e=>{if(e.target.dataset.bind==='draft.name'){const button=document.querySelector('[data-act="enc-save"]');if(button)button.disabled=!(e.target.value.trim()&&S.draft.foes.length);}});
 
 /* ---------- wiring ---------- */
@@ -1328,8 +1340,9 @@ function render(){
   const heroDisclosures=heroDisclosureCapture();
   sceneMapsSync();
   publishPlayer();
-  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.v===S.tab));
   cmShell(); // player or DM mode (src/ui/campaigns.js)
+  campaignShell();
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.v===S.tab));
   $('#view').innerHTML={home:S.role==='dm'?vHome:vPlayerHome,create:vCreate,heroes:vHeroes,campaigns:vCampaigns,import:vImport,desk:vDesk,combat:vCombat,homebrew:vHomebrew}[S.tab]();
   overviewRestoreDisclosures(disclosureState);
   liveRestore(liveState);
