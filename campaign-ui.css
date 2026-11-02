@@ -114,3 +114,10 @@
 .qb-app .ov-scene .eyebrow{font-weight:700;letter-spacing:.065em}
 .qb-app .ov-live{display:inline-flex;align-items:center;gap:6px;font-weight:700}
 @media(max-width:650px){.qb-app .ov-scene-context{margin:-4px 0 14px}}
+
+/* Give active scene notes priority over optional map artwork. */
+.qb-app .ov-map-disclosure{margin:14px 0 22px}
+.qb-app .ov-map-disclosure>summary{font-weight:650;cursor:pointer;line-height:1.5;padding:5px 0}
+.qb-app .ov-map-disclosure>summary .small{font-weight:400;margin-left:8px}
+.qb-app .ov-map-disclosure[open]>summary{margin-bottom:12px}
+.qb-app .ov-scene>.ov-callout{margin-block:10px;line-height:1.6}
