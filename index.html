@@ -295,12 +295,13 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/app/shared-heroes.js?v=20261101-english1" data-ui></script>
 <script src="src/ui/live-session.js?v=20261101-english1"></script>
 <script src="src/ui/shared-heroes.js?v=20261101-english1"></script>
+<script src="src/ui/campaign-invites.js?v=draft-invites1"></script>
 <script src="src/ui/custom-items.js?v=20261101-weapons1"></script>
 <script src="src/ui/character-extras.js?v=20261101-english1"></script>
 <script src="src/ui/creator.js?v=20261102-choices6"></script>
 <script src="src/ui/homebrew.js"></script>
 <script src="src/ui/campaign-home.js"></script>
-<script src="src/ui/campaigns.js?v=20261102-share1"></script>
+<script src="src/ui/campaigns.js?v=draft-invites1"></script>
 <script src="src/ui/adventure-heroes.js?v=20261101-english1"></script>
 <script src="src/ui/player-dice.js?v=20261101-sync1"></script>
 <script src="src/ui/player-hp.js"></script>
@@ -1302,7 +1303,7 @@ async function playerMap(path) {
     };
   }catch(error){toast(error.message);}
 }
-Object.assign(ACT,{'player-hp':d=>playerHpDialog(d.id),'player-dice':d=>playerDiceDialog(d.id),'player-setup':playerSetup,'player-edit':d=>playerEdit(d.kind,d.id),'spot-text':d=>playerReadAloud(d.id),'lib-show':d=>playerMap(d.path),'scene-map':d=>sceneMapDialog(d.id),'scene-map-show':d=>sceneMapShow(d.id),'drive-open':driveDialog,...sessionOverviewActions(),...securityActions(),...adventureHeroActions(),...characterExtrasActions(),...customItemActions(),...sharedHeroActions(),...liveActions()});
+Object.assign(ACT,{'player-hp':d=>playerHpDialog(d.id),'player-dice':d=>playerDiceDialog(d.id),'player-setup':playerSetup,'player-edit':d=>playerEdit(d.kind,d.id),'spot-text':d=>playerReadAloud(d.id),'lib-show':d=>playerMap(d.path),'scene-map':d=>sceneMapDialog(d.id),'scene-map-show':d=>sceneMapShow(d.id),'drive-open':driveDialog,...sessionOverviewActions(),...securityActions(),...adventureHeroActions(),...characterExtrasActions(),...customItemActions(),...sharedHeroActions(),...inviteActions(),...liveActions()});
 window.addEventListener('pagehide',()=>playerChannel?.channel.close());
 
 /* ---------- clarity integration ---------- */
@@ -1340,6 +1341,7 @@ function render(){
   const heroDisclosures=heroDisclosureCapture();
   sceneMapsSync();
   publishPlayer();
+  if(typeof inviteFromUrl==='function' && !inviteUI.token)inviteFromUrl();
   cmShell(); // player or DM mode (src/ui/campaigns.js)
   campaignShell();
   document.querySelectorAll('.tab').forEach(t=>{const active=t.dataset.v===S.tab;t.setAttribute('aria-selected',active);if(active)t.setAttribute('aria-current','page');else t.removeAttribute('aria-current');});
