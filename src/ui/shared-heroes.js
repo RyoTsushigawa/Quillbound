@@ -11,11 +11,11 @@ function sharedWatch(user){
     if(change.type==='removed'){sharedCloud.docs.delete(change.doc.id);continue;}
     sharedCloud.docs.set(change.doc.id,{...change.doc.data(),id:change.doc.id});
    }
-   sharedCloud.message='Verbunden';sharedReconcile();render();
+   sharedCloud.message='Connected';sharedReconcile();render();
   },e=>{if(sharedCloud.user!==user)return;sharedCloud.message=sharedError(e);render();}));
  }
 }
-function sharedError(e){const code=String(e?.code || e?.message || e);return /permission-denied/.test(code)?"No database access. Create Firestore and publish the Quillbound rules.":/unauthorized-domain/.test(code)?'In Firebase Authentication die Domain ryotsushigawa.github.io freigeben.':/operation-not-allowed/.test(code)?'In Firebase Authentication die Google-Anmeldung aktivieren.':/popup-blocked/.test(code)?"The login window was blocked. Allow pop-ups for Quillbound.":/popup-closed|cancelled-popup/.test(code)?"Registration canceled. Your local data remains saved.":/CONFLICT/.test(code)?"Simultaneous change: please check the common status.":"Connection failed: "+code.slice(0,200);}
+function sharedError(e){const code=String(e?.code || e?.message || e);return /permission-denied/.test(code)?"No database access. Create Firestore and publish the Quillbound rules.":/unauthorized-domain/.test(code)?'Allow the domain ryotsushigawa.github.io in Firebase Authentication.':/operation-not-allowed/.test(code)?'Turn on Google sign-in in Firebase Authentication.':/popup-blocked/.test(code)?"The login window was blocked. Allow pop-ups for Quillbound.":/popup-closed|cancelled-popup/.test(code)?"Registration canceled. Your local data remains saved.":/CONFLICT/.test(code)?"Simultaneous change: please check the common status.":"Connection failed: "+code.slice(0,200);}
 async function sharedStart(login=false){
  const alreadyReady=!!sharedCloud.api;
  try{
@@ -93,7 +93,36 @@ function sharedLabel(record,party){
  if(sharedEditing(record,party))return "Edit · save character first";
  try{return {same:"Up to date",incoming:"Incoming change pending",outgoing:"Saving changes…",conflict:"Simultaneous changes · Review sync",waiting:"Connecting..."}[sharedStatus(record,party)] || '';}catch(e){return sharedError(e);}
 }
-function sharedHeroBadge(record,party=false){return record.cloudLink?`<p class="small"><span data-shared-status="${esc(record.cloudLink.id)}">${esc(sharedLabel(record,party))}</span> <button class="btn sm" data-act="shared-review" data-id="${esc(record.id)}" data-party="${party?'1':''}">Review sync</button></p>`:'';}
+function sharedHeroBadge(record,party=false){return record.cloudLink?`<p class="small"><span data-shared-status="${esc(record.cloudLink.id)}">${esc(sharedLabel(record,party))}</span> <button class="btn sm" data-act="shared-review" data-id="${esc(record.id)}" data-party="${party?'1':''}">Review sync</button>${party?'':` <button class="btn sm ghost" data-act="shared-unlink" data-id="${esc(record.cloudLink.id)}">Stop syncing</button>`}</p>`:'';}
+// Who a connection is with, in words. The Firebase record holds no names, so a player shows as the start of their player code.
+function sharedWith(remote){if(!remote)return '';const place=remote.campaignName?esc(remote.campaignName)+' · ':'';return place+(remote.dmUid===sharedCloud.user?.uid?'with player code '+esc(remote.playerUid.slice(0,6)):'with your DM');}
+// The mark on a My heroes card: this sheet, or the DM's adventure copy of it, is shared with someone else.
+function heroSyncMark(h){
+ if(h.cloudLink){const remote=sharedCloud.docs.get(h.cloudLink.id),on=remote&&h.cloudLink.uid===sharedCloud.user?.uid;return `<p class="hero-sync small"><span class="chip${on?' ok':''}">${on?'Synced':'Not syncing now'}</span> <span class="muted">${on?sharedWith(remote)+' · ':''}<span data-shared-status="${esc(h.cloudLink.id)}">${esc(sharedLabel(h,false))}</span></span></p>`;}
+ const copy=S.role==='dm'?(S.party || []).find(p=>p.cloudLink&&(p.myHeroId===h.id||h.sourcePartyId===p.id||'ph-'+p.id===h.id)):null;
+ return copy?'<p class="hero-sync small"><span class="chip acc">Party copy synced</span> <span class="muted">'+(sharedWith(sharedCloud.docs.get(copy.cloudLink.id)) || 'with a player')+'</span></p>':'';
+}
+const sharedHeroName=remote=>{try{return String(JSON.parse(remote.sheetJson).build.name || 'Character');}catch{return 'Character';}};
+// Everyone this account shares a sheet with, each removable from one place.
+function sharedConnections(){
+ const user=sharedCloud.user,hidden=S.cloudSettings?.hidden || [],list=user?[...sharedCloud.docs.values()]:[];if(!list.length)return '';
+ return `<details class="hero-tools hero-connections" data-hero-disclosure="connections"><summary>Synced with others · ${list.length}</summary><div class="stack"><p class="small muted">Removing a connection stops syncing. Everyone keeps the copy they already have.</p>${list.map(d=>{const off=hidden.includes(d.id);return `<div class="row hb-item"><span><b>${esc(sharedHeroName(d))}</b> <span class="small muted">${sharedWith(d)}${off?' · stopped on this device':''}</span></span><span class="row">${off?`<button class="btn sm" data-act="shared-show" data-id="${esc(d.id)}">Sync again</button>`:''}${off&&d.dmUid!==user.uid?'':`<button class="btn sm ghost" data-act="shared-unlink" data-id="${esc(d.id)}">${d.dmUid===user.uid?'Disconnect player':'Stop syncing'}</button>`}</span></div>`;}).join('')}</div></details>`;
+}
+// A DM ends the connection for both sides; the rules let only the DM delete it, so a player stops syncing on their own device.
+function sharedUnlink(id){
+ const user=sharedCloud.user,remote=sharedCloud.docs.get(id),mine=(S.myHeroes || []).find(h=>h.cloudLink?.id===id),name=remote?sharedHeroName(remote):mine?.build?.name || 'this character';
+ if(remote&&remote.dmUid===user?.uid){clConfirm('Disconnect the player from '+name+'?','Both of you keep your own copy, but the sheets stop syncing and the player loses access to the shared sheet.',async()=>{
+  if(sharedCloud.user!==user)return;
+  try{await sharedCloud.api.db.deleteDoc(sharedCloud.api.db.doc(sharedCloud.api.store,'sharedHeroes',id));sharedCloud.docs.delete(id);sharedCloud.errors.delete(id);
+   for(const list of [S.party,S.myHeroes,...(S.campaigns?.list || []).map(c=>c.data?.party)])for(const r of list || [])if(r.cloudLink?.id===id)delete r.cloudLink;
+   render();toast('Player disconnected from '+name+'.');
+  }catch(e){toast(sharedError(e));}
+ },'Disconnect');return;}
+ clConfirm('Stop syncing '+name+'?','Your copy stays in My heroes and stops changing with the shared sheet. '+(remote?'You can sync it again from Synced with others.':'This connection no longer exists.'),()=>{
+  if(remote){S.cloudSettings??={enabled:true};S.cloudSettings.hidden=[...new Set([...(S.cloudSettings.hidden || []),id])];if(mine)mine.pausedLink=mine.cloudLink;}
+  if(mine)delete mine.cloudLink;sharedCloud.errors.delete(id);render();
+ },'Stop syncing');
+}
 function sharedPanel(){
  const user=sharedCloud.user;
  const signedIn=user?`<p>Signed in: ${esc(user.displayName || user.email || '')}</p><p class="small">Your player code: <code style="overflow-wrap:anywhere">${esc(user.uid)}</code></p><button class="btn sm" data-act="shared-code">Copy player code</button> <button class="btn sm" data-act="shared-reconnect">Reconnect</button> <button class="btn sm ghost" data-act="shared-logout">Sign out</button><p class="small">Players give their code to the DM. The DM selects “Connect player” for the adventure figure. Assigned characters automatically appear in My heroes.</p>`:`<button class="btn" data-act="shared-login">${sharedCloud.api?"Sign in with Google":'Prepare Google connection'}</button><p class="small">Registration and explicitly connected character sheets are stored in Google Firebase. Local adventures and maps will not be uploaded.</p>`;
@@ -137,4 +166,4 @@ function sharedReview(id,party){
   try{if(sharedCloud.user!==user||S.role!=='dm')return;await sharedCloud.api.db.deleteDoc(sharedCloud.api.db.doc(sharedCloud.api.store,'sharedHeroes',link.id));delete record.cloudLink;sharedCloud.docs.delete(link.id);dlg.close();render();}catch(e){toast(sharedError(e));}
  },"Terminate connection"));
 }
-function sharedHeroActions(){return {'shared-reconnect':()=>{sharedWatch(sharedCloud.user);liveWatch(sharedCloud.user);},'shared-toggle':()=>{sharedCloud.open=!sharedCloud.open;},'shared-show':d=>{S.cloudSettings.hidden=(S.cloudSettings.hidden || []).filter(id=>id!==d.id);sharedReconcile();},'shared-import':d=>sharedImport(d.id),'shared-login':()=>void sharedStart(true),'shared-code':()=>navigator.clipboard.writeText(sharedCloud.user?.uid || '').then(()=>toast("Player code copied."),()=>toast("Please mark and copy the visible player code.")),'shared-logout':async()=>{S.cloudSettings={...S.cloudSettings,enabled:false};save();if(sharedCloud.api)await sharedCloud.api.auth.signOut(sharedCloud.api.session);render();},'shared-share':d=>sharedShare(d.id),'shared-review':d=>sharedReview(d.id,d.party==='1')};}
+function sharedHeroActions(){return {'shared-reconnect':()=>{sharedWatch(sharedCloud.user);liveWatch(sharedCloud.user);},'shared-toggle':()=>{sharedCloud.open=!sharedCloud.open;},'shared-unlink':d=>sharedUnlink(d.id),'shared-show':d=>{S.cloudSettings.hidden=(S.cloudSettings.hidden || []).filter(id=>id!==d.id);const paused=(S.myHeroes || []).find(h=>h.pausedLink?.id===d.id);if(paused){paused.cloudLink=paused.pausedLink;delete paused.pausedLink;}sharedReconcile();},'shared-import':d=>sharedImport(d.id),'shared-login':()=>void sharedStart(true),'shared-code':()=>navigator.clipboard.writeText(sharedCloud.user?.uid || '').then(()=>toast("Player code copied."),()=>toast("Please mark and copy the visible player code.")),'shared-logout':async()=>{S.cloudSettings={...S.cloudSettings,enabled:false};save();if(sharedCloud.api)await sharedCloud.api.auth.signOut(sharedCloud.api.session);render();},'shared-share':d=>sharedShare(d.id),'shared-review':d=>sharedReview(d.id,d.party==='1')};}

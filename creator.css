@@ -108,7 +108,8 @@
 .qb-app .hero-name{font-size:1.5rem;font-weight:650;letter-spacing:-.03em;overflow-wrap:anywhere}
 .hero-note{padding:9px 12px;border-radius:8px;background:var(--warn-soft);color:var(--ink)}
 .hero-invite{margin-bottom:18px}
-.hero-sync{display:flex;align-items:center;gap:8px}.hero-sync::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.hero-sync{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.hero-connections{margin-top:18px}.hero-connections .hb-item{justify-content:space-between}
 .hero-hp{display:grid;gap:8px}
 .hero-hp-top{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px}
 .hero-hp-label{font-size:.78rem;color:var(--muted)}
@@ -133,3 +134,26 @@
 .hero-empty{display:grid;justify-items:center;gap:14px;text-align:center;padding:56px 24px;background:var(--surface);border:1px dashed var(--line);border-radius:14px}
 .hero-empty .row{justify-content:center}
 @media(max-width:480px){.hero-card{padding:18px;gap:16px}.hero-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-abilities{gap:5px}.hero-abilities>div{padding:8px 2px}.hero-abilities dd{font-size:1rem}.hero-actions .btn{flex:1 1 40%}.hero-actions .btn.primary{flex-basis:100%}}
+/* Live table: the DM's bar on Session, and the player's map and chat on My heroes. */
+.live-bar{display:grid;gap:12px;margin-bottom:16px;padding:14px 18px;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--ok);border-radius:12px}
+.live-bar.live-off{border-left-color:var(--line)}
+.live-bar-main{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px}
+.live-bar-state{display:grid;gap:1px;min-width:0}.live-bar-state b{display:flex;align-items:center;gap:8px}
+.live-off .live-bar-main>.row,.live-compact .live-bar-main>.row{margin-left:auto}
+.live-dot{display:inline-block;flex:none;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--ok)}.live-bar-state .live-dot{margin-right:0}
+.live-bar-map{display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 180px}.live-bar-map>span{display:grid;min-width:0}.live-bar-map b{font-weight:600;overflow-wrap:anywhere}
+.live-thumb{flex:none;width:72px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.qb-app .live-bar-actions{gap:8px;margin-left:auto}.live-no-map{max-width:30ch}
+.live-elsewhere{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.live-status{color:var(--muted)}
+.live-chat{min-width:0}.live-chat>summary{font-weight:600}
+.live-log{display:grid;gap:8px;max-height:18rem;overflow:auto;margin-bottom:10px;align-content:start}
+.live-msg{padding:7px 11px;border-radius:8px;background:var(--surface-2);font-size:.88rem;line-height:1.45}.live-msg b{font-weight:600}.live-msg p{white-space:pre-wrap;overflow-wrap:anywhere}
+.live-roll{border-left:3px solid var(--gold)}
+.live-chat-form{display:flex;gap:8px;margin-bottom:8px}.live-chat-form input{flex:1;min-width:0}
+.live-player{display:grid;gap:14px;margin-bottom:18px}
+.live-player-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.live-player-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(260px,1fr);gap:18px;align-items:start}
+#live-map-slot img{display:block;width:100%;max-height:70vh;object-fit:contain;border-radius:8px;background:var(--surface-2)}#live-map-slot p{margin-top:6px}
+.live-map-empty{display:grid;place-items:center;min-height:200px;text-align:center;border:1px dashed var(--line);border-radius:8px;padding:16px}
+@media(max-width:800px){.live-player-grid{grid-template-columns:minmax(0,1fr)}.qb-app .live-bar-actions{margin-left:0;width:100%}.live-bar-actions .btn{flex:1 1 auto}}

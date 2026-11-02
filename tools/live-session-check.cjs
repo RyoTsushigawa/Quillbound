@@ -27,5 +27,31 @@ run('liveCloud.session=session;liveCloud.selected=session.id;liveCloud.wanted={i
  run('sharedCloud.user={uid:"stranger"};');await assert.rejects(()=>run('liveSend("forged")'),/active/);assert.equal(writes.length,1);
  run('sharedCloud.user={uid:"player-user",displayName:"Player"};liveCloud.session={...session,active:false};');await assert.rejects(()=>run('liveSend("ended")'),/active/);
  run('liveCloud.session=session;liveCloud.mapUrl=imageUrl;liveCloud.mapKey="old-map";liveClear();');assert.equal(run('liveCloud.mapUrl'),'');assert.equal(run('liveCloud.messages.length'),0);
+ // DM controls: the player never gets session controls, and a hidden map can be shown again.
+ const clock={toMillis:()=>Date.now()+3600000,toDate:()=>new Date()},shown=[];
+ Object.assign(ctx,{sceneMapContext:()=>({token:'scene-a',beat:{id:'a'}}),SceneMaps:{reference:()=>null},sceneMapsPause(){},publishPlayer(){shown.push(ctx.playerSpotlight);},window:{scrollTo(){}}});
+ ctx.playerSpotlight={type:'image',title:'Vault',url};ctx.clock=clock;
+ run('sharedCloud.user={uid:"dm-user",displayName:"DM"};liveCloud.session={...session,expiresAt:clock,map:{id:"m",title:"Vault",count:1}};');
+ assert(run('liveBar()').includes('live-hide'));assert(run('liveBar()').includes('live-end'));assert(!run('livePanel()').includes('live-end'),'map and session controls live on Session only');
+ await run('liveActions()["live-hide"]()');assert.equal(ctx.playerSpotlight,null);
+ run('liveCloud.session={...liveCloud.session,map:null};');assert(run('liveBar()').includes('Show map: Vault'),'a hidden map offers to come back');
+ await run('liveActions()["live-show"]()');assert.equal(ctx.playerSpotlight.title,'Vault');assert.equal(shown.at(-1).title,'Vault');
+ run('sharedCloud.user={uid:"player-user",displayName:"P"};liveCloud.session={...session,expiresAt:clock,map:null};');const player=run('livePanel()');assert(!player.includes('live-hide')&&!player.includes('live-end')&&!player.includes('live-show'),'players get no session controls');assert(player.includes('player-dice'));
+ console.log('PASS: DM live bar, reversible Hide map and no session controls for players.');
+ // My heroes: synced marks, and removing a connection as DM or as player.
+ const removed=[],confirm=(t,x,go)=>go(),hero=(id,link)=>({id,build:{name:id},story:{},cloudLink:link});
+ const cloud=vm.createContext({console,S:{role:'player',myHeroes:[],party:[],campaigns:{list:[]}},esc:x=>String(x),render(){},toast(){},clConfirm:confirm,save(){},cmSheet:()=>null});
+ vm.runInContext(fs.readFileSync(path.join(root,'src/app/shared-heroes.js'),'utf8'),cloud);vm.runInContext(fs.readFileSync(path.join(root,'src/ui/shared-heroes.js'),'utf8')+';globalThis.cloudKit={sharedCloud,heroSyncMark,sharedConnections,sharedUnlink,sharedHeroActions};',cloud);
+ const kit=cloud.cloudKit,sheetJson=JSON.stringify({build:{name:'Toxik'}});
+ kit.sharedCloud.user={uid:'player-one'};kit.sharedCloud.api={store:{},db:{doc:(...a)=>a.at(-1),deleteDoc:async id=>removed.push(id)}};
+ kit.sharedCloud.docs.set('a',{id:'a',dmUid:'dm-account',playerUid:'player-one',campaignName:'Night Shift',sheetJson,revision:1});
+ const toxik=hero('Toxik',{id:'a',uid:'player-one',revision:1,baseJson:sheetJson});cloud.S.myHeroes.push(toxik,{id:'plain',build:{name:'Solo'}});
+ assert(kit.heroSyncMark(toxik).includes('>Synced<')&&kit.heroSyncMark(toxik).includes('with your DM'));assert.equal(kit.heroSyncMark(cloud.S.myHeroes[1]),'','a local hero has no mark');
+ assert(kit.sharedConnections().includes('Toxik')&&kit.sharedConnections().includes('Stop syncing'));
+ kit.sharedUnlink('a');assert.equal(toxik.cloudLink,undefined);assert.deepEqual([...cloud.S.cloudSettings.hidden],['a']);assert.equal(removed.length,0,'a player cannot delete the connection');
+ kit.sharedHeroActions()['shared-show']({id:'a'});assert.equal(toxik.cloudLink.id,'a','syncing again relinks the kept hero instead of adding a copy');assert.equal(cloud.S.myHeroes.length,2);
+ kit.sharedCloud.user={uid:'dm-account'};cloud.S.party.push(hero('Camilla',{id:'a',uid:'dm-account'}));assert(kit.sharedConnections().includes('Disconnect player'));
+ await kit.sharedUnlink('a');await new Promise(r=>setImmediate(r));assert.deepEqual(removed,['a']);assert.equal(cloud.S.party[0].cloudLink,undefined);assert.equal(toxik.cloudLink,undefined);assert(!kit.sharedCloud.docs.has('a'));
+ console.log('PASS: synced marks on My heroes; players stop syncing and can resume; DMs disconnect a player for both sides.');
  console.log('PASS: bounded raster chunks, complete map assembly, session expiry/membership, map publisher and generation guards, authenticated roll chat and clear-on-end.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -40,14 +40,14 @@ function heroCard(h){
   return `<article class="hero-card" data-tone="${HERO_TONE[s?.cls] || 'accent'}">
     <header class="hero-head"><span class="hero-crest" aria-hidden="true">${esc(heroInitials(name))}</span><div class="hero-id"><h3 class="hero-name">${esc(name)}</h3><p class="small muted">${cmHeroLine(h.build,s)}</p></div></header>
     ${s?.open?.length?`<p class="hero-note small">Draft · ${s.open.length} open decisions. Your changes are saved.</p>`:''}
-    ${h.cloudLink?`<p class="hero-sync small muted" data-shared-status="${esc(h.cloudLink.id)}">${esc(sharedLabel(h,false))}</p>`:''}
+    ${heroSyncMark(h)}
     ${s?`${playerHpCard(h,s)}
     <dl class="hero-stats">${stat('Armor Class',s.ac)}${stat('Initiative',fmt(s.initiative))}${stat('Speed',s.speed+' ft')}${stat('Passive Perception',s.passive)}</dl>
     <dl class="hero-abilities">${QBHeroRules.ABIL.map(k=>`<div><dt>${k}</dt><dd>${fmt(s.mods[k])}</dd><dd class="hero-score">${s.scores[k]}</dd></div>`).join('')}</dl>
     ${attacks.length?`<ul class="hero-attacks" aria-label="Attacks">${heroAttacks(attacks.slice(0,4))}</ul>`:''}`:'<p class="cl-error">This hero can’t be read in this browser.</p>'}
-    <div class="row hero-actions"><button class="btn primary" data-act="player-dice" data-id="${esc(h.id)}">Roll dice</button><button class="btn" data-act="cm-edit" data-id="${esc(h.id)}">Edit</button><button class="btn" data-act="cm-share" data-id="${esc(h.id)}">Share character</button></div>
+    <div class="row hero-actions"><button class="btn primary" data-act="player-dice" data-id="${esc(h.id)}">Roll dice</button><button class="btn" data-act="cm-edit" data-id="${esc(h.id)}">Edit</button><button class="btn" data-act="cm-share" data-id="${esc(h.id)}">Share character</button><button class="btn ghost" data-act="cm-delhero" data-id="${esc(h.id)}">Remove</button></div>
     <div class="hero-folds">${s?`<details data-hero-disclosure="${esc(h.id)}-sheet"><summary>Character details${items.length?' · '+items.length+' Items':''}${companions.length?' · '+companions.length+" companions":''}</summary><div class="stack">${attacks.length>4?`<ul class="hero-attacks" aria-label="More attacks">${heroAttacks(attacks.slice(4))}</ul>`:''}${characterTraining(s)}${characterCompanions(s)}${items.length?"<h4>Homebrew items</h4>"+customItemsView(s):''}</div></details>`:''}
-    <details data-hero-disclosure="${esc(h.id)}-more"><summary>More · Export & management</summary><div class="stack">${sharedHeroBadge(h)}<div class="row"><button class="btn" data-act="cm-print" data-id="${esc(h.id)}">Character sheet (print / PDF)</button><label class="btn">Update from adventure…<input type="file" accept=".json,application/json" data-update-hero="${esc(h.id)}" hidden></label>${h.previousVersion?`<button class="btn" data-act="hero-restore-previous" data-id="${esc(h.id)}">Restore previous version</button>`:''}</div><p class="small muted">Use Share character above to send a copy to your DM. Connected characters sync automatically.</p><div><button class="btn sm ghost" data-act="cm-delhero" data-id="${esc(h.id)}">Delete</button></div></div></details></div></article>`;
+    <details data-hero-disclosure="${esc(h.id)}-more"><summary>More · Export & management</summary><div class="stack">${sharedHeroBadge(h)}<div class="row"><button class="btn" data-act="cm-print" data-id="${esc(h.id)}">Character sheet (print / PDF)</button><label class="btn">Update from adventure…<input type="file" accept=".json,application/json" data-update-hero="${esc(h.id)}" hidden></label>${h.previousVersion?`<button class="btn" data-act="hero-restore-previous" data-id="${esc(h.id)}">Restore previous version</button>`:''}</div><p class="small muted">Use Share character above to send a copy to your DM. Connected characters sync automatically.</p></div></details></div></article>`;
 }
 function vHeroes() {
   const list=S.myHeroes || [],live=QBLiveSession.active(liveCloud.session),unsaved=S.role==='dm'?cmUnsavedParty().length:0;
@@ -56,6 +56,7 @@ function vHeroes() {
     ${inviteUI.token?`<p class="hero-note hero-invite">You have a campaign invitation. ${sharedCloud.user?'Choose <b>Join a campaign</b> to see it.':'Sign in with Google under <b>Connection &amp; import → Shared characters</b>, then choose <b>Join a campaign</b>.'}</p>`:''}
     ${live?livePanel():''}
     ${list.length?`<div class="hero-roster">${list.map(heroCard).join('')}</div>`:`<section class="hero-empty"><h3>No characters yet</h3><p class="muted">Make your first hero step by step, or bring in one you already have.</p><div class="row"><button class="btn primary" data-act="cm-newhero">Create a hero</button><button class="btn" data-act="player-dice">Free dice roll</button></div>${imports}</section>`}
+    ${sharedConnections()}
     <details class="hero-tools" data-hero-disclosure="tools"><summary>Connection & import</summary><div class="stack"><p class="small muted">Manage Google connection, shared characters and files.</p>${list.length?imports:''}${sharedPanel()}${!live?livePanel():''}${unsaved?`<p class="small">${unsaved} adventure characters are not saved here yet. <button class="btn sm" data-act="cm-save-party">Copy party characters to My heroes</button></p>`:''}</div></details>`;
 }
 function heroDisclosureCapture(){return S.tab==='heroes'?[...document.querySelectorAll('[data-hero-disclosure]')].filter(el=>el.open).map(el=>el.dataset.heroDisclosure):[];}
@@ -66,7 +67,7 @@ function vCampaigns() {
   const c = QBCampaigns.ensure(S), cur = QBCampaigns.current(S), others = c.list.filter(x => x.id !== cur.id);
   return `<div class="pagehead"><div><div class="eyebrow">Adventure manager · DM only</div><h2>${esc(cur.name)}</h2><p>Each campaign has its own party, session, adventures and combat. Switching saves this one and opens the other.</p></div>
       <div class="row"><button class="btn" data-act="cm-export">Back up this campaign…</button><label class="btn">Restore campaign / ZIP…<input type="file" id="cm-camp-file" accept=".json,.zip,application/json,application/zip" hidden></label></div></div>
-    ${sharedPanel()}${livePanel()}<div class="row">${inviteButtons(true)}</div><div class="stack"><section class="card stack"><h3>This campaign</h3><label class="f">Name<input data-act-change="cm-rename" value="${esc(cur.name)}" maxlength="80"></label>
+    ${livePanel()}<div class="stack"><section class="card stack"><h3>This campaign</h3><label class="f">Name<input data-act-change="cm-rename" value="${esc(cur.name)}" maxlength="80"></label>
       <p class="small muted">${(S.adventures || []).length} adventure${(S.adventures || []).length === 1 ? '' : 's'} · ${(S.beats || []).length} scenes on the desk · ${(S.encounters || []).length} prepared fights${S.combat ? ' · a fight is running' : ''}</p>
       <div class="row"><button class="btn" data-act="tab" data-v="desk">Open Session</button><button class="btn" data-act="tab" data-v="import">Import an adventure</button></div></section>
     <section class="card stack"><h3>Party</h3>
@@ -75,7 +76,8 @@ function vCampaigns() {
       <h4>Add heroes your players sent</h4>
       <div class="row"><label class="btn primary">Add hero files…<input type="file" id="cm-hero-file" accept=".json,application/json" multiple hidden></label><button class="btn" data-act="hi-open" data-v="party">Import from a sheet (PDF, D&amp;D Beyond, Foundry)…</button></div>
       <label class="f">…or paste a hero a player copied as text<textarea id="cm-paste" rows="3" placeholder='{"format":"quillbound-hero", …}'></textarea></label><div class="row"><button class="btn" data-act="cm-paste">Add pasted hero</button></div>
-      <p class="small muted">A hero sent again replaces the earlier version and keeps its current hit points. Homebrew the hero uses comes with it.</p></section>
+      <p class="small muted">A hero sent again replaces the earlier version and keeps its current hit points. Homebrew the hero uses comes with it.</p>
+      <h4>Connect players online</h4><div class="row">${inviteButtons(true)}</div>${sharedPanel()}</section>
     <section class="card stack"><h3>Your campaigns</h3>
       ${c.list.map(x => `<div class="row hb-item"><span><b>${esc(x.name)}</b>${x.id === cur.id ? ' <span class="chip ok">open</span>' : ` <span class="small muted">${(x.data?.party || []).length} heroes · saved ${new Date(x.updated).toLocaleDateString()}</span>`}</span>
         ${x.id === cur.id ? '' : `<span class="row"><button class="btn sm" data-act="cm-switch" data-id="${esc(x.id)}">Open</button><button class="btn sm ghost" data-act="cm-delcamp" data-id="${esc(x.id)}">Delete</button></span>`}</div>`).join('')}
@@ -137,7 +139,7 @@ function campaignActions() { return {
   },
   'cm-send': d => { const h = cmHero(d.id); if (!h) return; const name = (h.build.name || 'hero').replace(/[^\w-]+/g, '-').toLowerCase(); saveFile(`${name}.quillbound-hero.json`, QBCampaigns.heroFile(h), `Saved ${h.build.name}. Send the file to your DM.`); },
   'cm-copy': d => { const h = cmHero(d.id); if (!h) return; const text = QBCampaigns.heroFile(h); (navigator.clipboard?.writeText(text) || Promise.reject()).then(() => toast('Copied. Paste it in a message to your DM.'), () => toast('Copying is blocked here. Use Send to DM instead.')); },
-  'cm-delhero': d => { const h = cmHero(d.id); if (!h) return; clConfirm(`Delete ${h.build.name}?`, 'This removes the hero from this browser. Heroes your DM already has stay in the campaign.', () => { if(h.cloudLink){S.cloudSettings??={enabled:true};S.cloudSettings.hidden=[...new Set([...(S.cloudSettings.hidden || []),h.cloudLink.id])];}S.myHeroes = S.myHeroes.filter(x => x.id !== h.id); render(); }, 'Delete'); },
+  'cm-delhero': d => { const h = cmHero(d.id); if (!h) return; clConfirm(`Remove ${h.build.name} from My heroes?`, `This removes the hero from this browser. Heroes your DM already has stay in the campaign.${h.cloudLink?' Syncing stops on this device.':''}`, () => { if(h.cloudLink){S.cloudSettings??={enabled:true};S.cloudSettings.hidden=[...new Set([...(S.cloudSettings.hidden || []),h.cloudLink.id])];}S.myHeroes = S.myHeroes.filter(x => x.id !== h.id); render(); }, 'Remove'); },
   'cm-rename': d => QBCampaigns.rename(S, S.campaigns.current, d.v),
   'cm-newcamp': () => { const name = document.getElementById('cm-new-name')?.value; try { QBCampaigns.create(S, name); toast('New campaign. The previous one is saved in the list.'); } catch (e) { toast(e.message); } },
   'cm-switch': d => { try { QBCampaigns.switchTo(S, d.id); toast(`Opened ${QBCampaigns.current(S).name}.`); } catch (e) { toast(e.message); } },
