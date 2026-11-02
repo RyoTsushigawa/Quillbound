@@ -1342,7 +1342,9 @@ function render(){
   publishPlayer();
   cmShell(); // player or DM mode (src/ui/campaigns.js)
   campaignShell();
-  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.v===S.tab));
+  document.querySelectorAll('.tab').forEach(t=>{const active=t.dataset.v===S.tab;t.setAttribute('aria-selected',active);if(active)t.setAttribute('aria-current','page');else t.removeAttribute('aria-current');});
+  const prepNav=document.getElementById('nav-preparation');
+  if(prepNav && ['heroes','create','import','homebrew'].includes(S.tab))prepNav.open=true;
   $('#view').innerHTML={home:S.role==='dm'?vHome:vPlayerHome,create:vCreate,heroes:vHeroes,campaigns:vCampaigns,import:vImport,desk:vDesk,combat:vCombat,homebrew:vHomebrew}[S.tab]();
   overviewRestoreDisclosures(disclosureState);
   liveRestore(liveState);
