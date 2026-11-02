@@ -1,0 +1,13 @@
+const fs=require('node:fs'),assert=require('node:assert/strict'),vm=require('node:vm');
+const read=p=>fs.readFileSync(p,'utf8');
+const html=read('index.html'),ui=read('src/ui/campaign-invites.js'),campaigns=read('src/ui/campaigns.js');
+new vm.Script(ui,{filename:'src/ui/campaign-invites.js'});
+assert.match(html,/src\/ui\/campaign-invites\.js\?v=/,'invitation script must be loaded');
+assert.match(html,/\.\.\.inviteActions\(\)/,'invitation actions must be registered');
+assert.match(html,/inviteFromUrl\(\)/,'invitation URL handoff must be active');
+assert.match(campaigns,/inviteButtons\(true\)/,'DM entry point missing');
+assert.match(campaigns,/inviteButtons\(false\)/,'player entry point missing');
+for(const action of ['invite-create','invite-join','invite-review','invite-revoke'])assert.ok(ui.includes("'"+action+"'"),'missing '+action+' handler');
+assert.match(ui,/getRandomValues\(new Uint8Array\(16\)\)/,'invitation IDs must use cryptographic randomness');
+assert.match(ui,/sharedHeroes/,'approval must reuse existing shared-hero sync');
+console.log('PASS: invitation UI scripts, entry points, actions and sync wiring.');
