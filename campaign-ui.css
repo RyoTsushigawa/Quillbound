@@ -121,3 +121,10 @@
 .qb-app .ov-map-disclosure>summary .small{font-weight:400;margin-left:8px}
 .qb-app .ov-map-disclosure[open]>summary{margin-bottom:12px}
 .qb-app .ov-scene>.ov-callout{margin-block:10px;line-height:1.6}
+
+/* Creator step status: readable labels instead of unexplained numeric badges. */
+.cr-steps button{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left}
+.cr-step-label{min-width:0}
+.cr-step-state{flex-shrink:0;font-size:.75rem;font-weight:650;color:var(--muted);white-space:nowrap}
+.cr-step-state.is-done{color:var(--accent)}
+.cr-step-state.is-pending{color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px 7px}
