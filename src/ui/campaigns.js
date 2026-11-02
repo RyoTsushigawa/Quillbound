@@ -21,7 +21,7 @@ function cmShell() {
   if (!isDm() && !PLAYER_TABS.has(S.tab)) S.tab = 'home';
   document.querySelectorAll('.tab').forEach(t => { t.hidden = !isDm() && !PLAYER_TABS.has(t.dataset.v); });
   const ps = document.getElementById('player-btn'); if (ps) ps.hidden = !isDm();
-  const m = document.getElementById('mode-btn'); if (m?.dataset) { m.textContent = isDm() ? 'Lock DM mode' : 'I’m the DM'; m.dataset.act = isDm() ? 'cm-lock' : 'cm-unlock'; }
+  const m = document.getElementById('mode-btn'); if (m?.dataset) { m.textContent = isDm() ? 'Exit DM View' : 'Open DM View'; m.dataset.act = isDm() ? 'cm-lock' : 'cm-unlock'; }
 }
 // the same wording as the creator: "Level 5 Human Rogue · Thief · Criminal"
 const cmHeroLine = (b, sheet) => `Level ${sheet?.level || b.level} ${esc(sheet?.species || '')} ${esc(sheet?.cls || b.cls)}${sheet?.subclass ? ' · ' + esc(sheet.subclass) : ''}${sheet?.background ? ' · ' + esc(sheet.background) : ''}`;
@@ -51,11 +51,11 @@ function heroDisclosureRestore(ids){if(S.tab!=='heroes')return;document.querySel
 /* ---------- the Adventure manager (DM) ---------- */
 function vCampaigns() {
   const c = QBCampaigns.ensure(S), cur = QBCampaigns.current(S), others = c.list.filter(x => x.id !== cur.id);
-  return `<div class="pagehead"><div><div class="eyebrow">Adventure manager · DM only</div><h2>${esc(cur.name)}</h2><p>Each campaign has its own party, DM desk, adventures and fight. Switching saves this one and opens the other.</p></div>
+  return `<div class="pagehead"><div><div class="eyebrow">Adventure manager · DM only</div><h2>${esc(cur.name)}</h2><p>Each campaign has its own party, session, adventures and combat. Switching saves this one and opens the other.</p></div>
       <div class="row"><button class="btn" data-act="cm-export">Back up this campaign…</button><label class="btn">Restore campaign / ZIP…<input type="file" id="cm-camp-file" accept=".json,.zip,application/json,application/zip" hidden></label></div></div>
     ${sharedPanel()}${livePanel()}<div class="stack"><section class="card stack"><h3>This campaign</h3><label class="f">Name<input data-act-change="cm-rename" value="${esc(cur.name)}" maxlength="80"></label>
       <p class="small muted">${(S.adventures || []).length} adventure${(S.adventures || []).length === 1 ? '' : 's'} · ${(S.beats || []).length} scenes on the desk · ${(S.encounters || []).length} prepared fights${S.combat ? ' · a fight is running' : ''}</p>
-      <div class="row"><button class="btn" data-act="tab" data-v="desk">Open the DM desk</button><button class="btn" data-act="tab" data-v="import">Import an adventure</button></div></section>
+      <div class="row"><button class="btn" data-act="tab" data-v="desk">Open Session</button><button class="btn" data-act="tab" data-v="import">Import an adventure</button></div></section>
     <section class="card stack"><h3>Party</h3>
       ${(S.party || []).map(p => `<div class="row hb-item"><span><b>${esc(p.name)}</b> · ${esc(p.cls)} ${p.level || 1}${p.fromPlayer ? ' <span class="chip">from a player</span>' : ''}${p.example ? ' <span class="chip">example</span>' : ''}</span>
         <span class="row">${p.build ? `<button class="btn sm" data-act="sheet-print" data-id="${esc(p.id)}">Sheet</button>` : ''}${adventureHeroButtons(p)}</span></div>`).join('') || '<p class="muted">No heroes yet.</p>'}
@@ -88,10 +88,10 @@ function cmImportHeroes(texts) {
 }
 function cmUnlockDialog() {
   const first = !S.dmLock;
-  const dlg = openDialog(first ? 'Set your DM passphrase' : 'DM mode', `<p>${first ? 'Choose a passphrase for DM mode on this device. Players who use this browser then see only their own heroes.' : 'Enter your DM passphrase.'}</p>
+  const dlg = openDialog(first ? 'Set your DM passphrase' : 'Open DM View', `<p>${first ? 'Choose a passphrase for DM mode on this device. Players who use this browser then see only their own heroes.' : 'Enter your DM passphrase.'}</p>
     <label class="f">Passphrase<input type="password" id="cm-pass" autocomplete="${first ? 'new-password' : 'current-password'}"></label>${first ? '<label class="f">Again<input type="password" id="cm-pass2" autocomplete="new-password"></label>' : ''}
     <p class="small muted">Your adventures, notes and fights stay private because they only exist in your own browser; players’ browsers never receive them. The passphrase keeps the DM tabs closed on this device.</p>
-    <p class="cl-error" id="cm-pass-err" hidden></p><div class="row"><button class="btn primary" id="cm-pass-go">${first ? 'Set and open DM mode' : 'Open DM mode'}</button></div>`);
+    <p class="cl-error" id="cm-pass-err" hidden></p><div class="row"><button class="btn primary" id="cm-pass-go">${first ? 'Set passphrase and open Session' : 'Open Session'}</button></div>`);
   const err = m => { const e = dlg.querySelector('#cm-pass-err'); e.textContent = m; e.hidden = false; };
   dlg.querySelector('#cm-pass-go').onclick = async () => {
     const pass = dlg.querySelector('#cm-pass').value;
@@ -99,7 +99,7 @@ function cmUnlockDialog() {
       if (first) { if (pass !== dlg.querySelector('#cm-pass2').value) return err('The two passphrases differ.'); await QBCampaigns.setLock(S, pass); }
       else if (!(await QBCampaigns.unlock(S, pass))) return err('That passphrase doesn’t match.');
     } catch (e) { return err(e.message); }
-    S.role = 'dm'; S.tab = 'home'; dlg.close(); render(); toast('DM mode. Lock it again before you hand this device to a player.');
+    S.role = 'dm'; S.tab = 'desk'; dlg.close(); render(); toast('DM View is open. Exit before you hand this device to a player.');
   };
   dlg.querySelector('#cm-pass').focus();
 }
@@ -107,7 +107,7 @@ const cmHero = id => (S.myHeroes || []).find(h => h.id === id);
 function campaignActions() { return {
   'cm-unlock': () => cmUnlockDialog(),
   'hi-open': d => hiDialog(d.v === 'party' && isDm() ? 'party' : 'mine'), // src/ui/hero-import.js
-  'cm-lock': () => { S.role = 'player'; S.tab = 'home'; toast('DM mode is locked.'); },
+  'cm-lock': () => { S.role = 'player'; S.tab = 'home'; toast('DM View is closed.'); },
   'cm-save-party':()=>{if(S.role!=='dm')return;const missing=cmUnsavedParty();for(const p of missing){const saved=crStoreHero({build:{...p.build,name:p.name},story:{...crNew().story,want:p.want||''}});saved.sourcePartyId=p.id;p.myHeroId=saved.id;}toast(missing.length+' party characters copied to My heroes.');},
   'cm-newhero': () => { S.creator = crNew(); S.tab = 'create'; },
   'cm-edit': d => { const h = cmHero(d.id); if (!h) return; S.creator = crRestoreSelections({ ...crNew(), build: JSON.parse(JSON.stringify(h.build)), story: { ...crNew().story, ...h.story }, heroId: h.id, step: 'review' }); S.tab = 'create'; window.scrollTo(0, 0); },
