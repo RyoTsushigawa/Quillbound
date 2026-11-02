@@ -10,6 +10,7 @@ Words used in the app: **Scenes** are the parts of an adventure, **Leads** are c
 - You can always type in the results of physical dice instead: one d20 per attack, in order (for example `14 9`), and damage as a number.
 - A natural 20 and a natural 1 count no matter what the bonus is.
 - **Opening** is normal advantage: roll two fair d20s and keep the higher. At the table, enter both like `3/17`.
+- Combat keyword help appears beside the relevant controls: Advantage in the active opening reminder above the roll controls, and Death Save beside a dying hero’s roll button. There is no separate combat glossary row.
 - All player dice, including defense rolls, appear on the player screen as soon as they are rolled. Cancelling or undoing an outcome does not erase that roll. The app keeps the latest 20 player rolls; the player screen shows the latest 8.
 - The **DM secret roll** is separate. It never reaches the player screen.
 
