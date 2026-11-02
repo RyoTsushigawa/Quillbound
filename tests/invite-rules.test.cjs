@@ -92,3 +92,22 @@ test('player cannot list other applicants',async()=>{
 test('DM can list pending applicants for an invite',async()=>{
   await assertSucceeds(db('dm-user-123').collection(`${invitePath}/requests`).get());
 });
+
+test('DM can create a short-lived invite with server timestamp',async()=>{
+  await assertSucceeds(db('dm-user-123').doc('campaignInvites/'+'d'.repeat(32)).set({
+    dmUid:'dm-user-123',campaignName:'New Campaign',active:true,
+    createdAt:serverTime(),expiresAt:new Date(Date.now()+86400000)
+  }));
+});
+test('another account cannot create an invite claiming the DM identity',async()=>{
+  await assertFails(db('other-user-123').doc('campaignInvites/'+'e'.repeat(32)).set({
+    dmUid:'dm-user-123',campaignName:'Fake Campaign',active:true,
+    createdAt:serverTime(),expiresAt:new Date(Date.now()+86400000)
+  }));
+});
+test('invitation IDs must be cryptographically sized',async()=>{
+  await assertFails(db('dm-user-123').doc('campaignInvites/guessable').set({
+    dmUid:'dm-user-123',campaignName:'Weak Code',active:true,
+    createdAt:serverTime(),expiresAt:new Date(Date.now()+86400000)
+  }));
+});
