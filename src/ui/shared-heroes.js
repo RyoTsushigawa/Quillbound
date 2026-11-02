@@ -49,6 +49,8 @@ function sharedReconcile(){
  for(const remote of sharedCloud.docs.values()){
   if(remote.playerUid!==user.uid||(S.cloudSettings?.hidden || []).includes(remote.id))continue;
   if(!(S.myHeroes || []).some(h=>h.cloudLink?.id===remote.id)){
+   const invited=QBSharedHeroes.invitedHero(S.myHeroes || [],remote,user.uid);
+   if(invited){invited.cloudLink={id:remote.id,uid:user.uid,revision:remote.revision,baseJson:remote.sheetJson};delete invited.joinToken;changed=true;continue;}
    try{const data=QBSharedHeroes.read(remote.sheetJson,cmSheet);S.myHeroes??=[];S.myHeroes.push({id:uid('shared'),build:data.build,story:data.story,saved:Date.now(),cloudLink:{id:remote.id,uid:user.uid,revision:remote.revision,baseJson:remote.sheetJson}});changed=true;}catch(e){sharedCloud.errors.set(remote.id,sharedError(e));}
   }
  }
