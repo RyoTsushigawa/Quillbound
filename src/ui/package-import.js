@@ -20,7 +20,19 @@ async function cmRestoreZip(file, prepared) {
   try {
     toast('Reading campaign ZIP locally…');
     const { campaignPackage } = await import('../importer/package.js');
-    const pack = prepared || await campaignPackage(file, QBCampaigns.parseCampaign);
+    let pack = prepared;
+    if (!pack) {
+      try { pack = await campaignPackage(file, QBCampaigns.parseCampaign); }
+      catch (error) {
+        // Not a backup, such as a map pack or a VTT module: its maps and PDFs still belong in the library.
+        if (!/No Quillbound campaign backup/.test(error.message)) throw error;
+        const QB = window.QB || await import('../app/library-session.js'), library = await QB.addFileList([file]);
+        if (S.role !== 'dm' || S.campaigns?.current !== owner) return;
+        S.importer = { lib: library, phase: 'library', pi: null, versions: {}, status: '' };
+        S.tab = 'import'; render(); toast('Added to your library. Open a book there and choose Read this adventure; its maps are ready to link.');
+        return;
+      }
+    }
     if (S.role !== 'dm' || S.campaigns?.current !== owner) throw Error('Campaign changed. Choose the ZIP again.');
     const dlg = openDialog('Import a campaign package', `<p>Add this package to the current campaign to play it with your party and connected players, or restore it as its own campaign. Its maps and PDFs come along. Nothing you have now is replaced, and nothing is uploaded.</p><label class="f">Campaign<select id="package-choice">${pack.campaigns.map((c,i)=>`<option value="${i}">${esc(c.name)} — ${esc(c.path)}</option>`).join('')}</select></label><p>${pack.files.length} files found, including nested ZIP contents.</p><div class="row"><button class="btn primary" id="package-adventure">Add to this campaign as an adventure</button><button class="btn" id="package-restore">Restore as a new campaign</button></div><p id="package-status" role="status"></p>`);
     const restore = asAdventure => async e => {

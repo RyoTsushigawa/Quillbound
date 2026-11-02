@@ -60,6 +60,11 @@ run(`QBCampaigns.switchAdventure(S,'${added}')`);assert.equal(run('S.beats[0].ti
 const backupNow=C.parseCampaign(run('QBCampaigns.exportCampaign(S)'));assert.equal(backupNow.data.adventureShelf.parked.length,2,'a backup keeps the waiting adventures');
 run(`QBCampaigns.removeAdventure(S,QBCampaigns.shelf(S).parked[0].id);`);assert.equal(run('QBCampaigns.shelf(S).parked.length'),1);
 run(`S.role='dm';S.tab='campaigns';render();`);assert(/Play this/.test(run('document.getElementById("app")?.innerHTML || vCampaigns()'))||/Play this/.test(run('vCampaigns()')));
+/* an empty adventure says what has been read but not added, and filling it leaves no empty row */
+run(`QBCampaigns.newAdventure(S,'Next');S.importer=S.importer||{};S.importer.result={product:'Saltmere',beats:[{id:'s1',title:'Pier'}],hooks:[],npcs:[],enemies:[],locations:[],items:[],tables:[],libraryMaps:[]};S.adventures=[...(S.adventures||[]),{id:'adv-old',product:'Old Book'}];`);
+let empty=run('cmEmptyAdventure()');assert(/Saltmere/.test(empty)&&/adv-send-read/.test(empty),'a book read but not sent is offered');assert(/Old Book/.test(empty)&&/adv-read/.test(empty),'a book read only for the planner is offered');
+run(`S.tab='desk';ACT['adv-send-read']();`);assert.equal(run('S.beats[0].title'),'Pier','adding the read book fills Session');assert.equal(run('S.beats[0].source'),'Saltmere');
+run(`QBCampaigns.newAdventure(S,'Empty one');S.importer.result=null;cmAdoptAdventure({name:'Filled',data:{beats:[{id:'b9',title:'Hall'}]}});`);assert.equal(run('S.beats[0].title'),'Hall');assert.equal(run('QBCampaigns.shelf(S).parked.some(a=>a.name==="Empty one")'),false);
 console.log('PASS: adventures swap inside a campaign; party, connections and invitations stay; waiting adventures survive backups.');
 /* reset keeps the lock, the heroes and the other campaigns */
 run(`ACT.reset()`);assert(run('S.dmLock&&S.myHeroes.length===1&&S.campaigns.list.length===3'));

@@ -301,16 +301,16 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/ui/creator.js?v=20261102-combat-glossary12"></script>
 <script src="src/ui/homebrew.js"></script>
 <script src="src/ui/campaign-home.js?v=20261102-home-steps1"></script>
-<script src="src/ui/campaigns.js?v=20261102-adventures1"></script>
+<script src="src/ui/campaigns.js?v=20261102-adventures2"></script>
 <script src="src/ui/adventure-heroes.js?v=20261102-live1"></script>
 <script src="src/ui/player-dice.js?v=20261101-sync1"></script>
 <script src="src/ui/player-hp.js?v=20261102-heroes1"></script>
 <script src="src/ui/hero-import.js"></script>
 <script src="src/ui/combat-objectives.js"></script>
 <script src="src/ui/scene-maps.js?v=20261102-adventures1"></script>
-<script src="src/ui/session-overview.js?v=20261102-adventures1"></script>
+<script src="src/ui/session-overview.js?v=20261102-rooms1"></script>
 <script src="src/ui/security-alert.js"></script>
-<script src="src/ui/package-import.js?v=20261102-adventures1"></script>
+<script src="src/ui/package-import.js?v=20261102-rooms1"></script>
 <script src="src/ui/drive.js?v=20261102-adventures1"></script>
 <script>
 /* ---------- rules data ---------- */
@@ -967,8 +967,8 @@ function sendReaderResult(s,R){
   let n=0;
   const on=x=>x.include!==false;
   const add=(arr,item,key='name')=>{ if(arr.some(x=>(x[key]||'').toLowerCase()===(item[key]||'').toLowerCase())) return; arr.push(item); n++; };
-  R.beats.filter(on).forEach(b=>add(s.beats,{id:b.id,title:b.title,summary:b.summary,branches:b.branches||[],question:b.question||'',transition:b.transition||'',senses:b.senses||[],readAloud:b.readAloud||[],page:b.page,source:R.product,status:'upcoming'},'title'));
-  const next=s.beats.find(b=>b.status!=='done'); if(!s.beats.some(b=>b.status==='active')&&next) next.status='active';
+  R.beats.filter(on).forEach(b=>add(s.beats,{id:b.id,title:b.title,...(b.reference?{reference:true}:{}),summary:b.summary,branches:b.branches||[],question:b.question||'',transition:b.transition||'',senses:b.senses||[],readAloud:b.readAloud||[],page:b.page,source:R.product,status:'upcoming'},'title'));
+  const next=s.beats.find(b=>b.status!=='done'&&!b.reference); if(!s.beats.some(b=>b.status==='active')&&next) next.status='active';
   R.hooks.filter(on).forEach(h=>add(s.hooks,{id:h.id,text:(h.title?h.title+': ':'')+h.text,status:'dangling',clock:0,source:'Imported'},'text'));
   R.npcs.filter(on).forEach(x=>add(s.npcs,{id:x.id,name:x.name,role:x.role,wants:x.wants,fears:(x.fields&&x.fields.fear)||'',secret:x.secret,voice:x.voice,manner:x.manner,pressed:x.pressed,look:x.look,line:x.line,knows:x.knows,page:x.page,open:false}));
   R.enemies.filter(on).forEach(e=>add(s.bestiary,{id:e.id,name:e.name,type:e.type,ac:e.ac,hp:e.hp,cr:e.cr,tier:e.tier,slots:e.slots,breakAt:e.breakAt,breaking:e.breaking,goal:e.goal,moves:e.moves,card:e.card||'',...hpFields(e)}));

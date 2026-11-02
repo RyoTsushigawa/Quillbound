@@ -76,8 +76,18 @@ function cmAdventures(){
 // A backup can join this party as an adventure, or stay a campaign of its own.
 function cmAdoptAdventure(parsed){
   const id=QBCampaigns.addAdventure(S,parsed.name,parsed.data),left=(parsed.data?.party || []).length;
-  if(!QBCampaigns.hasAdventure(S)&&!S.combat){QBCampaigns.switchAdventure(S,id);cmAdventureChanged();}
+  if(!QBCampaigns.hasAdventure(S)&&!S.combat){QBCampaigns.shelf(S).name='';QBCampaigns.switchAdventure(S,id);cmAdventureChanged();} // the empty one it fills leaves no row behind
   toast(parsed.name+' added to this campaign.'+(left?' Your party stays; the backup’s '+left+' saved heroes were left out.':''));
+}
+// Reading a book only prepares it; its scenes reach Session once sent. An empty Session says what is ready to send.
+function cmEmptyAdventure(){
+  const waiting=QBCampaigns.shelf(S).parked,elsewhere=new Set(waiting.flatMap(a=>(a.data?.beats || []).map(b=>b.source))),result=S.importer?.result;
+  const ready=result?.product&&!elsewhere.has(result.product)?result:null;
+  const read=(S.adventures || []).filter(a=>!elsewhere.has(a.product)&&a.product!==ready?.product);
+  return `<section class="card stack"><h2>No scenes yet</h2><p>${esc(QBCampaigns.adventureName(S))} has no scenes. Reading a book prepares it, and its scenes appear here once they’re sent to Session.</p>
+    ${ready?`<div class="row hb-item"><span><b>${esc(ready.product)}</b> <span class="small muted">read, not added yet · ${(ready.beats || []).length===1?'1 scene':(ready.beats || []).length+' scenes'} found</span></span><span class="row"><button class="btn sm primary" data-act="adv-send-read">Add its scenes</button><button class="btn sm" data-act="adv-review-read">Review first</button></span></div>`:''}
+    ${read.map(a=>`<div class="row hb-item"><span><b>${esc(a.product)}</b> <span class="small muted">read for the planner, not added yet</span></span><button class="btn sm" data-act="adv-read" data-id="${esc(a.product)}">Read and review</button></div>`).join('')}
+    <div class="row"><button class="btn${ready || read.length?'':' primary'}" data-act="tab" data-v="import">Import adventure</button>${waiting.length?'<button class="btn" data-act="tab" data-v="campaigns">Change adventure</button>':''}</div></section>`;
 }
 function cmRestoreChoice(parsed){
   const owner=S.campaigns?.current,dlg=openDialog('Restore '+parsed.name,'<p>Add it to this campaign to play it with your current party and connected players, or keep it apart as its own campaign. Nothing you have now is replaced.</p><div class="row"><button class="btn primary" id="cm-restore-adventure">Add to this campaign as an adventure</button><button class="btn" id="cm-restore-campaign">Restore as a new campaign</button></div>');
@@ -165,6 +175,9 @@ function campaignActions() { return {
   'cm-delhero': d => { const h = cmHero(d.id); if (!h) return; clConfirm(`Remove ${h.build.name} from My heroes?`, `This removes the hero from this browser. Heroes your DM already has stay in the campaign.${h.cloudLink?' Syncing stops on this device.':''}`, () => { if(h.cloudLink){S.cloudSettings??={enabled:true};S.cloudSettings.hidden=[...new Set([...(S.cloudSettings.hidden || []),h.cloudLink.id])];}S.myHeroes = S.myHeroes.filter(x => x.id !== h.id); render(); }, 'Remove'); },
   'cm-rename': d => QBCampaigns.rename(S, S.campaigns.current, d.v),
   'cm-advrename': d => QBCampaigns.renameAdventure(S, d.v),
+  'adv-send-read': () => { if (S.role === 'dm' && S.importer?.result) ACT['res-send'](); },
+  'adv-review-read': () => { if (S.importer?.result) { S.importer.phase = 'results'; S.importer.view = 'story'; S.tab = 'import'; window.scrollTo(0, 0); } },
+  'adv-read': d => { const p = S.importer?.lib?.products?.find(x => x.name === d.id); S.tab = 'import'; window.scrollTo(0, 0); if (!p) { toast(`Choose the files for ${d.id} again, then open it and choose Read this adventure.`); return; } S.importer.pi = p.i; S.importer.phase = 'product'; libRead(); },
   'cm-advplay': d => { if (S.role !== 'dm') return; try { QBCampaigns.switchAdventure(S, d.id); cmAdventureChanged(); toast(`Now playing ${QBCampaigns.adventureName(S)}. Players see no map until you show one.`); } catch (e) { toast(e.message); } },
   'cm-advnew': () => { if (S.role !== 'dm') return; try { QBCampaigns.newAdventure(S, document.getElementById('cm-adv-name')?.value); cmAdventureChanged(); S.tab = 'import'; window.scrollTo(0, 0); toast('Your party is ready. Import the next adventure here.'); } catch (e) { toast(e.message); } },
   'cm-advdel': d => { const a = QBCampaigns.shelf(S).parked.find(x => x.id === d.id); if (!a) return; clConfirm(`Delete ${a.name}?`, 'Its scenes, leads, people and fights are removed from this browser. Back up the campaign first if you might want it again.', () => { QBCampaigns.removeAdventure(S, d.id); render(); }, 'Delete'); },
