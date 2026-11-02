@@ -99,3 +99,12 @@
 .cr-steps [aria-current="step"]{outline:2px solid var(--accent);outline-offset:2px}
 .cr-foot [role="status"]{flex:1;min-width:160px;text-align:center}
 @media(max-width:640px){.cr-foot [role="status"]{order:3;flex-basis:100%;text-align:left}}
+
+/* Session dashboard: visible context and quick access without hiding scene controls. */
+.ov-quick{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin:0 0 18px;padding:16px 18px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.ov-quick-context{display:grid;gap:3px;min-width:200px}
+.ov-quick-context strong{font-size:1.12rem;overflow-wrap:anywhere}
+.ov-quick-links{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ov-quick-links .btn{min-height:40px;text-decoration:none;display:inline-flex;align-items:center}
+#session-readiness,#ov-preparation{scroll-margin-top:24px}
+@media(max-width:650px){.ov-quick{padding:14px}.ov-quick-links{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.ov-quick-links .btn{justify-content:center;text-align:center}}
