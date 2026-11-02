@@ -87,15 +87,21 @@ async function inviteReview(token){
 }
 async function inviteApprove(item,dlg){
  if(S.role!=='dm'||!inviteSignedIn()||S.combat)return toast('Finish combat before adding a character.');
- const db=sharedCloud.api.db,user=sharedCloud.user;
+ const db=sharedCloud.api.db,user=sharedCloud.user,campaignId=S.campaigns?.current;
  try{
-  const parsed=QBSharedHeroes.read(item.record.sheetJson,cmSheet),campaign=QBCampaigns.current(S);
+  const invitation=await db.getDoc(inviteRef(item.id));
+  if(!invitation.exists()||invitation.data().dmUid!==user.uid)throw Error('You no longer own this invitation.');
+  const pendingRef=db.doc(db.collection(inviteRef(item.id),'requests'),item.uid);
+  const pending=await db.getDoc(pendingRef);
+  if(!pending.exists()||pending.data().playerUid!==item.uid)throw Error('This request is no longer pending.');
+  if(sharedCloud.user!==user||S.role!=='dm'||S.campaigns?.current!==campaignId)throw Error('The active campaign changed. Reopen requests.');
+  const parsed=QBSharedHeroes.read(pending.data().sheetJson,cmSheet),campaign=QBCampaigns.current(S);
   const ref=db.doc(db.collection(db.store,'sharedHeroes'));
-  const payload={dmUid:user.uid,playerUid:item.uid,revision:1,sheetJson:item.record.sheetJson,campaignName:campaign.name.slice(0,80),updatedBy:user.uid,updatedAt:db.serverTimestamp()};
+  const payload={dmUid:user.uid,playerUid:item.uid,revision:1,sheetJson:pending.data().sheetJson,campaignName:campaign.name.slice(0,80),updatedBy:user.uid,updatedAt:db.serverTimestamp()};
   await db.setDoc(ref,payload);
   const p=QBHeroRules.toHero(parsed.build,parsed.sheet,{id:uid('p'),want:parsed.story.want});
-  p.heroStory=parsed.story;p.cloudLink={id:ref.id,uid:user.uid,revision:1,baseJson:item.record.sheetJson};heroDefaults(p);S.party.push(p);
-  await db.deleteDoc(db.doc(db.collection(inviteRef(item.id),'requests'),item.uid));
+  p.heroStory=parsed.story;p.cloudLink={id:ref.id,uid:user.uid,revision:1,baseJson:pending.data().sheetJson};heroDefaults(p);S.party.push(p);
+  await db.deleteDoc(pendingRef);
   dlg.close();render();toast('Character approved and added to the party.');
  }catch(e){inviteError(e);}
 }
