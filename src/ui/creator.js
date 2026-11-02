@@ -96,6 +96,10 @@ const CR_GLOSSARY={
  ritual:'Some spells can be cast as a ritual, usually taking 10 extra minutes without using a spell slot when your class or feature allows it.',
  'spell save dc':'The target number an enemy must meet or beat on a saving throw to resist one of your spells.',
  'spell attack':'The bonus you add when a spell asks you to make an attack roll.',
+ advantage:'Roll two d20s and use the higher result.',
+ disadvantage:'Roll two d20s and use the lower result.',
+ 'death save':'When your character starts a turn at 0 hit points, roll a d20 to see whether they move closer to stabilizing or recovering.',
+ 'opportunity attack':'A reaction attack that some creatures can make when an enemy leaves their reach without safely disengaging.',
  ritual:'A spell marked Ritual can be cast as a ritual when your feature permits it, taking 10 extra minutes without using a spell slot.'
 };
 const crGlossaryTerm=name=>{const key=String(name).toLowerCase().trim(),help=CR_GLOSSARY[key];return help?`<span class="cr-glossary"><button type="button" class="cr-glossary-term" aria-label="${esc(name)}: show explanation" data-cr-glossary="${esc(key)}">${esc(name)} <span aria-hidden="true">ⓘ</span></button><span class="cr-glossary-tip" role="tooltip">${esc(help)}</span></span>`:esc(name);};
