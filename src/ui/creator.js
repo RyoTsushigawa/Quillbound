@@ -76,6 +76,16 @@ const crSteps=sheet=>CR_STEPS.filter(([k])=>k!=='spells'||sheet.spellcasting);
 function crSpells(then){ if(globalThis.QBSPELLS) return globalThis.QBSPELLS; if(then) (crSpells.waiting||=[]).push(then);
   if(!crSpells.loading&&typeof document.createElement==='function'){ crSpells.loading=true; const s=document.createElement('script'); s.src='src/app/srd-spells.js'; const done=()=>{ (crSpells.waiting||[]).splice(0).forEach(f=>f()); render(); };
     s.onload=()=>{ const p=document.createElement('script'); p.src='src/app/phb-spells.js'; p.onload=p.onerror=done; document.head.appendChild(p); }; /* then the Player's Handbook spells */ document.head.appendChild(s); } return null; }
+/* Short inline rules glossary. Native details works for hover-independent touch and keyboard access. */
+const CR_GLOSSARY={
+ darkvision:'You can see in dim light within the trait’s stated range as if it were bright light, and in darkness as if it were dim light. You see only shades of gray in darkness.',
+ blindsight:'You can perceive your surroundings within the stated range without relying on normal sight.',
+ tremorsense:'You can detect vibrations through a surface within the stated range, subject to the trait’s limits.',
+ resistance:'Resistance usually halves damage of the specified type.',
+ proficiency:'Proficiency lets you add your proficiency bonus to checks, attacks or saves you are trained in.',
+ 'origin feat':'A feat gained from your background or another character origin feature.'
+};
+const crGlossaryTerm=name=>{const key=String(name).toLowerCase().trim(),help=CR_GLOSSARY[key];return help?`<span class="cr-glossary"><button type="button" class="cr-glossary-term" aria-label="${esc(name)}: show explanation" aria-expanded="false" data-cr-glossary="${esc(key)}">${esc(name)} <span aria-hidden="true">ⓘ</span></button><span class="cr-glossary-tip" role="tooltip">${esc(help)}</span></span>`:esc(name);};
 const crPick=(act,attrs,on,label,body)=>`<button class="choice ${on?'on':''}" data-act="${act}" ${attrs} aria-pressed="${on}">${on?'<span class="cr-choice-selected" aria-hidden="true">✓ Selected</span>':''}${label}${body||''}</button>`;
 // The optional extra (a spell's description) sits outside the label, so opening it doesn't tick the box.
 const crCheck=(k,v,on,label,max,extra='')=>`<div class="cr-check ${on?'on':''}"><label><input type="checkbox" data-act="cr-toggle" data-k="${k}" data-v="${esc(v)}" data-max="${max}" ${on?'checked':''}> <span>${label}</span></label>${extra}</div>`;
@@ -90,7 +100,7 @@ function crStepBody(c,sheet){
   const b=c.build, D=crData(), cls=D.classes.find(x=>x.id===b.cls), sp=D.species.find(x=>x.id===b.species), bg=D.backgrounds.find(x=>x.id===b.background);
   switch(c.step){
   case 'species': return `<div class="choices">${D.species.map(s=>crPick('cr-species',`data-v="${s.id}"`,b.species===s.id,`<div class="cls">${esc(s.name)}${s.homebrew?' <span class="chip acc">Homebrew</span>':''}</div>`,`<div class="desc">${esc(SPECIES_BLURB[s.name]||firstSentence(s.desc)||'')}</div><div class="small muted">Speed ${s.speed} ft. · ${s.traits.length} traits</div>`)).join('')}</div>
-    ${sp?`<div class="card stack cr-detail"><h3>${esc(sp.name)} traits</h3><p class="small muted">Your selected species gives you these traits. Open any trait to read its full rules.</p>${sp.traits.map(t=>`<details><summary><b>${esc(t.name)}</b> · ${esc(firstSentence(t.desc))}</summary><div class="small cr-rules">${rulesText(t.desc)}</div></details>`).join('')}
+    ${sp?`<div class="card stack cr-detail"><h3>${esc(sp.name)} traits</h3><p class="small muted">Your selected species gives you these traits. Open any trait to read its full rules.</p>${sp.traits.map(t=>`<details><summary><b>${crGlossaryTerm(t.name)}</b> · ${esc(firstSentence(t.desc))}</summary><div class="small cr-rules">${rulesText(t.desc)}</div></details>`).join('')}
       ${sp.sub.length?`<h4>Choose a lineage</h4><div class="choices small-cards">${sp.sub.map(x=>crPick('cr-sub',`data-v="${x.id}"`,b.sub===x.id,`<div class="cls">${esc(x.name.replace(/^[^:]+:\s*/,''))}</div>`,`<div class="small">${esc(x.traits.map(t=>t.name).join(', ')||x.damage)}</div>`)).join('')}</div>`:''}
       ${!sp.size?`<label class="f">Size<select data-bind="creator.build.size" data-rerender>${crOpt('','Choose…',!b.size)}${['Small','Medium'].map(x=>crOpt(x,x,b.size===x)).join('')}</select></label>`:''}
       ${sp.traits.some(t=>t.id==='versatile')?`<label class="f">Versatile: choose an origin feat<select data-bind="creator.build.speciesFeat" data-rerender>${crOpt('','Choose…',!b.speciesFeat)}${D.feats.filter(f=>f.type==='origin').map(f=>crOpt(f.id,f.name+(f.id==='skilled'?' (recommended)':''),b.speciesFeat===f.id)).join('')}</select></label>`:''}</div>`:''}`;
