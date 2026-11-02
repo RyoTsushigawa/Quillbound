@@ -91,6 +91,7 @@ const CR_GLOSSARY={
  'proficiency bonus':'A level-based bonus added to rolls you are proficient in.',
  concentration:'Some spells require concentration. Taking damage can force a check to maintain the spell, and you can concentrate on only one spell at a time.',
  cantrip:'A simple spell that can be cast without spending a spell slot.',
+ ritual:'A spell with the Ritual tag can be cast as a ritual, usually taking 10 extra minutes without spending a spell slot, if your class feature allows ritual casting.',
  'spell slot':'A resource spent to cast most leveled spells.',
  'saving throw':'A roll used to resist an effect, such as a spell, hazard, or condition.',
  ritual:'A spell marked Ritual can be cast as a ritual when your feature permits it, taking 10 extra minutes without using a spell slot.'
