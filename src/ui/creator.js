@@ -83,7 +83,16 @@ const CR_GLOSSARY={
  tremorsense:'You can detect vibrations through a surface within the stated range, subject to the trait’s limits.',
  resistance:'Resistance usually halves damage of the specified type.',
  proficiency:'Proficiency lets you add your proficiency bonus to checks, attacks or saves you are trained in.',
- 'origin feat':'A feat gained from your background or another character origin feature.'
+ 'origin feat':'A feat gained from your background or another character origin feature.',
+ 'hit die':'Your class’s Hit Die helps determine your maximum hit points and how much health you can recover during a short rest.',
+ 'armor class':'Armor Class (AC) is the number an attack normally needs to meet or beat to hit you.',
+ initiative:'Initiative determines when you take your turn in combat.',
+ 'passive perception':'A score used when the DM checks whether you notice something without making an active roll.',
+ 'proficiency bonus':'A level-based bonus added to rolls you are proficient in.',
+ concentration:'Some spells require concentration. Taking damage can force a check to maintain the spell, and you can concentrate on only one spell at a time.',
+ cantrip:'A simple spell that can be cast without spending a spell slot.',
+ 'spell slot':'A resource spent to cast most leveled spells.',
+ 'saving throw':'A roll used to resist an effect, such as a spell, hazard, or condition.'
 };
 const crGlossaryTerm=name=>{const key=String(name).toLowerCase().trim(),help=CR_GLOSSARY[key];return help?`<span class="cr-glossary"><button type="button" class="cr-glossary-term" aria-label="${esc(name)}: show explanation" data-cr-glossary="${esc(key)}">${esc(name)} <span aria-hidden="true">ⓘ</span></button><span class="cr-glossary-tip" role="tooltip">${esc(help)}</span></span>`:esc(name);};
 const crPick=(act,attrs,on,label,body)=>`<button class="choice ${on?'on':''}" data-act="${act}" ${attrs} aria-pressed="${on}">${on?'<span class="cr-choice-selected" aria-hidden="true">✓ Selected</span>':''}${label}${body||''}</button>`;
@@ -197,7 +206,7 @@ function crSheetPanel(c,sheet){
   const tabs=[['summary','Summary'],['combat','Combat'],['skills','Skills'],...(sheet.spellcasting?[['spells','Spells']]:[]),['features','Features'],['gear','Gear']], t=tabs.some(([k])=>k===c.tab)?c.tab:'summary';
   const D=crData(), name=id=>D.skills.find(k=>k.id===id)?.name||id, list=globalThis.QBSPELLS||[];
   let body='';
-  if(t==='summary') body=`<p class="small muted">These values update automatically as you make choices. Open the other tabs for more details.</p><div class="stats"><div class="stat"><b>${sheet.hp.max}</b><span>Hit points</span></div><div class="stat"><b>${sheet.ac}</b><span>Armor class</span></div><div class="stat"><b>${sheet.speed}</b><span>Speed (ft)</span></div><div class="stat"><b>${fmt(sheet.prof)}</b><span>Proficiency</span></div><div class="stat"><b>${fmt(sheet.initiative)}</b><span>Initiative</span></div><div class="stat"><b>${sheet.passive}</b><span>Passive Perception</span></div></div>
+  if(t==='summary') body=`<p class="small muted">These values update automatically as you make choices. Open the other tabs for more details.</p><div class="stats"><div class="stat"><b>${sheet.hp.max}</b><span>Hit points</span></div><div class="stat"><b>${sheet.ac}</b><span>Armor class</span></div><div class="stat"><b>${sheet.speed}</b><span>Speed (ft)</span></div><div class="stat"><b>${fmt(sheet.prof)}</b><span>${crGlossaryTerm('Proficiency Bonus')}</span></div><div class="stat"><b>${fmt(sheet.initiative)}</b><span>${crGlossaryTerm('Initiative')}</span></div><div class="stat"><b>${sheet.passive}</b><span>${crGlossaryTerm('Passive Perception')}</span></div></div>
     <div class="abils6">${ABIL.map(k=>`<div><small>${k}</small><b>${sheet.scores[k]}</b><small>${fmt(sheet.mods[k])} · save ${fmt(sheet.saves[k].bonus)}${sheet.saves[k].prof?' ●':''}</small></div>`).join('')}</div>
     <p class="small muted">${esc(sheet.acFrom)}${sheet.senses.length?' · '+esc(sheet.senses.join(', ')):''}${sheet.size?' · '+esc(sheet.size):''}</p>`;
   if(t==='combat') body=`<table class="cr-table"><tr><th>Attack</th><th>Bonus</th><th>Damage</th><th>Per action</th></tr>${sheet.attacks.map(a=>`<tr><td>${esc(a.name)}${a.note?` <span class="small ${a.sneak?'muted':'lt-warning'}">${esc(a.note)}</span>`:''}</td><td>${fmt(a.bonus)}</td><td>${esc(a.damage)} ${esc(a.type||'')}</td><td>${a.count}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">Choose weapons or attack cantrips.</td></tr>'}</table>
