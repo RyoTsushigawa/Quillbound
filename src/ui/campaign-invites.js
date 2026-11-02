@@ -14,7 +14,7 @@ function inviteFromUrl(){
  S.tab='heroes';
 }
 function inviteButtons(isDm){
- return isDm?'<button class="btn" data-act="invite-create">Invite players</button><button class="btn" data-act="invite-review">Review join requests</button>':'<button class="btn" data-act="invite-join">Join a campaign</button>';
+ return isDm?'<button class="btn" data-act="invite-create">Invite players</button><button class="btn" data-act="invite-review">Review join requests</button><button class="btn ghost" data-act="invite-revoke">Disable invite link</button>':'<button class="btn" data-act="invite-join">Join a campaign</button>';
 }
 async function inviteCreate(){
  if(S.role!=='dm'||!inviteSignedIn())return;
@@ -29,6 +29,25 @@ async function inviteCreate(){
   dlg.querySelector('#invite-copy').onclick=()=>navigator.clipboard.writeText(inviteLink(token)).then(()=>toast('Invitation link copied.'),()=>{dlg.querySelector('#invite-url').select();toast('Select and copy the invitation link.');});
   dlg.querySelector('#invite-review-now').onclick=()=>{dlg.close();void inviteReview(token);};
  }catch(e){inviteError(e);}
+}
+async function inviteRevoke(){
+ if(S.role!=='dm'||!inviteSignedIn())return;
+ const campaignId=S.campaigns?.current,token=S.inviteTokens?.[campaignId],user=sharedCloud.user;
+ if(!token){toast('No invitation link is saved for this campaign.');return;}
+ const db=sharedCloud.api.db;
+ try{
+  const ref=inviteRef(token),snapshot=await db.getDoc(ref);
+  if(!snapshot.exists()||snapshot.data().dmUid!==user.uid)throw Error('Invitation not found for this account.');
+  if(sharedCloud.user!==user||S.campaigns?.current!==campaignId||S.role!=='dm')return;
+  if(!snapshot.data().active){toast('This invitation is already disabled.');return;}
+  clConfirm('Disable this invitation?', 'The link will stop accepting characters. Existing connected characters will keep syncing.',async()=>{
+   try{
+    if(sharedCloud.user!==user||S.campaigns?.current!==campaignId||S.role!=='dm')return;
+    await db.updateDoc(ref,{active:false});
+    toast('Invitation disabled. Existing character connections are unchanged.');
+   }catch(e){inviteError(e);}
+  },'Disable invitation');
+ }catch(e){toast(e.message==='Invitation not found for this account.'?e.message:sharedError(e));}
 }
 async function inviteJoin(){
  if(!inviteSignedIn())return;
@@ -105,4 +124,4 @@ async function inviteApprove(item,dlg){
   dlg.close();render();toast('Character approved and added to the party.');
  }catch(e){inviteError(e);}
 }
-function inviteActions(){return {'invite-create':()=>void inviteCreate(),'invite-join':()=>void inviteJoin(),'invite-review':()=>void inviteReview(inviteUI.token)};}
+function inviteActions(){return {'invite-create':()=>void inviteCreate(),'invite-join':()=>void inviteJoin(),'invite-review':()=>void inviteReview(null),'invite-revoke':()=>void inviteRevoke()};}
