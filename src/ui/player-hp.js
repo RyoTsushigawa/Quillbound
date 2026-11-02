@@ -1,7 +1,8 @@
 function playerHpCard(hero,sheet){
   if(!sheet)return '';
   try{const hp=QBPlayerHP.read(hero,sheet.hp.max);if(hero.hpTracker)hero.hpTracker.current=hp.current;
-    return `<div><div class="row" style="justify-content:space-between"><b>HP ${hp.current} / ${hp.max}${hp.current===0?' · at 0 HP':''}</b><button class="btn sm" data-act="player-hp" data-id="${esc(hero.id)}">Track HP</button></div><meter min="0" max="${hp.max}" value="${hp.current}" low="${Math.floor(hp.max/2)}" high="${hp.max}" optimum="${hp.max}" aria-label="HP for ${esc(hero.build.name)}" style="width:100%">${hp.current} / ${hp.max}</meter></div>`;
+    const share=hp.max?hp.current/hp.max:0,tone=share>.5?'ok':share>.25?'warn':'bad';
+    return `<div class="hero-hp"><div class="hero-hp-top"><span class="hero-hp-label">Hit points</span><b class="hero-hp-value">${hp.current}<span class="muted"> / ${hp.max}</span></b>${hp.current===0?'<span class="small hero-hp-zero">at 0 HP</span>':''}<button class="btn sm" data-act="player-hp" data-id="${esc(hero.id)}">Track HP</button></div><div class="hero-hp-bar" data-tone="${tone}" role="meter" aria-valuemin="0" aria-valuemax="${hp.max}" aria-valuenow="${hp.current}" aria-label="HP for ${esc(hero.build.name)}"><span style="width:${Math.round(share*100)}%"></span></div></div>`;
   }catch{return '<p class="small muted">Finish the character’s HP choices to enable tracking.</p>';}
 }
 function playerHpDialog(id){

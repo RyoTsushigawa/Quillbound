@@ -98,3 +98,37 @@
 
 /* Compact custom inventory controls. */
 .custom-item-list{display:grid;gap:8px;margin-block:10px}.custom-item-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}.custom-item-row p{margin:3px 0 0}.custom-item-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.custom-item-more{font-size:.85rem}.custom-item-more>summary{cursor:pointer}.custom-item-more[open]{display:grid;gap:6px}#item-weapon-fields[hidden],#item-attuned-label[hidden]{display:none!important}@media(max-width:600px){.custom-item-grid{grid-template-columns:1fr}}
+/* My heroes: a roster of character cards. Colors and type come from the shared tokens, so both themes follow. */
+.hero-roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,430px),1fr));gap:18px;align-items:start}
+.hero-card{--tone:var(--accent);--tone-soft:var(--accent-soft);display:flex;flex-direction:column;gap:18px;min-width:0;padding:24px;background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--tone);border-radius:14px}
+.hero-card[data-tone="gold"]{--tone:var(--gold);--tone-soft:var(--gold-soft)}.hero-card[data-tone="ok"]{--tone:var(--ok);--tone-soft:var(--ok-soft)}.hero-card[data-tone="warn"]{--tone:var(--warn);--tone-soft:var(--warn-soft)}.hero-card[data-tone="bad"]{--tone:var(--bad);--tone-soft:var(--bad-soft)}
+.hero-head{display:flex;align-items:center;gap:14px;min-width:0}
+.hero-crest{flex:none;display:grid;place-items:center;width:56px;height:56px;border-radius:14px;background:var(--tone-soft);color:var(--tone);font-size:1.25rem;font-weight:700;letter-spacing:-.02em}
+.hero-id{min-width:0}.hero-id p{line-height:1.45;margin-top:3px}
+.qb-app .hero-name{font-size:1.5rem;font-weight:650;letter-spacing:-.03em;overflow-wrap:anywhere}
+.hero-note{padding:9px 12px;border-radius:8px;background:var(--warn-soft);color:var(--ink)}
+.hero-sync{display:flex;align-items:center;gap:8px}.hero-sync::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.hero-hp{display:grid;gap:8px}
+.hero-hp-top{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px}
+.hero-hp-label{font-size:.78rem;color:var(--muted)}
+.hero-hp-value{font-size:1.35rem;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1.2}.hero-hp-value .muted{font-size:1rem;font-weight:500;letter-spacing:0}
+.hero-hp-zero{color:var(--bad);font-weight:600}.hero-hp-top .btn{margin-left:auto}
+.hero-hp-bar{height:8px;border-radius:8px;background:var(--surface-2);overflow:hidden}.hero-hp-bar span{display:block;height:100%;border-radius:8px;background:var(--ok);transition:width .2s}
+.hero-hp-bar[data-tone="warn"] span{background:var(--warn)}.hero-hp-bar[data-tone="bad"] span{background:var(--bad)}
+.hero-stats,.hero-abilities{display:grid;gap:8px;margin:0}
+.hero-stats{grid-template-columns:repeat(4,minmax(0,1fr))}.hero-abilities{grid-template-columns:repeat(6,minmax(0,1fr))}
+.hero-stats>div,.hero-abilities>div{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0;padding:10px 4px;border-radius:10px;background:var(--surface-2)}
+.hero-stats dt,.hero-abilities dt{font-size:.7rem;line-height:1.3;color:var(--muted)}.hero-abilities dt{font-family:var(--mono);letter-spacing:.06em}
+.hero-stats>div{flex-direction:column-reverse;justify-content:flex-end;gap:2px}
+.hero-stats dd,.hero-abilities dd{margin:0;font-size:1.15rem;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.35;overflow-wrap:anywhere}
+.hero-abilities .hero-score{font-size:.72rem;font-weight:500;color:var(--muted);letter-spacing:0}
+.hero-attacks{list-style:none;margin:0;padding:0;display:grid}
+.hero-attacks li{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(72px,auto);gap:12px;align-items:baseline;padding:8px 0;border-top:1px solid var(--line);font-size:.9rem}
+.hero-attacks li:last-child{padding-bottom:0}.hero-attacks b{font-weight:600;overflow-wrap:anywhere}.hero-attacks .mono{font-size:.8rem;text-align:right}
+.qb-app .hero-actions{gap:8px;margin-top:auto}.hero-actions .btn{flex:1 1 auto}
+.hero-folds{display:grid;gap:2px;border-top:1px solid var(--line);padding-top:10px;font-size:.9rem}
+.hero-folds>details>summary{color:var(--muted);min-height:32px}
+.hero-tools{margin-top:26px;padding-top:16px;border-top:1px solid var(--line)}.hero-tools>summary{color:var(--muted);width:fit-content;min-height:32px}
+.hero-empty{display:grid;justify-items:center;gap:14px;text-align:center;padding:56px 24px;background:var(--surface);border:1px dashed var(--line);border-radius:14px}
+.hero-empty .row{justify-content:center}
+@media(max-width:480px){.hero-card{padding:18px;gap:16px}.hero-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-abilities{gap:5px}.hero-abilities>div{padding:8px 2px}.hero-abilities dd{font-size:1rem}.hero-actions .btn{flex:1 1 40%}.hero-actions .btn.primary{flex-basis:100%}}
