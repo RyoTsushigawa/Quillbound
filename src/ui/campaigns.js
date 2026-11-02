@@ -33,7 +33,7 @@ function cmUnsavedParty(){return (S.party || []).filter(p=>p.build && !p.example
 function vHeroes() {
   const list=S.myHeroes || [],live=QBLiveSession.active(liveCloud.session);
   return `<div class="pagehead"><div><div class="eyebrow">My heroes</div><h2>Your heroes</h2><p>Select your character to play or edit.</p></div><button class="btn" data-act="cm-newhero">Create a hero</button></div>
-    ${live?livePanel():''}
+    ${live?livePanel():''}<div class="row">${inviteButtons(false)}</div>
     <details class="card" data-hero-disclosure="tools"><summary>Connection & import</summary><div class="stack"><p class="small muted">Manage Google connection, shared characters and files.</p>${sharedPanel()}${!live?livePanel():''}<div class="row"><label class="btn">Open a hero file…<input type="file" id="cm-my-file" accept=".json,application/json" hidden></label><button class="btn" data-act="hi-open" data-v="mine">Import from a sheet…</button><button class="btn" data-act="player-dice">Free dice roll</button></div>${S.role==='dm'&&cmUnsavedParty().length?`<p class="small">${cmUnsavedParty().length} adventure characters are not saved here yet. <button class="btn sm" data-act="cm-save-party">Copy party characters to My heroes</button></p>`:''}</div></details>
     <div class="results">${list.map(h=>{
       const s=cmSheet(h.build),items=s?.customItems || [],companions=s?.companions || [];
@@ -53,7 +53,7 @@ function vCampaigns() {
   const c = QBCampaigns.ensure(S), cur = QBCampaigns.current(S), others = c.list.filter(x => x.id !== cur.id);
   return `<div class="pagehead"><div><div class="eyebrow">Adventure manager · DM only</div><h2>${esc(cur.name)}</h2><p>Each campaign has its own party, session, adventures and combat. Switching saves this one and opens the other.</p></div>
       <div class="row"><button class="btn" data-act="cm-export">Back up this campaign…</button><label class="btn">Restore campaign / ZIP…<input type="file" id="cm-camp-file" accept=".json,.zip,application/json,application/zip" hidden></label></div></div>
-    ${sharedPanel()}${livePanel()}<div class="stack"><section class="card stack"><h3>This campaign</h3><label class="f">Name<input data-act-change="cm-rename" value="${esc(cur.name)}" maxlength="80"></label>
+    ${sharedPanel()}${livePanel()}<div class="row">${inviteButtons(true)}</div><div class="stack"><section class="card stack"><h3>This campaign</h3><label class="f">Name<input data-act-change="cm-rename" value="${esc(cur.name)}" maxlength="80"></label>
       <p class="small muted">${(S.adventures || []).length} adventure${(S.adventures || []).length === 1 ? '' : 's'} · ${(S.beats || []).length} scenes on the desk · ${(S.encounters || []).length} prepared fights${S.combat ? ' · a fight is running' : ''}</p>
       <div class="row"><button class="btn" data-act="tab" data-v="desk">Open Session</button><button class="btn" data-act="tab" data-v="import">Import an adventure</button></div></section>
     <section class="card stack"><h3>Party</h3>
