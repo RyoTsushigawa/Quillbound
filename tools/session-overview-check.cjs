@@ -34,3 +34,18 @@ grid.dataset.scene='B';panels[0].open=false;ctx.overviewRestoreDisclosures(saved
 grid.dataset.scene='A';grid.dataset.campaign='two';ctx.overviewRestoreDisclosures(saved);assert.equal(panels[0].open,false,'disclosure state stays within its campaign');
 console.log('PASS: open and closed notes survive updates only within the same campaign and location.');
 ctx.S.party=[{name:'Quinn',hp:38,ac:16,level:5}];assert(ctx.overviewReadiness().includes('Perception bonus'));ctx.S.party[0].perceptionBonus=3;assert(ctx.overviewReadiness().includes('basics filled in'));ctx.S.party[0].hp=0;assert(ctx.overviewReadiness().includes('check HP'));
+
+// Return from scene and reference previews without changing player state.
+ctx.S.beats[1].status='active';ctx.S.beats[2].status='upcoming';ctx.S.sceneMapSceneId='A';
+for(const preview of ['B','ref']){
+  acts['desk-focus']({id:preview});
+  assert(ctx.sessionOverview(()=>'<div></div>').includes('Back to active scene'));
+  const before=JSON.stringify(ctx.S.beats),map=ctx.S.sceneMapSceneId;
+  acts['desk-current']();
+  assert.equal(ctx.S.dmFocusId,'A');assert.equal(ctx.S.sceneMapSceneId,map);assert.equal(JSON.stringify(ctx.S.beats),before);
+  assert(!ctx.sessionOverview(()=>'<div></div>').includes('Back to active scene'));
+}
+ctx.S.beats[1].status='upcoming';delete ctx.S.sceneMapSceneId;ctx.S.dmFocusId='B';
+assert(ctx.sessionOverview(()=>'<div></div>').includes('data-act="desk-current" disabled'));
+acts['desk-current']();assert.equal(ctx.S.dmFocusId,'B');
+console.log('PASS: return to active scene preserves player location and progress, and is disabled without an active scene.');
