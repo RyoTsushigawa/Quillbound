@@ -19,13 +19,22 @@ function inviteButtons(isDm){
 async function inviteCreate(){
  if(S.role!=='dm'||!inviteSignedIn())return;
  const user=sharedCloud.user,campaignId=S.campaigns?.current;
- const token=inviteHex(),db=sharedCloud.api.db;
+ const db=sharedCloud.api.db;
  try{
-  await db.setDoc(inviteRef(token),{dmUid:user.uid,campaignName:QBCampaigns.current(S).name.slice(0,100),active:true,createdAt:db.serverTimestamp(),expiresAt:db.Timestamp.fromMillis(Date.now()+7*86400000)});
+  let token=S.inviteTokens?.[campaignId];
+  if(token){
+   const existing=await db.getDoc(inviteRef(token));
+   if(!existing.exists()||existing.data().dmUid!==user.uid)throw Error('Saved invitation belongs to another account or cannot be found. Review the connection first.');
+   if(!existing.data().active||existing.data().expiresAt.toMillis()<=Date.now())token=null;
+  }
+  if(!token){
+   token=inviteHex();
+   await db.setDoc(inviteRef(token),{dmUid:user.uid,campaignName:QBCampaigns.current(S).name.slice(0,100),active:true,createdAt:db.serverTimestamp(),expiresAt:db.Timestamp.fromMillis(Date.now()+7*86400000)});
+  }
   if(S.role!=='dm'||S.campaigns?.current!==campaignId||sharedCloud.user!==user)return;
   S.inviteTokens??={};S.inviteTokens[campaignId]=token;save();
   // An invitation does not contain campaign notes or other players' characters.
-  const dlg=openDialog('Invite players',`<p>Share this invitation privately. It expires in seven days. Players choose a hero to submit; nothing joins your party without approval.</p><label class="f">Invitation link<input id="invite-url" readonly value="${esc(inviteLink(token))}"></label><div class="row"><button class="btn primary" id="invite-copy">Copy invitation link</button><button class="btn" id="invite-review-now">Review submissions</button></div>`);
+  const dlg=openDialog('Invite players',`<p>Share this invitation privately. Links expire no later than seven days after creation. Players choose a hero to submit; nothing joins your party without approval.</p><label class="f">Invitation link<input id="invite-url" readonly value="${esc(inviteLink(token))}"></label><div class="row"><button class="btn primary" id="invite-copy">Copy invitation link</button><button class="btn" id="invite-review-now">Review submissions</button></div>`);
   dlg.querySelector('#invite-copy').onclick=()=>navigator.clipboard.writeText(inviteLink(token)).then(()=>toast('Invitation link copied.'),()=>{dlg.querySelector('#invite-url').select();toast('Select and copy the invitation link.');});
   dlg.querySelector('#invite-review-now').onclick=()=>{dlg.close();void inviteReview(token);};
  }catch(e){inviteError(e);}
