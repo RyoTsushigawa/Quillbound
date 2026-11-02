@@ -24,6 +24,60 @@ service cloud.firestore {
         && request.resource.data.revision == resource.data.revision + 1;
       allow delete: if signedIn() && request.auth.uid == resource.data.dmUid;
     }
+    // Campaign invitations are bearer capabilities: 128-bit random document IDs.
+    // They contain only public campaign metadata, never DM notes or campaign saves.
+    match /campaignInvites/{inviteId} {
+      function signedIn() { return request.auth != null; }
+      function owner() { return signedIn() && request.auth.uid == resource.data.dmUid; }
+      function validInvite() {
+        let d = request.resource.data;
+        return inviteId.matches('^[a-f0-9]{32}$')
+          && d.keys().hasAll(['dmUid','campaignName','active','expiresAt','createdAt'])
+          && d.keys().hasOnly(['dmUid','campaignName','active','expiresAt','createdAt'])
+          && d.dmUid is string && d.dmUid.size() >= 6 && d.dmUid.size() <= 128
+          && d.campaignName is string && d.campaignName.size() > 0 && d.campaignName.size() <= 100
+          && d.active is bool && d.expiresAt is timestamp && d.createdAt is timestamp;
+      }
+      // A participant must already know the unguessable invite ID; enumeration is forbidden.
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && validInvite()
+        && request.resource.data.dmUid == request.auth.uid
+        && request.resource.data.active == true
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.expiresAt <= request.time + duration.value(7, 'd');
+      allow update: if owner() && validInvite()
+        && request.resource.data.dmUid == resource.data.dmUid
+        && request.resource.data.campaignName == resource.data.campaignName
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.expiresAt == resource.data.expiresAt
+        && request.resource.data.active == false;
+      allow delete: if owner();
+
+      match /requests/{playerUid} {
+        function signedIn() { return request.auth != null; }
+        function invite() { return get(/databases/$(database)/documents/campaignInvites/$(inviteId)).data; }
+        function dm() { return signedIn() && request.auth.uid == invite().dmUid; }
+        function ownRequest() { return signedIn() && request.auth.uid == playerUid; }
+        function openInvite() { return invite().active && invite().expiresAt > request.time; }
+        function validRequest() {
+          let d = request.resource.data;
+          return d.keys().hasAll(['playerUid','name','sheetJson','createdAt'])
+            && d.keys().hasOnly(['playerUid','name','sheetJson','createdAt'])
+            && d.playerUid == playerUid && playerUid != invite().dmUid
+            && d.name is string && d.name.size() > 0 && d.name.size() <= 100
+            && d.sheetJson is string && d.sheetJson.size() > 0 && d.sheetJson.size() <= 120000
+            && d.createdAt == request.time;
+        }
+        allow get: if ownRequest() || dm();
+        allow list: if dm();
+        allow create: if ownRequest() && openInvite() && validRequest();
+        // Requests are immutable after submission, avoiding silent edits during DM review.
+        allow update: if false;
+        allow delete: if ownRequest() || dm();
+      }
+    }
     match /liveSessions/{sessionId} {
       function signedIn() { return request.auth != null; }
       function owner() { return signedIn() && request.auth.uid == sessionId; }

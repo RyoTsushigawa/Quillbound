@@ -107,6 +107,7 @@
 .hero-id{min-width:0}.hero-id p{line-height:1.45;margin-top:3px}
 .qb-app .hero-name{font-size:1.5rem;font-weight:650;letter-spacing:-.03em;overflow-wrap:anywhere}
 .hero-note{padding:9px 12px;border-radius:8px;background:var(--warn-soft);color:var(--ink)}
+.hero-invite{margin-bottom:18px}
 .hero-sync{display:flex;align-items:center;gap:8px}.hero-sync::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--accent)}
 .hero-hp{display:grid;gap:8px}
 .hero-hp-top{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px}

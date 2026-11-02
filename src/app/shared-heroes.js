@@ -31,5 +31,7 @@
    return {...old,sheetJson,revision:expected+1,updatedBy:uid};
   });
  }
- root.QBSharedHeroes={sheet,read,state,update,stable};
+ // The doc an approved invitation creates has the id <invite token>-<player uid>; the submitted hero remembers the token.
+ function invitedHero(heroes,remote,uid){return heroes.find(h=>!h.cloudLink&&h.joinToken&&h.joinToken+'-'+encodeURIComponent(uid)===remote.id)||null;}
+ root.QBSharedHeroes={sheet,read,state,update,stable,invitedHero};
 })(globalThis);
