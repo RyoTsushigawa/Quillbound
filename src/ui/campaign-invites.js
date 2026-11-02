@@ -115,9 +115,12 @@ async function inviteApprove(item,dlg){
   if(!pending.exists()||pending.data().playerUid!==item.uid)throw Error('This request is no longer pending.');
   if(sharedCloud.user!==user||S.role!=='dm'||S.campaigns?.current!==campaignId)throw Error('The active campaign changed. Reopen requests.');
   const parsed=QBSharedHeroes.read(pending.data().sheetJson,cmSheet),campaign=QBCampaigns.current(S);
-  const ref=db.doc(db.collection(db.store,'sharedHeroes'));
+  const ref=db.doc(db.store,'sharedHeroes',item.id+'-'+encodeURIComponent(item.uid));
+  const existing=await db.getDoc(ref);
+  if(existing.exists())throw Error('This request already has an approved shared character. Refresh the campaign before retrying.');
   const payload={dmUid:user.uid,playerUid:item.uid,revision:1,sheetJson:pending.data().sheetJson,campaignName:campaign.name.slice(0,80),updatedBy:user.uid,updatedAt:db.serverTimestamp()};
   await db.setDoc(ref,payload);
+  if(sharedCloud.user!==user||S.campaigns?.current!==campaignId||S.role!=='dm')throw Error('Character connected, but the active campaign changed. Reopen this campaign before importing.');
   const p=QBHeroRules.toHero(parsed.build,parsed.sheet,{id:uid('p'),want:parsed.story.want});
   p.heroStory=parsed.story;p.cloudLink={id:ref.id,uid:user.uid,revision:1,baseJson:pending.data().sheetJson};heroDefaults(p);S.party.push(p);
   await db.deleteDoc(pendingRef);
