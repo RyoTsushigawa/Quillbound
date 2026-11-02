@@ -11,3 +11,17 @@ for(const action of ['invite-create','invite-join','invite-review','invite-revok
 assert.match(ui,/getRandomValues\(new Uint8Array\(16\)\)/,'invitation IDs must use cryptographic randomness');
 assert.match(ui,/sharedHeroes/,'approval must reuse existing shared-hero sync');
 console.log('PASS: invitation UI scripts, entry points, actions and sync wiring.');
+
+(async()=>{
+ const store={name:'firestore'},docs=new Map(),messages=[];
+ const token='a'.repeat(32),request=token+'/requests/player-user';
+ docs.set(token,{dmUid:'dm-user'});docs.set(request,{playerUid:'player-user',sheetJson:'sheet'});
+ const db={doc:(parent,...parts)=>{assert(parent===store||typeof parent==='string','Firestore document reference must use the initialized store');return parent===store?parts.join('/').replace('campaignInvites/',''):parent+'/'+parts.join('/');},collection:(parent,name)=>parent+'/'+name,getDoc:async ref=>({exists:()=>docs.has(ref),data:()=>docs.get(ref)}),setDoc:async(ref,data)=>docs.set(ref,data),deleteDoc:async ref=>docs.delete(ref),serverTimestamp:()=>1};
+ const ctx=vm.createContext({console,sharedCloud:{user:{uid:'dm-user'},api:{db,store}},S:{role:'dm',campaigns:{current:'campaign'},party:[]},toast:m=>messages.push(m),sharedError:e=>e.message,QBCampaigns:{current:()=>({name:'Test'})},QBSharedHeroes:{read:()=>({build:{name:'Hero'},sheet:{},story:{want:''}})},cmSheet:()=>{},QBHeroRules:{toHero:()=>({name:'Hero'})},uid:()=> 'hero',heroDefaults:()=>{},render:()=>{}});
+ vm.runInContext(ui,ctx);let closed=false;
+ await ctx.inviteApprove({id:token,uid:'player-user'},{close:()=>closed=true});
+ assert.equal(ctx.S.party.length,1, messages.join('; '));assert(docs.has('sharedHeroes/'+token+'-player-user'));assert(!docs.has(request));assert(closed);
+ // A retry after interrupted request cleanup must not duplicate the party character.
+ docs.set(request,{playerUid:'player-user',sheetJson:'sheet'});await ctx.inviteApprove({id:token,uid:'player-user'},{close:()=>{}});assert.equal(ctx.S.party.length,1);
+ console.log('PASS: approval creates a shared character using the real API shape, adds the hero, removes the request and avoids duplicates on retry.');
+})().catch(e=>{console.error(e);process.exitCode=1;});

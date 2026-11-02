@@ -6,14 +6,14 @@ ctx.sceneMapHint=()=>'';ctx.SceneMaps={reference:r=>r?.reviewed?r:null};ctx.S={r
 ctx.sceneMapContext=()=>({beat:ctx.S.beats.find(b=>b.id===ctx.S.sceneMapSceneId&&b.status==='active')||ctx.S.beats.find(b=>b.status==='active')});
 vm.runInContext(fs.readFileSync(path.join(root,'src/ui/session-overview.js'),'utf8'),ctx);
 const acts=ctx.sessionOverviewActions();let shown=ctx.sessionOverview(()=>'<div>Legacy preparation</div>');
-assert(shown.includes('Session overview'));assert(shown.includes('Reference notes (1)'));assert(shown.includes('NPC roleplay helpers'));assert(shown.includes('Tired'));assert(shown.includes('ov-live">Players are here'),'current scene is clearly labelled');
+assert(shown.includes('DM View · Session'));assert(shown.includes('Reference notes (1)'));assert(shown.includes('NPC roleplay helpers'));assert(shown.includes('Tired'));assert(shown.includes('ov-live" role="status">● Players are here'),'current scene is clearly labelled');
 assert.equal(ctx.overviewSections('# First\nOne\n# Second\nTwo').length,2);
 assert(shown.includes('data-act="desk-go" data-id="B"'),'location names enter a room in one click');assert(shown.includes('ov-flow-block'),'core notes are readable without opening individual headings');assert(shown.includes('ov-present'),'relevant NPC guidance is immediately visible');
 assert(shown.includes('ov-next-top'),'continuation is available before the long briefing');assert(shown.includes('Briefing shortcuts'));
 ctx.S.npcs.push({id:'other',name:'Other NPC',voice:'Distinct delivery'});acts['desk-speaker']({id:'other'});assert(ctx.sessionOverview(()=>'<div></div>').includes('Distinct delivery'));assert(!ctx.sessionOverview(()=>'<div></div>').includes('Tired'),'one speaker helper is presented at a time');
 acts['desk-focus']({id:'B'});assert.equal(ctx.S.beats[1].status,'active');assert.equal(ctx.S.sceneMapSceneId,undefined,'preview leaves the current player map unchanged');
 assert.equal(ctx.S.dmNpcId,undefined,'entering or previewing a new room selects relevant NPC guidance afresh');
-shown=ctx.sessionOverview(()=>'<div>Legacy preparation</div>');assert(shown.includes('Preview · players have not moved'));assert(shown.includes('&lt;script>bad()&lt;/script>'));assert(!shown.includes('<script>bad()'));
+shown=ctx.sessionOverview(()=>'<div>Legacy preparation</div>');assert(shown.includes('Private preview · players have not moved'));assert(shown.includes('&lt;script>bad()&lt;/script>'));assert(!shown.includes('<script>bad()'));
 acts['desk-go']({id:'B'});assert.equal(ctx.S.sceneMapSceneId,'B');assert.equal(ctx.S.beats[1].status,'upcoming');assert.equal(ctx.S.beats[2].status,'active');
 acts['desk-go']({id:'ref'});assert.equal(ctx.S.sceneMapSceneId,'B','reference notes cannot move players');
 acts['desk-finish']({id:'B'});assert.equal(ctx.S.beats[2].status,'done');acts['desk-finish']({id:'B'});assert.equal(ctx.S.beats[2].status,'upcoming');

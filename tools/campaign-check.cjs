@@ -1,8 +1,8 @@
 // Player mode, My heroes, hero files and the Adventure manager (campaigns): src/app/campaigns.js and src/ui/campaigns.js.
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..');
-const nodes=new Map(),node=s=>{if(!nodes.has(s))nodes.set(s,{innerHTML:'',textContent:'',hidden:false,dataset:{},setAttribute(){},classList:{add(){},remove(){}}});return nodes.get(s);};
-const tabs=['home','create','heroes','campaigns','import','desk','homebrew','combat'].map(v=>({dataset:{v},hidden:false,setAttribute(){}}));
+const nodes=new Map(),node=s=>{if(!nodes.has(s))nodes.set(s,{innerHTML:'',textContent:'',hidden:false,dataset:{},setAttribute(){},removeAttribute(){},classList:{add(){},remove(){}}});return nodes.get(s);};
+const tabs=['home','create','heroes','campaigns','import','desk','homebrew','combat'].map(v=>({dataset:{v},hidden:false,setAttribute(){},removeAttribute(){}}));
 let toastText='',saved={};
 const ctx=vm.createContext({document:{querySelector:node,querySelectorAll:s=>s==='.tab'?tabs:[],getElementById:id=>node('#'+id),addEventListener(){}},crypto:require('node:crypto').webcrypto,TextEncoder,
   BroadcastChannel:class{postMessage(){}close(){}},localStorage:{getItem:()=>null,setItem(){}},window:null,console,setTimeout:()=>0,clearTimeout(){},URL,navigator:{}});ctx.window=ctx;ctx.addEventListener=()=>{};ctx.scrollTo=()=>{};
@@ -19,7 +19,7 @@ run("S.tab='desk';render();");assert.equal(run('S.tab'),'home','a player can’t
 run(`S.tab='create';S.creator=crNew();render();ACT['cr-species']({v:'hb-sp-night-shift-vampire'});render();ACT['cr-class']({v:'hb-cl-night-shift-artificer'});render();ACT['cr-quick']({v:'hb-cl-night-shift-artificer'});
   S.creator.build.level=5;ACT['cr-quick']({v:'hb-cl-night-shift-artificer'});S.creator.build.name='Toxik';S.creator.story.want='Proof that the machine works';S.creator.step='review';render();`);
 assert(view().includes('Save to My heroes')&&!view().includes('Add to party'),'players save heroes; only the DM adds them to a party');
-run(`ACT['cr-savehero']();render();`);assert.equal(run('S.myHeroes.length'),1);assert.equal(run('S.tab'),'heroes');assert(view().includes('Toxik')&&view().includes('Send to DM'));
+run(`ACT['cr-savehero']();render();`);assert.equal(run('S.myHeroes.length'),1);assert.equal(run('S.tab'),'heroes');assert(view().includes('Toxik')&&view().includes('Share character'));
 const id=run('S.myHeroes[0].id');run(`ACT['cm-send']({id:'${id}'})`);assert.match(saved.name,/^toxik\.quillbound-hero\.json$/);
 const file=JSON.parse(saved.text);assert.equal(file.format,'quillbound-hero');assert(file.hero.build.hbData.species[0].name==='Vampire'&&file.hero.build.hbData.classes[0].name==='Artificer','the file carries the homebrew it uses');
 /* editing and saving again updates the same hero */

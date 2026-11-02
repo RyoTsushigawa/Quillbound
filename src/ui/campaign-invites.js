@@ -124,7 +124,7 @@ async function inviteApprove(item,dlg){
   if(!pending.exists()||pending.data().playerUid!==item.uid)throw Error('This request is no longer pending.');
   if(sharedCloud.user!==user||S.role!=='dm'||S.campaigns?.current!==campaignId)throw Error('The active campaign changed. Reopen requests.');
   const parsed=QBSharedHeroes.read(pending.data().sheetJson,cmSheet),campaign=QBCampaigns.current(S);
-  const ref=db.doc(db.store,'sharedHeroes',item.id+'-'+encodeURIComponent(item.uid));
+  const ref=db.doc(sharedCloud.api.store,'sharedHeroes',item.id+'-'+encodeURIComponent(item.uid));
   const existing=await db.getDoc(ref);
   if(existing.exists() && (existing.data().dmUid!==user.uid || existing.data().playerUid!==item.uid || existing.data().sheetJson!==pending.data().sheetJson))throw Error('This invitation has a different existing connection. Review it before proceeding.');
   const payload={dmUid:user.uid,playerUid:item.uid,revision:1,sheetJson:pending.data().sheetJson,campaignName:campaign.name.slice(0,80),updatedBy:user.uid,updatedAt:db.serverTimestamp()};
