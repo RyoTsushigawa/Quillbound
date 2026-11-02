@@ -4,7 +4,7 @@ class Channel{postMessage(){}close(){}}
 const ctx=vm.createContext({document:doc,crypto:require('node:crypto').webcrypto,BroadcastChannel:Channel,localStorage:{getItem:()=>null,setItem(){if(storageFail)throw Error('Quota');}},window:null,console,setTimeout:()=>0,clearTimeout(){},URL});ctx.window=ctx;ctx.addEventListener=()=>{};ctx.scrollTo=()=>{};
 for(const name of ['player-core','srd-monsters','attacks','srd-heroes','srd-spells','hero-rules','homebrew','combat-rules','conditions','encounter-design'])vm.runInContext(fs.readFileSync(path.join(root,'src/app',name+'.js'),'utf8'),ctx);
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');const script=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(x=>x.includes('const ACT='));require('./ui-scripts.cjs').loadUi(html,ctx);vm.runInContext(script,ctx);vm.runInContext("S.role='dm';render();",ctx); // DM workflows
-assert.equal(vm.runInContext('S.tab',ctx),'home');assert(node('#view').innerHTML.includes('What would you like to do?'));assert(node('#view').innerHTML.includes('Connect adventures'));
+assert.equal(vm.runInContext('S.tab',ctx),'home');assert(node('#view').innerHTML.includes('Back to the adventure.'));assert(node('#view').innerHTML.includes('Connect adventures'));
 for(const tab of ['create','import','desk','combat']){vm.runInContext(`S.tab='${tab}';render();`,ctx);assert(node('#view').innerHTML.length>200,tab+' renders');}
 vm.runInContext("S.tab='import';S.importer.phase='library';render();",ctx);assert(!node('#view').innerHTML.includes('AI assist'));assert(node('#view').innerHTML.includes('Your next step'));
 vm.runInContext("S.tab='desk';S.deskView='session';render();",ctx);assert(!node('#view').innerHTML.includes('en-clock'));assert(!node('#view').innerHTML.includes('en-feat'));assert(node('#view').innerHTML.includes('Prepare a fight'));assert(node('#view').innerHTML.includes('Scenes'));
@@ -32,3 +32,23 @@ vm.runInContext("S.combat.lite.draft.enemyEffect='context';render();",ctx);asser
 vm.runInContext("S=fresh();S.role='dm';S.tab='combat';render();",ctx);
 for(const [act,arg] of [['rd-sheets',{}],['rd-group',{}],['rd-clue',{}],['rd-enemy',null],['rd-clock-add',{}],['rd-phase-add',{}]]){captured='';const data=arg||{id:vm.runInContext('S.combat.foes[0].id',ctx)};ctx.__d=data;vm.runInContext(`ACT['${act}'](__d);`,ctx);assert(captured.length>0,act+' opens a dialog');}
 console.log('PASS: hero sheets, layered clues, minion grouping, enemy plans, clocks and phases open without errors.');
+
+// Resume the actual campaign location rather than a read-ahead preview; never move players.
+vm.runInContext("S=fresh();S.role='dm';S.combat=null;QBCampaigns.ensure(S);S.beats=[{id:'now',title:'Current room',status:'active'},{id:'ahead',title:'Next room',status:'upcoming'},{id:'ref',title:'DM: Secret',reference:true}];S.dmFocusId='ahead';S.deskView='campaign';S.tab='home';",ctx);
+const beforeHome=vm.runInContext('JSON.stringify(S.beats)',ctx);
+assert(vm.runInContext('campaignHome()',ctx).includes('Continue session'));
+assert(vm.runInContext('campaignHome()',ctx).includes('Current room'));
+assert(!vm.runInContext('campaignHome()',ctx).includes('DM: Secret'));
+vm.runInContext("ACT['home-resume']();",ctx);
+assert.equal(vm.runInContext('S.dmFocusId',ctx),'now');assert.equal(vm.runInContext('S.deskView',ctx),'session');assert.equal(vm.runInContext('S.tab',ctx),'desk');assert.equal(vm.runInContext('JSON.stringify(S.beats)',ctx),beforeHome);
+vm.runInContext("S.beats[0].status='done';S.dmFocusId='ref';ACT['home-resume']();",ctx);assert.equal(vm.runInContext('S.dmFocusId',ctx),'ahead','without an active scene, open the next playable scene');
+vm.runInContext("S.campaigns.list[0].name='<img src=x onerror=bad()>';",ctx);assert(!vm.runInContext('campaignHome()',ctx).includes('<img'));assert(vm.runInContext('campaignHome()',ctx).includes('&lt;img'));
+// A one-action campaign switch still honors the existing pending-roll protection.
+vm.runInContext("S=fresh();S.role='dm';QBCampaigns.ensure(S);S.combat.lite.pending={};S.tab='home';S.campaigns.list.push({id:'other',name:'Other campaign',data:QBCampaigns.blank()});ACT['home-switch']({id:'other'});",ctx);
+assert.notEqual(vm.runInContext('S.campaigns.current',ctx),'other');assert.equal(vm.runInContext('S.tab',ctx),'home');
+vm.runInContext("S.combat.lite.pending=null;ACT['home-switch']({id:'other'});",ctx);assert.equal(vm.runInContext('S.campaigns.current',ctx),'other');assert.equal(vm.runInContext('S.tab',ctx),'desk');
+const emptyHome=vm.runInContext('campaignHome()',ctx);assert(emptyHome.includes('Restore campaign / ZIP'));assert(emptyHome.includes('Import adventure'));assert(!emptyHome.includes('role="progressbar"'));
+vm.runInContext("S.role='player';S.tab='home';ACT['home-switch']({id:'not-a-campaign'});ACT['home-resume']();",ctx);assert.equal(vm.runInContext('S.tab',ctx),'home');assert(!vm.runInContext('playerWelcome()',ctx).includes('Other campaign'));
+console.log('PASS: campaign home resumes the current scene without movement, skips references, escapes names, protects pending rolls, and offers empty-campaign and player entry points.');
+
+vm.runInContext("S.role='dm';S.tab='home';S.deskView='campaign';ACT.tab({v:'desk'});",ctx);assert.equal(vm.runInContext('S.deskView',ctx),'session','Session navigation opens the session even after adventure planning');
