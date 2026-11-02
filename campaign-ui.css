@@ -128,3 +128,13 @@
 .cr-step-state{flex-shrink:0;font-size:.75rem;font-weight:650;color:var(--muted);white-space:nowrap}
 .cr-step-state.is-done{color:var(--accent)}
 .cr-step-state.is-pending{color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px 7px}
+
+/* Compact creator navigation: show only steps belonging to the active phase. */
+.cr-phase-heading{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:9px}
+.cr-phase-picks{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.cr-phase-pick{font:inherit;font-size:.78rem;padding:7px 10px;border:1px solid var(--line);border-radius:6px;color:var(--muted);background:transparent;cursor:pointer}
+.cr-phase-pick[aria-current="step"]{background:var(--accent-soft);color:var(--ink);border-color:var(--accent);font-weight:700}
+.cr-phase-pick:hover{border-color:var(--accent)}
+.cr-steps-current{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px}
+.cr-steps-current button{min-width:0;justify-content:center;gap:8px}
+@media(max-width:640px){.cr-phase-picks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.cr-phase-pick{text-align:left}.cr-steps-current button{flex:1 1 auto}}
