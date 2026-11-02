@@ -6,6 +6,7 @@ const inviteError=e=>toast(sharedError(e));
 function inviteSignedIn(){if(!sharedCloud.user||!sharedCloud.api){toast('Sign in with Google under Shared characters first.');return false;}return true;}
 function inviteLink(token){return location.origin+location.pathname+'#join='+encodeURIComponent(token);}
 function inviteFromUrl(){
+ if(typeof location==='undefined'||typeof history==='undefined')return;
  const match=location.hash.match(/^#join=([a-f0-9]{32})$/);
  if(!match)return;
  inviteUI.token=match[1];
