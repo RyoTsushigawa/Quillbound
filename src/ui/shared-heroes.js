@@ -99,14 +99,25 @@ function sharedWith(remote){if(!remote)return '';const place=remote.campaignName
 // The mark on a My heroes card: this sheet, or the DM's adventure copy of it, is shared with someone else.
 function heroSyncMark(h){
  if(h.cloudLink){const remote=sharedCloud.docs.get(h.cloudLink.id),on=remote&&h.cloudLink.uid===sharedCloud.user?.uid;return `<p class="hero-sync small"><span class="chip${on?' ok':''}">${on?'Synced':'Not syncing now'}</span> <span class="muted">${on?sharedWith(remote)+' · ':''}<span data-shared-status="${esc(h.cloudLink.id)}">${esc(sharedLabel(h,false))}</span></span></p>`;}
- const copy=S.role==='dm'?(S.party || []).find(p=>p.cloudLink&&(p.myHeroId===h.id||h.sourcePartyId===p.id||'ph-'+p.id===h.id)):null;
- return copy?'<p class="hero-sync small"><span class="chip acc">Party copy synced</span> <span class="muted">'+(sharedWith(sharedCloud.docs.get(copy.cloudLink.id)) || 'with a player')+'</span></p>':'';
+ const {copy,remote}=heroSyncTwin(h);if(!copy&&!remote)return '';
+ const status=copy?` · <span data-shared-status="${esc(copy.cloudLink.id)}">${esc(sharedLabel(copy,true))}</span>`:'';
+ return '<p class="hero-sync small"><span class="chip acc">Copy synced</span> <span class="muted">'+(sharedWith(remote) || 'with a player')+status+'</span></p>';
 }
-const sharedHeroName=remote=>{try{return String(JSON.parse(remote.sheetJson).build.name || 'Character');}catch{return 'Character';}};
+const sharedHeroBuild=remote=>{try{return JSON.parse(remote.sheetJson).build || {};}catch{return {};}};
+const sharedHeroName=remote=>String(sharedHeroBuild(remote).name || 'Character');
+// A hero with no link of its own can still be the same character as a connected party copy or shared sheet: heroes sent as files or imported keep no id in common with it.
+// Two heroes with one name are told apart by background.
+function heroSyncTwin(h){
+ const key=x=>String(x || '').trim().toLowerCase(),name=key(h.build?.name),heroes=S.myHeroes || [],hidden=S.cloudSettings?.hidden || [];
+ const same=build=>key(build?.name)===name&&(heroes.filter(x=>key(x.build?.name)===name).length<2||build.background===h.build.background);
+ const copy=S.role==='dm'?(S.party || []).find(p=>p.cloudLink&&(p.myHeroId===h.id||h.sourcePartyId===p.id||'ph-'+p.id===h.id||p.fromPlayer===h.id||same({...p.build,name:p.name}))):null;
+ if(copy)return {copy,remote:sharedCloud.docs.get(copy.cloudLink.id)};
+ return {remote:[...sharedCloud.docs.values()].find(d=>!hidden.includes(d.id)&&!heroes.some(x=>x.cloudLink?.id===d.id)&&same(sharedHeroBuild(d)))};
+}
 // Everyone this account shares a sheet with, each removable from one place.
 function sharedConnections(){
  const user=sharedCloud.user,hidden=S.cloudSettings?.hidden || [],list=user?[...sharedCloud.docs.values()]:[];if(!list.length)return '';
- return `<details class="hero-tools hero-connections" data-hero-disclosure="connections"><summary>Synced with others · ${list.length}</summary><div class="stack"><p class="small muted">Removing a connection stops syncing. Everyone keeps the copy they already have.</p>${list.map(d=>{const off=hidden.includes(d.id);return `<div class="row hb-item"><span><b>${esc(sharedHeroName(d))}</b> <span class="small muted">${sharedWith(d)}${off?' · stopped on this device':''}</span></span><span class="row">${off?`<button class="btn sm" data-act="shared-show" data-id="${esc(d.id)}">Sync again</button>`:''}${off&&d.dmUid!==user.uid?'':`<button class="btn sm ghost" data-act="shared-unlink" data-id="${esc(d.id)}">${d.dmUid===user.uid?'Disconnect player':'Stop syncing'}</button>`}</span></div>`;}).join('')}</div></details>`;
+ return `<section class="hero-connections"><h3>Synced with others · ${list.length}</h3><p class="small muted">Removing a connection stops syncing. Everyone keeps the copy they already have.</p>${list.map(d=>{const off=hidden.includes(d.id);return `<div class="row hb-item"><span><b>${esc(sharedHeroName(d))}</b> <span class="small muted">${sharedWith(d)}${off?' · stopped on this device':''}</span></span><span class="row">${off?`<button class="btn sm" data-act="shared-show" data-id="${esc(d.id)}">Sync again</button>`:''}${off&&d.dmUid!==user.uid?'':`<button class="btn sm ghost" data-act="shared-unlink" data-id="${esc(d.id)}">${d.dmUid===user.uid?'Disconnect player':'Stop syncing'}</button>`}</span></div>`;}).join('')}</section>`;
 }
 // A DM ends the connection for both sides; the rules let only the DM delete it, so a player stops syncing on their own device.
 function sharedUnlink(id){
