@@ -138,3 +138,10 @@
 .cr-steps-current{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px}
 .cr-steps-current button{min-width:0;justify-content:center;gap:8px}
 @media(max-width:640px){.cr-phase-picks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.cr-phase-pick{text-align:left}.cr-steps-current button{flex:1 1 auto}}
+
+/* Creator choice cards: readable selection and consistent content spacing. */
+.qb-app .cr-main .choices .choice{position:relative;align-content:start;gap:8px;min-height:100px;line-height:1.45}
+.qb-app .cr-main .choices .choice .desc{line-height:1.5}
+.qb-app .cr-main .choices .choice[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.cr-choice-selected{display:inline-flex;align-items:center;align-self:start;width:max-content;font-size:.76rem;font-weight:700;color:var(--accent);margin-bottom:2px}
+@media(max-width:650px){.qb-app .cr-main .choices .choice{min-height:0}}
