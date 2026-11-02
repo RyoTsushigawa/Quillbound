@@ -111,8 +111,8 @@ async function inviteReview(token){
    const requests=await db.getDocs(db.collection(inviteRef(id),'requests'));
    for(const doc of requests.docs){const record=doc.data();blocks.push({id,uid:doc.id,record});}
   }
-  const target=dlg.querySelector('#invite-requests');target.innerHTML=blocks.length?blocks.map((item,i)=>`<div class="card stack"><b>${esc(item.record.name)}</b><p class="small muted">Player request · ${esc(item.uid)}</p><button class="btn primary" data-invite-approve="${i}">Approve and add to party</button><button class="btn" data-invite-decline="${i}">Decline</button></div>`).join(''):'No pending requests.';
-  target.querySelectorAll('[data-invite-approve]').forEach(button=>button.onclick=()=>void inviteApprove(blocks[Number(button.dataset.inviteApprove)],dlg));
+  const target=dlg.querySelector('#invite-requests');target.innerHTML=blocks.length?blocks.map((item,i)=>`<div class="card stack"><b>${esc(item.record.name)}</b><p class="small muted">Player request · ${esc(item.uid)}</p><label class="f">Player name (optional, only you see it)<input data-invite-name="${i}" value="${esc(sharedPlayerName(item.uid))}" maxlength="60" autocomplete="off"></label><button class="btn primary" data-invite-approve="${i}">Approve and add to party</button><button class="btn" data-invite-decline="${i}">Decline</button></div>`).join(''):'No pending requests.';
+  target.querySelectorAll('[data-invite-approve]').forEach(button=>button.onclick=()=>{const i=button.dataset.inviteApprove,name=target.querySelector('[data-invite-name="'+i+'"]');if(name)sharedSetPlayerName(blocks[Number(i)].uid,name.value);void inviteApprove(blocks[Number(i)],dlg);});
   target.querySelectorAll('[data-invite-decline]').forEach(button=>button.onclick=async()=>{const x=blocks[Number(button.dataset.inviteDecline)];try{await db.deleteDoc(db.doc(db.collection(inviteRef(x.id),'requests'),x.uid));dlg.close();toast('Request declined.');}catch(e){inviteError(e);}});
  }catch(e){dlg.querySelector('#invite-requests').textContent=sharedError(e);}
 }
