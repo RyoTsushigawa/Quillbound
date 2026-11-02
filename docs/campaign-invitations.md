@@ -1,6 +1,6 @@
 # Campaign invitations — implementation contract
 
-Status: **backend rules draft only; not deployed or enabled in the UI**.
+Status: **invite UI and Firestore rules implemented on this draft branch; not deployed or enabled on the live site.** Latest completed CI runs for commit fe3a4b8: invitation rules and regression tests passed. These are not end-to-end browser tests.
 
 ## User flow
 1. DM signs in, opens Campaigns → Invite players, creates an invitation with 128-bit random hex token (using crypto.getRandomValues). Show a copyable URL carrying the token in the URL fragment, so it is not sent as an HTTP request path/query.
@@ -35,3 +35,21 @@ Before any UI is exposed to users:
 
 ## Design constraints
 Show “Invite players” as a primary campaign action, “Join campaign” on My heroes, and a simple three-state queue: Pending / Connected / Declined. Keep import/export in More options. Do not migrate saved campaigns.
+
+## Owner-assisted Firestore release checklist (no local tools required)
+1. Confirm the exact Firebase project ID is `dnd-stuff-6dbe2`. Do not deploy to a similarly named project.
+2. Open Firebase Console → Firestore Database → Rules. Copy the **currently published rules** into a private backup file before editing. Do not include credentials.
+3. Compare the published rules against the repository's `firestore.rules`: preserve the existing `sharedHeroes`, `liveSessions`, and final deny-all blocks. Only the reviewed invitation match blocks should be new.
+4. Require a green invitation emulator run and a green general Quillbound CI run **for the exact final commit**. Confirm no permissions changed after those runs.
+5. Run a two-account end-to-end exercise in staging before publishing rules. Both accounts must be signed in; test invite creation, redemption, submission, review, approval, sync, expired/revoked invite rejection, and rejection of unrelated-account access.
+6. Only after the above checks, publish the reviewed full rules in Firebase Console. Then confirm existing sync still works with a previously linked character.
+7. Merge the tested UI only when the rules are live and smoke-tested. The UI must never be deployed before the backend rules.
+8. If the new rules break existing sharing, restore the copied previous rules immediately and leave the invitation UI disabled. Rollback of rules may disable the new invite flow without affecting local campaign files.
+
+Do **not** paste a partial invitation snippet over existing rules. Console publish and GitHub merge are different operations: a green CI run does not deploy Firestore rules.
+
+## Remaining release blockers
+- Browser-backed end-to-end verification with two separate Google accounts.
+- Verify invite creation and approval against the real Firebase authentication environment, not just emulator policy tests.
+- Publish rules using the owner's Firebase Console access, then verify existing sync and invitations before merging the UI.
+- Validate disabled invite handling, duplicate submissions, and interrupted approval recovery on real browsers.
