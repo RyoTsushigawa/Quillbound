@@ -92,7 +92,8 @@ const CR_GLOSSARY={
  concentration:'Some spells require concentration. Taking damage can force a check to maintain the spell, and you can concentrate on only one spell at a time.',
  cantrip:'A simple spell that can be cast without spending a spell slot.',
  'spell slot':'A resource spent to cast most leveled spells.',
- 'saving throw':'A roll used to resist an effect, such as a spell, hazard, or condition.'
+ 'saving throw':'A roll used to resist an effect, such as a spell, hazard, or condition.',
+ ritual:'A spell marked Ritual can be cast as a ritual when your feature permits it, taking 10 extra minutes without using a spell slot.'
 };
 const crGlossaryTerm=name=>{const key=String(name).toLowerCase().trim(),help=CR_GLOSSARY[key];return help?`<span class="cr-glossary"><button type="button" class="cr-glossary-term" aria-label="${esc(name)}: show explanation" data-cr-glossary="${esc(key)}">${esc(name)} <span aria-hidden="true">ⓘ</span></button><span class="cr-glossary-tip" role="tooltip">${esc(help)}</span></span>`:esc(name);};
 const crPick=(act,attrs,on,label,body)=>`<button class="choice ${on?'on':''}" data-act="${act}" ${attrs} aria-pressed="${on}">${on?'<span class="cr-choice-selected" aria-hidden="true">✓ Selected</span>':''}${label}${body||''}</button>`;
@@ -166,7 +167,7 @@ function crStepBody(c,sheet){
   case 'spells': {
     const list=crSpells(); if(!list) return '<p>Loading the spell list…</p>';
     const sc=sheet.spellcasting, maxLevel=sc.slots.reduce((m,n,i)=>n?i+1:m,0), mine=list.filter(s=>s.classes.includes(QBHeroRules.spellList(b)));
-    const row=(k,s,max)=>crCheck(k,s.id,(b.spells[k]||[]).includes(s.id),`<b>${esc(s.name)}</b> <span class="small muted">${s.level?'level '+s.level:'cantrip'} · ${esc(s.school)}${s.conc?' · concentration':''}${s.ritual?' · ritual':''}${s.source==='phb-2024'?' · PHB':''}${s.unchecked?' · <span class="chip warn">check the book</span>':''}</span>`,max,`<details><summary class="small">What it does</summary><div class="small cr-rules">${rulesText(s.desc)}</div>${s.higher?`<div class="small cr-rules">${rulesText(s.higher)}</div>`:''}<p class="small muted">${esc([s.time,s.range,s.duration].join(' · '))}</p></details>`);
+    const row=(k,s,max)=>crCheck(k,s.id,(b.spells[k]||[]).includes(s.id),`<b>${esc(s.name)}</b> <span class="small muted">${s.level?'level '+s.level:crGlossaryTerm('Cantrip')} · ${esc(s.school)}${s.conc?' · '+crGlossaryTerm('Concentration'):''}${s.ritual?' · '+crGlossaryTerm('Ritual'):''}${s.source==='phb-2024'?' · PHB':''}${s.unchecked?' · <span class="chip warn">check the book</span>':''}</span>`,max,`<details><summary class="small">What it does</summary><div class="small cr-rules">${rulesText(s.desc)}</div>${s.higher?`<div class="small cr-rules">${rulesText(s.higher)}</div>`:''}<p class="small muted">${esc([s.time,s.range,s.duration].join(' · '))}</p></details>`);
     return `<p class="small">Spell save DC <b>${sc.dc}</b> · spell attack <b>${fmt(sc.attack)}</b> · slots ${sc.slots.map((n,i)=>n?`${n}×${i+1}`:'').filter(Boolean).join(', ')||'none yet'}</p>
       ${sc.cantrips?`<section class="card stack"><h3>Cantrips</h3>${crCount(b.spells.cantrips.length,sc.cantrips,'cantrips')}<div class="cr-checks">${mine.filter(s=>s.level===0).map(s=>row('cantrips',s,sc.cantrips)).join('')}</div></section>`:''}
       <section class="card stack"><h3>Prepared spells (level 1–${maxLevel})</h3>${crCount(b.spells.prepared.length,sc.prepared,'spells')}<div class="cr-checks">${mine.filter(s=>s.level>=1&&s.level<=maxLevel).map(s=>row('prepared',s,sc.prepared)).join('')}</div></section>`; }
