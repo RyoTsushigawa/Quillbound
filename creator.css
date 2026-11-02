@@ -109,7 +109,7 @@
 .hero-note{padding:9px 12px;border-radius:8px;background:var(--warn-soft);color:var(--ink)}
 .hero-invite{margin-bottom:18px}
 .hero-sync{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
-.hero-connections{display:grid;gap:6px;margin-bottom:18px;padding:14px 18px;background:var(--surface);border:1px solid var(--line);border-radius:12px}.hero-connections .hb-item{justify-content:space-between}
+.hero-connections{display:grid;gap:6px;margin-bottom:18px;padding:14px 18px;background:var(--surface);border:1px solid var(--line);border-radius:12px}.hero-connections .hb-item{justify-content:space-between}.qb-app .hero-player-name{width:11rem;max-width:100%;min-height:0;padding:4px 8px;font-size:.85rem}
 .hero-hp{display:grid;gap:8px}
 .hero-hp-top{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px}
 .hero-hp-label{font-size:.78rem;color:var(--muted)}

@@ -57,6 +57,9 @@ run('liveCloud.session=session;liveCloud.selected=session.id;liveCloud.wanted={i
  cloud.S.role='dm';cloud.S.myHeroes=[night,crook,quinn];cloud.S.party=[{id:'p1',name:'Toxik',build:{name:'Toxik',background:'night'},cloudLink:{id:'b',uid:'dm-account'}}];
  kit.sharedCloud.docs.set('b',{id:'b',dmUid:'dm-account',playerUid:'player-two',campaignName:'Night Shift',sheetJson:JSON.stringify({build:{name:'Toxik',background:'night'}}),revision:1});
  assert(kit.heroSyncMark(night).includes('Copy synced')&&kit.heroSyncMark(night).includes('Night Shift'));assert.equal(kit.heroSyncMark(crook),'','the other Toxik is not the synced one');assert.equal(kit.heroSyncMark(quinn),'');
+ assert(kit.heroSyncMark(night).includes('player code player'),'an unnamed player shows their code');assert(kit.sharedConnections().includes('data-act-change="shared-name"'));
+ kit.sharedHeroActions()['shared-name']({uid:'player-two',v:'  Alex <b> '});assert(kit.heroSyncMark(night).includes('with Alex <b>'));assert.equal(cloud.S.cloudSettings.playerNames['player-two'],'Alex <b>');
+ kit.sharedHeroActions()['shared-name']({uid:'player-two',v:''});assert(kit.heroSyncMark(night).includes('player code player'),'clearing the name returns to the code');
  cloud.S.party=[];cloud.S.role='player';assert(kit.heroSyncMark(night).includes('Copy synced'),'the shared sheet alone is enough');
  console.log('PASS: synced marks on My heroes; players stop syncing and can resume; DMs disconnect a player for both sides.');
  console.log('PASS: bounded raster chunks, complete map assembly, session expiry/membership, map publisher and generation guards, authenticated roll chat and clear-on-end.');
