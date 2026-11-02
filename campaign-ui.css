@@ -108,3 +108,9 @@
 .ov-quick-links .btn{min-height:40px;text-decoration:none;display:inline-flex;align-items:center}
 #session-readiness,#ov-preparation{scroll-margin-top:24px}
 @media(max-width:650px){.ov-quick{padding:14px}.ov-quick-links{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.ov-quick-links .btn{justify-content:center;text-align:center}}
+
+/* Clarify which scene players currently occupy versus a private DM preview. */
+.qb-app .ov-scene-context{margin:-8px 0 16px;line-height:1.55;max-width:72ch}
+.qb-app .ov-scene .eyebrow{font-weight:700;letter-spacing:.065em}
+.qb-app .ov-live{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+@media(max-width:650px){.qb-app .ov-scene-context{margin:-4px 0 14px}}
