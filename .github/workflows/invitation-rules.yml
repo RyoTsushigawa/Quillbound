@@ -19,5 +19,5 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - run: npm install --no-save --package-lock=false firebase-tools@14 @firebase/rules-unit-testing@5 firebase@11
+      - run: npm install --no-save --package-lock=false firebase-tools@14 @firebase/rules-unit-testing@5 firebase@12
       - run: npx firebase emulators:exec --only firestore --project quillbound-invite-rules-test 'node --test tests/invite-rules.test.cjs'
