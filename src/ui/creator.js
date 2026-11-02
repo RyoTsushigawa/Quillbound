@@ -85,7 +85,7 @@ const CR_GLOSSARY={
  proficiency:'Proficiency lets you add your proficiency bonus to checks, attacks or saves you are trained in.',
  'origin feat':'A feat gained from your background or another character origin feature.'
 };
-const crGlossaryTerm=name=>{const key=String(name).toLowerCase().trim(),help=CR_GLOSSARY[key];return help?`<span class="cr-glossary"><button type="button" class="cr-glossary-term" aria-label="${esc(name)}: show explanation" aria-expanded="false" data-cr-glossary="${esc(key)}">${esc(name)} <span aria-hidden="true">ⓘ</span></button><span class="cr-glossary-tip" role="tooltip">${esc(help)}</span></span>`:esc(name);};
+const crGlossaryTerm=name=>{const key=String(name).toLowerCase().trim(),help=CR_GLOSSARY[key];return help?`<span class="cr-glossary"><button type="button" class="cr-glossary-term" aria-label="${esc(name)}: show explanation" data-cr-glossary="${esc(key)}">${esc(name)} <span aria-hidden="true">ⓘ</span></button><span class="cr-glossary-tip" role="tooltip">${esc(help)}</span></span>`:esc(name);};
 const crPick=(act,attrs,on,label,body)=>`<button class="choice ${on?'on':''}" data-act="${act}" ${attrs} aria-pressed="${on}">${on?'<span class="cr-choice-selected" aria-hidden="true">✓ Selected</span>':''}${label}${body||''}</button>`;
 // The optional extra (a spell's description) sits outside the label, so opening it doesn't tick the box.
 const crCheck=(k,v,on,label,max,extra='')=>`<div class="cr-check ${on?'on':''}"><label><input type="checkbox" data-act="cr-toggle" data-k="${k}" data-v="${esc(v)}" data-max="${max}" ${on?'checked':''}> <span>${label}</span></label>${extra}</div>`;
