@@ -165,3 +165,7 @@
 .character-entry{padding:9px 0;border-top:1px solid var(--line)}.character-entry>summary{display:flex;flex-wrap:wrap;align-items:center;gap:5px 10px}.character-entry>summary::before{content:"\25B8";color:var(--muted)}.character-entry[open]>summary::before{content:"\25BE"}
 .entry-head{display:flex;flex-wrap:wrap;align-items:center;gap:5px 10px}.entry-name{font-weight:600;overflow-wrap:anywhere}.entry-chips{display:flex;flex-wrap:wrap;gap:5px}
 .entry-text{margin-top:8px;max-width:68ch;white-space:pre-line;line-height:1.55;overflow-wrap:anywhere}
+
+/* Adventures inside a campaign. */
+.qb-app .adventure-name{width:18rem;max-width:100%;font-weight:600}
+.ov-change-adventure{margin-left:6px;text-transform:none;letter-spacing:0}

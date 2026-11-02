@@ -129,7 +129,7 @@ function driveDialog() {
       for(const f of selected.filter(f=>driveResume.cache.has(f.id))){const old=S.driveSources.findIndex(x=>x.id===f.id);const source={id:f.id,name:f.name,modifiedTime:f.modifiedTime||''};if(old<0)S.driveSources.push(source);else S.driveSources[old]=source;}
       S.importer.lib=library;S.importer.phase='library';sceneMapsRetryMissing();S.tab='import';dlg.close();render();
       const backup=files.find(f=>/\.json$/i.test(f.name));
-      if(backup){const parsed=QBCampaigns.parseCampaign(await backup.text());if(parsed.error)toast(parsed.error);else if(S.role==='dm' && owner===S.campaigns?.current)clConfirm('Restore '+parsed.name+'?', 'This creates a new campaign and preserves the current one.',()=>{if(S.role!=='dm' || owner!==S.campaigns?.current)return;QBCampaigns.importCampaign(S,parsed);render();},'Restore');}
+      if(backup){const parsed=QBCampaigns.parseCampaign(await backup.text());if(parsed.error)toast(parsed.error);else if(S.role==='dm' && owner===S.campaigns?.current)cmRestoreChoice(parsed);}
       else if(readAfter){await libReadAll();if(S.role==='dm' && owner===S.campaigns?.current && !S.importer.status){S.tab='desk';S.deskView='campaign';render();}}
       else toast(failed.length?files.length+' files imported; '+failed.length+' failed. Open Drive to retry.':'Files imported. Read the adventures to add them to Link adventures.');
       if(!failed.length)driveResume=null;

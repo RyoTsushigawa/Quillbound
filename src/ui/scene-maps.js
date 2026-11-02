@@ -1,5 +1,5 @@
 /* DM reviews a map once. Activating a linked scene can then display only those reviewed pixels. */
-let sceneMapController, sceneMapProblem = '', sceneMapOwner = '', sceneMapManualRevision = 0;
+let sceneMapController, sceneMapProblem = '', sceneMapOwner = '', sceneMapManualRevision = 0, sceneMapHold = '';
 let sceneAutoLibrary, sceneAutoBeats, sceneAutoCampaign, sceneAutoSignature, sceneAutoJob;
 const sceneMapHint = beat => SceneMaps.hint(beat);
 function sceneMapsAutoLink() {
@@ -56,6 +56,7 @@ function sceneMapsSync() {
   // A role/campaign change must cancel in-flight pixels before they can reach the other table.
   if (!sceneMapOwner) sceneMapController.reset();
   sceneMapOwner = context.token;
+  if (sceneMapHold === context.token) return; // just changed adventure: the DM chooses when players see this map
   return sceneMapController.activate(context.token, context.beat?.playerMap);
 }
 function sceneMapsPause() { sceneMapController?.pause(); return { revision: ++sceneMapManualRevision, context: sceneMapContext().token }; }
