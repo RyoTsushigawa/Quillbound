@@ -91,7 +91,6 @@ const CR_GLOSSARY={
  'proficiency bonus':'A level-based bonus added to rolls you are proficient in.',
  concentration:'Some spells require concentration. Taking damage can force a check to maintain the spell, and you can concentrate on only one spell at a time.',
  cantrip:'A simple spell that can be cast without spending a spell slot.',
- ritual:'A spell with the Ritual tag can be cast as a ritual, usually taking 10 extra minutes without spending a spell slot, if your class feature allows ritual casting.',
  'spell slot':'A resource spent to cast most leveled spells.',
  'saving throw':'A roll used to resist an effect, such as a spell, hazard, or condition.',
  ritual:'A spell marked Ritual can be cast as a ritual when your feature permits it, taking 10 extra minutes without using a spell slot.'
@@ -188,7 +187,7 @@ function crStepBody(c,sheet){
       <section class="card stack"><h3>Worn and wielded</h3><label class="f">Armor<select data-act-change="cr-armor">${crOpt('','No armor',!eq.armor)}${armors.map(id=>crOpt(id,`${it(id).name} (AC ${it(id).ac}${it(id).dex?it(id).maxDex!=null?' + Dex, max '+it(id).maxDex:' + Dex':''})`,eq.armor===id)).join('')}</select></label>
         ${hasShield?`<label><input type="checkbox" data-act="cr-shield" ${eq.shield?'checked':''}> Carry the shield (+2 AC)</label>`:''}
         <div class="cr-checks">${weapons.map(id=>`<label class="cr-check ${eq.weapons.includes(id)?'on':''}"><input type="checkbox" data-act="cr-weapon" data-v="${id}" ${eq.weapons.includes(id)?'checked':''}> ${esc(it(id).name)} <span class="small muted">${esc(it(id).dice)} ${esc(it(id).type)}${QBHeroRules.proficientWith(b,id)?'':' · not trained'}</span></label>`).join('')||'<p class="small muted">No weapons in this kit.</p>'}</div>
-        <p class="small muted">AC ${sheet.ac} from ${esc(sheet.acFrom)}. Gold: ${sheet.gear.gp} GP.</p></section>
+        <p class="small muted">${crGlossaryTerm('Armor Class')} ${sheet.ac} from ${esc(sheet.acFrom)}. Gold: ${sheet.gear.gp} GP.</p></section>
       ${mCount?`<section class="card stack"><h3>Weapon Mastery</h3><p class="small muted">Choose kinds of weapon whose mastery property you can use.</p>${crCount((b.mastery||[]).length,mCount,'weapons')}<div class="cr-checks">${Object.entries(D.equipment).filter(([id,w])=>w.kind==='weapon'&&w.mastery&&QBHeroRules.proficientWith(b,id)).map(([id,w])=>crCheck('mastery',id,(b.mastery||[]).includes(id),`${esc(w.name)} <span class="small muted">· ${esc(D.mastery.find(x=>x.id===w.mastery)?.name||'')}</span>`,mCount)).join('')}</div></section>`:''}`; }
   case 'story': {
     const q=(k,label,help)=>`<label class="f" for="cr-${k}">${label}<textarea id="cr-${k}" data-bind="creator.story.${k}" rows="2" placeholder="${help}">${esc(c.story[k])}</textarea></label><div class="pickrow">${PROMPTS[k].map(p=>`<button class="chip" data-act="cr-chip" data-k="${k}" data-v="${esc(p)}">${esc(p)}</button>`).join('')}</div>`;
