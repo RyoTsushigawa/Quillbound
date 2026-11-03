@@ -69,11 +69,14 @@
     view().prepend(h1); document.title = name + ' · Quillbound';
   }
 
+  const kept = {};
   let page = null, rollSaid = '';
   const draw = render;
   render = function () {
     const was = remember(), tab = page;
+    for (const d of document.querySelectorAll('details[data-keep]')) kept[d.dataset.keep] = d.open;
     draw(); titlePage(); tabLists(); fileButtons(document.body);
+    for (const d of document.querySelectorAll('details[data-keep]')) d.open = !!kept[d.dataset.keep];
     page = S.tab;
     if (tab !== null && tab !== page) { window.scrollTo(0, 0); document.getElementById('page-title').focus({ preventScroll: true }); } else restore(was);
     const roll = document.querySelector('.lt-panel .lt-result')?.innerText.replace(/\s+/g, ' ').slice(0, 240) || '';

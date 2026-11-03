@@ -30,3 +30,9 @@ body{background-image:none}
 
 /* Page shortcuts sit on the page, not in a box of their own. */
 .ov-quick{padding:0;border:0;background:none}
+
+/* Combat: folded tools under the board and under the roll. */
+.lt-more{margin-top:14px;display:block}.lt-more .row{margin-bottom:10px}.lt-more>p{margin-bottom:8px}
+.lt-physical .lt-table{margin-bottom:10px}.lt-physical .btn.ghost{margin-top:4px}
+.lt-roll-controls{margin-top:2px}
+.lt-compose details>summary,.lt-more>summary{font-weight:500;color:var(--muted)}
