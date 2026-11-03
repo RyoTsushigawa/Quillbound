@@ -169,3 +169,7 @@
 /* Adventures inside a campaign. */
 .qb-app .adventure-name{width:18rem;max-width:100%;font-weight:600}
 .ov-change-adventure{margin-left:6px;text-transform:none;letter-spacing:0}
+
+/* One player map for several scenes. */
+.map-also{margin:8px 0}.map-also .row{align-items:flex-end;margin-top:8px}
+.map-also-list{display:grid;gap:4px;max-height:14rem;overflow:auto;margin-top:10px;padding:8px;border:1px solid var(--line);border-radius:8px}

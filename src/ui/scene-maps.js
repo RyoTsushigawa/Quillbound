@@ -72,6 +72,8 @@ async function sceneMapDialog(id) {
   const hint = ref?.fileName || String(beat.summary || '').match(/^KARTE:\s*([^\r\n]+\.(?:png|jpe?g|webp))\s*$/mi)?.[1] || '';
   const match = files.filter(f => f.name === hint);
   let selected;
+  const others = (S.beats || []).filter(b => b !== beat && !b.reference && !(typeof overviewReference === 'function' && overviewReference(b)));
+  const sceneOptions = others.map(b => `<option value="${esc(b.id)}">${esc(b.title)}</option>`).join('');
   const dlg = openDialog('Player map for ' + beat.title, `<p>Choose an image and check it for secrets. Only this reviewed image and the title below can be shown automatically.</p>
     <label class="f">Map from the loaded library<select id="scene-map-file"><option value="">Choose an image…</option>${files.map((f,i) => `<option value="${i}">${esc(f.name)} — ${esc(f.product)}</option>`).join('')}</select></label>
     <label class="btn">Choose an image from this device…<input type="file" id="scene-map-local" accept="image/png,image/jpeg,image/webp" hidden></label>
@@ -79,9 +81,19 @@ async function sceneMapDialog(id) {
     <img id="scene-map-preview" alt="Player map preview" style="display:none;max-width:100%;max-height:40vh;object-fit:contain">
     <p id="scene-map-status" role="status"></p><label class="f">Title players will see<input id="scene-map-title" value="${esc(ref?.title || beat.player?.title || beat.title)}" maxlength="200"></label>
     <label><input type="checkbox" id="scene-map-auto" ${!ref || ref.auto ? 'checked' : ''}> Show this map when this scene becomes active</label>
+    ${others.length ? `<details class="map-also"><summary>Also use this map for other scenes</summary><p class="small muted">The same title and setting apply to every scene you tick. A scene that already has a map gets this one instead.</p>
+      <div class="row"><label class="f">From<select id="scene-map-from">${sceneOptions}</select></label><label class="f">To<select id="scene-map-to">${sceneOptions}</select></label><button class="btn sm" id="scene-map-range">Tick these</button></div>
+      <div class="row"><button class="btn sm" id="scene-map-unmapped">Tick all without a map</button><button class="btn sm ghost" id="scene-map-clear">Clear</button></div>
+      <div class="map-also-list">${others.map(b => { const has = SceneMaps.reference(b.playerMap); return `<label><input type="checkbox" data-also="${esc(b.id)}"> ${esc(b.title)}${has ? ` <span class="small muted">now: ${esc(has.title)}</span>` : ''}</label>`; }).join('')}</div></details>` : ''}
     <p class="small muted">A campaign backup keeps the link, not the image. On another browser, import the same maps once to reconnect them.</p>
     <div class="row"><button class="btn primary" id="scene-map-save" disabled>Save reviewed player map</button>${ref ? '<button class="btn" id="scene-map-remove">Unlink map</button>' : ''}</div>`);
   const field = id => dlg.querySelector('#scene-map-' + id);
+  const also = () => [...dlg.querySelectorAll('[data-also]')];
+  if (others.length) {
+    field('range').onclick = () => { const ids = SceneMaps.scenesBetween(others, field('from').value, field('to').value); for (const box of also()) if (ids.includes(box.dataset.also)) box.checked = true; };
+    field('unmapped').onclick = () => { for (const box of also()) if (!SceneMaps.reference(others.find(b => b.id === box.dataset.also)?.playerMap)) box.checked = true; };
+    field('clear').onclick = () => { for (const box of also()) box.checked = false; };
+  }
   let previewGeneration = 0;
   async function preview(source) {
     const ticket = ++previewGeneration; selected = null; field('save').disabled = true;
@@ -110,8 +122,10 @@ async function sceneMapDialog(id) {
     try {
       await SceneMaps.assets.put(image);
       if (!dlg.isConnected || selected !== image || previewGeneration !== reviewGeneration || campaign !== S.campaigns?.current || !S.beats.includes(beat)) return;
-      beat.playerMap = { key: image.key, fileName: image.name, title, auto: automatic, reviewed: true };
-      sceneMapController?.reset(); dlg.close(); render(); toast('Player map linked to this scene.');
+      const link = { key: image.key, fileName: image.name, title, auto: automatic, reviewed: true }, more = also().filter(box => box.checked).map(box => box.dataset.also);
+      beat.playerMap = link;
+      const added = SceneMaps.linkScenes(S.beats, more, link);
+      sceneMapController?.reset(); dlg.close(); render(); toast(added ? `Player map linked to ${added + 1} scenes.` : 'Player map linked to this scene.');
     } catch (error) { field('save').disabled = false; field('status').textContent = error.message; }
   };
   if (ref) field('remove').onclick = () => { delete beat.playerMap; beat.playerMapAutoOff=true; sceneMapController?.reset(); playerSpotlight = null; dlg.close(); render(); };

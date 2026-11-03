@@ -61,5 +61,8 @@ const deferred = () => { let resolve, reject; const promise = new Promise((a,b) 
   ctx.S.beats=[{id:'legacy',title:'Old campaign',summary:'KARTE: a_PLAYER.png',status:'active'},{id:'off',title:'Manually unlinked',summary:'KARTE: a_PLAYER.png',playerMapAutoOff:true}];
   await vm.runInContext('sceneMapsAutoLink()',ctx);assert.equal(ctx.S.beats[0].playerMap.key,exactKey);assert.equal(ctx.S.beats[0].playerMap.auto,true);assert(!ctx.S.beats[1].playerMap,'manual unlink remains respected');assert(images.has(exactKey));
   ctx.S.beats.push({id:'later',title:'Added after reading',summary:'MAP: a_PLAYER.png'});await vm.runInContext('sceneMapsAutoLink()',ctx);assert.equal(ctx.S.beats[2].playerMap.key,exactKey,'new scenes added to an existing desk also auto-link');
+  const group = ['a', 'b', 'c', 'd'].map(id => ({ id, title: id }));group[1].playerMapAutoOff = true;group[3].playerMap = link(other, 'Old_PLAYER.png');
+  assert.deepEqual([...M.scenesBetween(group, 'c', 'a')], ['a', 'b', 'c'], 'a range works in either direction');assert.equal(M.scenesBetween(group, 'a', 'gone').length, 0);
+  assert.equal(M.linkScenes(group, ['b', 'd', 'gone'], link()), 2);assert.equal(group[1].playerMap.key, key);assert.equal(group[1].playerMapAutoOff, undefined);assert.equal(group[3].playerMap.key, key);assert.equal(group[0].playerMap, undefined, 'only ticked scenes change');assert.notEqual(group[1].playerMap, group[3].playerMap, 'each scene has its own link');
   console.log('PASS: scene-map approval, GM exclusion, hash reconnect, persistent references, missing files, scene/campaign races and manual-display overrides.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
