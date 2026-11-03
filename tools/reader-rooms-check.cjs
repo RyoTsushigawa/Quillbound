@@ -107,5 +107,10 @@ const load = f => import(pathToFileURL(path.join(__dirname, '..', 'src/importer'
   assert.equal(desk.beats[0].summary, 'level 8'); assert.equal(desk.beats[0].status, 'active', 'progress stays'); assert.equal(desk.beats[0].playerMap.key, 'k', 'the map link stays');
   assert.equal(desk.beats[1].summary, 'mine', 'an edited room is left alone'); assert.equal(desk.beats[2].summary, 'other', 'another adventure is left alone');
   assert.deepEqual(desk.encounters.map(e => e.name), ['Homemade', 'Other fight'], "only the book's fight in an untouched room is replaced");
+  // A module added as a folder stays one adventure, even though maps/ and packs/ look like products of their own.
+  const { scanLibrary } = await load('library.js');
+  const entry = path => ({ path, size: 1000, rootLen: 1, read: async () => new Uint8Array(4) });
+  const shelf = await scanLibrary(['old-mill/module.json', 'old-mill/packs/journal.db', 'old-mill/packs/actors.db', 'old-mill/maps/old-mill_first-floor.jpg', 'old-mill/maps/old-mill_cellars.jpg', 'old-mill/artwork/view.jpg'].map(entry), { hash: false });
+  assert.equal(shelf.products.length, 1, 'one module is one product');
   console.log('PASS: Foundry modules give rooms, fights by level, creature numbers and map ideas; wrapped stat lines still reach the challenge rating.');
 })().catch(e => { console.error(e); process.exit(1); });
