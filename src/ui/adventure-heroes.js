@@ -25,7 +25,7 @@ function adventureHeroSave(){
  crKeepHomebrew(c.build);const build=JSON.parse(JSON.stringify(c.build)),before=cmSheet(p.build),next=QBHeroRules.toHero(build,sheet,{...p});
  // Keep existing table adjustments when that derived value was not changed by the edit.
  if(before){if(before.ac===sheet.ac)next.ac=p.ac;if(before.hp.max===sheet.hp.max)next.hp=p.hp;if(before.skills.perception.bonus===sheet.skills.perception.bonus)next.perceptionBonus=p.perceptionBonus;}
- next.sheetDraft=sheet.open.length>0;next.hpNow=Math.min(p.hpNow ?? next.hp,next.hp);next.name=c.build.name.trim();next.want=c.story.want;next.heroStory={...c.story};
+ next.sheetDraft=sheet.open.length>0;next.hpNow=Math.min(next.hpNow,next.hp);next.name=c.build.name.trim();next.want=c.story.want;next.heroStory={...c.story};
  S.party[S.party.indexOf(p)]=next;S.creator=crNew();S.tab='desk';S.deskView='session';toast(next.name+' updated in this adventure. My heroes copies were not overwritten.');
 }
 function adventureHeroExport(id){

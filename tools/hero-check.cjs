@@ -167,4 +167,9 @@ assert.deepEqual([b.cls,b.species,s.level,b.name],['fighter','elf',5,'Old Hand']
 assert.deepEqual(plain(s.scores),old.abil,'and the same ability scores, whatever the background and level-ups add');
 assert(s.attacks.length>0,'and gets real attacks');assert.equal(R.fromOldHero({name:'X',cls:'Gardener',level:1}),null,'an unknown class is left for the DM to choose');}
 console.log('PASS: heroes from before the creator rebuild with their class, species, level and ability scores.');
+{const b1=R.quickBuild('fighter','G',1),b5=R.quickBuild('fighter','G',5),one=plain(R.toHero(b1,R.derive(b1),{id:'g'})),hurt=plain(R.toHero(b5,R.derive(b5),{...one,hpNow:4,hitDice:{die:10,left:0},stamina:1}));
+assert.equal(hurt.hpNow,4+hurt.hp-one.hp,'a level-up adds the new HP to what the hero has left');assert.equal(hurt.hitDice.left,4,'and the new Hit Dice');assert.equal(hurt.stamina,2,'and the new stamina');
+const same=plain(R.toHero(b5,R.derive(b5),{...hurt}));assert.deepEqual([same.hpNow,same.hitDice.left,same.stamina],[hurt.hpNow,4,2],'saving without a level-up heals nothing');
+const down=plain(R.toHero(b1,R.derive(b1),{...hurt,hpNow:hurt.hp}));assert.deepEqual([down.hpNow,down.hitDice.left],[down.hp,1],'a lower level still caps them');}
+console.log('PASS: a level-up adds its HP, Hit Dice and stamina to what the hero has left; other saves leave them alone.');
 console.log('PASS: 51 Player’s Handbook spells (summaries; the ones entered from memory confirmed by the DM) join the 339 SRD spells; their attack cantrips calculate.');

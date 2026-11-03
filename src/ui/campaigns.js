@@ -122,7 +122,7 @@ function vCampaigns() {
 function cmAddHero(parsed) {
   const { hero } = parsed, build = JSON.parse(JSON.stringify(hero.build)), sheet = cmSheet(build);
   if (!sheet) { toast(`${hero.name} can’t be read in this browser.`); return null; }
-  const old = (S.party || []).find(p => p.fromPlayer === hero.id), keep = old ? { hpNow: old.hpNow, hitDice: old.hitDice, stamina: old.stamina, conds: old.conds } : {};
+  const old = (S.party || []).find(p => p.fromPlayer === hero.id), keep = old ? { hpNow: old.hpNow, hp: old.hp, level: old.level, prof: old.prof, hitDice: old.hitDice, stamina: old.stamina, conds: old.conds } : {};
   const p = QBHeroRules.toHero(build, sheet, { id: old?.id || uid('p'), want: hero.story.want, ...keep }); p.name = hero.name; p.fromPlayer = hero.id; heroDefaults(p);
   if (old) S.party[S.party.indexOf(old)] = p;
   else { S.party.push(p); [['want', 'wants'], ['left', 'left behind'], ['fear', 'fears']].forEach(([k, l]) => { if (hero.story[k]?.trim()) S.hooks.push({ id: uid('h'), text: `${p.name} ${l}: ${hero.story[k].trim()}`, status: 'dangling', clock: 0, source: 'Character' }); }); }
