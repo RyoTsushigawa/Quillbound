@@ -95,5 +95,16 @@
       }
     };
   }
-  root.SceneMaps = { imageUrl, basename, dmFile, candidates, hint, suggested, reference, fingerprint, pixels, assets, controller };
+  // One reviewed map for several scenes, such as every room on a floor. Each scene gets its own link.
+  function linkScenes(beats, ids, link) {
+    let linked = 0;
+    for (const beat of beats) if (ids.includes(beat.id)) { beat.playerMap = { ...link }; delete beat.playerMapAutoOff; linked++; }
+    return linked;
+  }
+  // The scenes from one to another as listed, whichever was chosen first.
+  function scenesBetween(beats, fromId, toId) {
+    const a = beats.findIndex(b => b.id === fromId), z = beats.findIndex(b => b.id === toId);
+    return a < 0 || z < 0 ? [] : beats.slice(Math.min(a, z), Math.max(a, z) + 1).map(b => b.id);
+  }
+  root.SceneMaps = { linkScenes, scenesBetween, imageUrl, basename, dmFile, candidates, hint, suggested, reference, fingerprint, pixels, assets, controller };
 })(globalThis);
