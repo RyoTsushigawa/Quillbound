@@ -3,6 +3,7 @@ const root=path.join(__dirname,'..'),ctx=vm.createContext({console,Date,setTimeo
 vm.runInContext(fs.readFileSync(path.join(root,'src/app/live-session.js'),'utf8'),ctx);
 const core=ctx.QBLiveSession,url='data:image/png;base64,'+'A'.repeat(500000),parts=core.split(url);
 assert.equal(parts.length,3);assert.equal(core.join(parts,3),url);assert.throws(()=>core.join(parts,2));assert.throws(()=>core.split('javascript:alert(1)'));assert.throws(()=>core.split('data:image/svg+xml;base64,AAAA'));assert.throws(()=>core.split('data:image/png;base64,'+'A'.repeat(3000000)));
+(async()=>{const sizes=[];assert.equal(await core.fit((size,quality)=>{sizes.push(size+'@'+quality);return 'x'.repeat(size>1800?3000000:1000);}),'x'.repeat(1000),'a detailed picture steps down until it fits');assert.deepEqual(sizes,['2400@0.78','2400@0.6','1800@0.6']);await assert.rejects(core.fit(()=>'x'.repeat(3000000)));})().catch(e=>{console.error(e);process.exitCode=1;});
 const session={id:'dm-user',dmUid:'dm-user',members:['player-user'],active:true,epoch:'epoch-one',campaignId:'campaign-one',publisher:'this-tab',expiresAt:{toMillis:()=>Date.now()+3600000}};
 assert(core.active(session));assert(!core.active({...session,active:false}));assert(!core.active(session,Date.now()+7200000));assert(core.member(session,'player-user'));assert(!core.member(session,'stranger'));
 let writes=[],batches=[],rootDoc={...session,map:null},rendered=0;
@@ -34,7 +35,7 @@ run('liveCloud.session=session;liveCloud.selected=session.id;liveCloud.wanted={i
  run('sharedCloud.user={uid:"dm-user",displayName:"DM"};liveCloud.session={...session,expiresAt:clock,map:{id:"m",title:"Vault",count:1}};');
  assert(run('liveBar()').includes('live-hide'));assert(run('liveBar()').includes('live-end'));assert(!run('livePanel()').includes('live-end'),'map and session controls live on Session only');
  await run('liveActions()["live-hide"]()');assert.equal(ctx.playerSpotlight,null);
- run('liveCloud.session={...liveCloud.session,map:null};');assert(run('liveBar()').includes('Show map: Vault'),'a hidden map offers to come back');
+ run('liveCloud.session={...liveCloud.session,map:null};');assert(run('liveBar()').includes('Show to players: Vault'),'a hidden map offers to come back');
  await run('liveActions()["live-show"]()');assert.equal(ctx.playerSpotlight.title,'Vault');assert.equal(shown.at(-1).title,'Vault');
  run('sharedCloud.user={uid:"player-user",displayName:"P"};liveCloud.session={...session,expiresAt:clock,map:null};');const player=run('livePanel()');assert(!player.includes('live-hide')&&!player.includes('live-end')&&!player.includes('live-show'),'players get no session controls');assert(player.includes('player-dice'));
  console.log('PASS: DM live bar, reversible Hide map and no session controls for players.');
