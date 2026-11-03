@@ -66,6 +66,9 @@ function moduleRoot(p) {
   return roots.find(r => p.files.some(f => f.path.startsWith(r)));
 }
 
+// Newer Foundry versions keep each pack in a database folder, which can't be read here.
+const newerModule = p => RT.entries.some(e => /(^|\/)packs\/[^/]+\/(CURRENT|[^/]+\.ldb)$/i.test(e.path) && p.files.some(f => f.path.startsWith(e.path.replace(/packs\/[^/]+\/[^/]+$/i, ''))));
+
 const kindsOf = p => p.items.reduce((m, it) => (m[it.kind] = (m[it.kind] || 0) + 1, m), {});
 
 export async function scan() {
@@ -83,7 +86,7 @@ export function summary() {
     mirrors: RT.scanned.mirrors,
     products: RT.products.map((p, i) => ({
       i, name: p.name, type: p.type, system: p.system, language: p.language, unnamed: p.unnamed,
-      counts: p.counts, items: kindsOf(p), duplicates: p.duplicates, sources: p.units.length, module: !!moduleRoot(p),
+      counts: p.counts, items: kindsOf(p), duplicates: p.duplicates, sources: p.units.length, module: !!moduleRoot(p), newerModule: !moduleRoot(p) && newerModule(p),
       groups: p.items.map(it => ({
         kind: it.kind, kindLabel: KIND_LABEL[it.kind], label: it.label, primary: it.primary,
         files: it.files.map(f => ({ path: f.path, name: f.path.split('/').pop(), size: f.size, variant: f.variant, tags: f.tags, copyOf: f.duplicateOf ? f.duplicateOf.split('/').pop() : '', inZip: f.inZip ? f.inZip.split('/').pop() : '', previewable: IMG_OK.test(f.path) }))

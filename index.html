@@ -692,7 +692,7 @@ function vProduct(){
       ${gs.map(g=>`<div class="grp"><div class="row" style="justify-content:space-between"><b>${esc(g.label)}</b>${k==='book'&&bookVersions(g)>1?`<button class="btn sm" data-act="lib-compare" data-v="${g.gi}" ${I.busy?'disabled':''}>Compare versions</button>`:''}</div>
         ${g.files.map(f=>fileRow(g,f)).join('')}</div>`).join('')}</div>`;}).join('');
   return `<div class="pagehead"><div><button class="btn sm ghost" data-act="lib-back">← All products</button><div class="eyebrow" style="margin-top:8px">${TYPE_LABEL[p.type]}${p.system?' · '+(SYS_LABEL[p.system]||p.system):''}${p.language==='de'?' · Deutsch':''}</div><h2>${esc(p.name)}</h2>
-      <p>★ marks the version Quillbound shows first. Copies are listed but never read twice.</p></div>
+      <p>${p.module?'This is a Foundry VTT module. Quillbound reads its rooms, creatures, fights and handouts directly, so if you also have the PDF of this adventure, read this one instead.':p.newerModule?'This Foundry VTT module uses a newer data format that Quillbound can\'t read yet. Its maps and pictures still work. To get the rooms and creatures, read a PDF of the adventure.':'★ marks the version Quillbound shows first. Copies are listed but never read twice.'}</p></div>
     ${p.groups.some(g=>g.kind==='book')||p.module?`<button class="btn primary" data-act="lib-read" ${I.busy?'disabled':''}>Read this adventure</button>`:''}</div>
     ${I.busy||I.status?`<div class="card readout" style="margin-bottom:12px"><div style="color:var(--${I.busy?'accent':'warn'})">${esc(I.status)}</div></div>`:''}
     <div class="stack">${sections}</div>`;
@@ -918,7 +918,7 @@ const ACT={
   'enc-run':d=>{S.combat=startCombat(S,S.encounters.find(e=>e.id===d.id)); S.tab='combat'; window.scrollTo(0,0);},
   'c-end':()=>{const C=S.combat, leads=[];
     C.foes.forEach(f=>{ const who=f.name.replace(/ (\d+|mob)$/,'');
-      if(f.status==='fled') leads.push(`${who} escaped from ${C.name} and knows the party's faces`);
+      if(f.status==='fled') leads.push(`${who} escaped ${C.where&&C.where!=='Somewhere'?`the fight at ${String(C.where).replace(/^\d+\.\s*/,'')}`:`from ${C.name}`} and knows the party's faces`);
       if(f.status==='surrendered') leads.push(`A captured ${who} can be questioned about ${String(C.where).replace(/^\d+\.\s*/,'')}`);
       if(f.status==='bargained') leads.push(`The party owes, or is owed, a deal made with ${who}`); });
     endFightDialog(leads);}

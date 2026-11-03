@@ -56,7 +56,12 @@ function buildUnits(entries) {
       childDirs.get(parent).add(parts[d]);
     }
   }
+  // A Foundry module folder is one adventure, whatever its maps/ and packs/ folders are called.
+  const moduleRoots = entries.filter(e => /(^|\/)module\.json$/i.test(e.path)).map(e => e.path.replace(/module\.json$/i, ''))
+    .filter(r => r && !/\.zip\//i.test(r) && entries.some(e => e.path.startsWith(r + 'packs/')));
   const unitOf = (path, rootLen = 0) => {
+    const own = moduleRoots.find(r => path.startsWith(r));
+    if (own) return own.slice(0, -1);
     const parts = path.split('/');
     let depth = rootLen + 1;
     while (depth < parts.length) {
