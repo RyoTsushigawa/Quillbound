@@ -67,6 +67,7 @@ const load = f => import(pathToFileURL(path.join(__dirname, '..', 'src/importer'
   assert.equal(rat.acNum, 12); assert.equal(rat.attacks[0].damage, '1d4+2', '@mod becomes the ability modifier');
   assert.equal(ghoul.attacks[0].name, 'Sword', 'melee comes first'); assert.equal(ghoul.attacks[0].damage, '1d8+2', 'the written modifier fills a gap, and the two-handed option is not added');
   assert.deepEqual([...ghoul.turn], ['Sword', 'Sword'], '"two swords or two bows" is a choice');
+  assert(ghoul.actions.some(a => a.name === 'Multiattack' && a.text.includes('two sword')), 'abilities keep their wording for the DM');
   for (const a of ghoul.attacks) for (const k of ['name', 'bonus', 'damage']) assert(a[k] !== undefined, 'attack keeps ' + k);
   assert.deepEqual(mod.fights.map(f => [f.where, f.foes.map(x => x.n + ' ' + x.name).join(', ')]), [['1. Door', '3 Rat, 1 Ghoul'], ['3. Loft', '1 Ghoul']]);
   assert.equal(mod.fights[1].askCount, true, 'prose without a number asks the DM');

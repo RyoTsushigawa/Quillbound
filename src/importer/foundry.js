@@ -123,13 +123,16 @@ function enemyFrom(actor) {
   const size = { tiny: 'Tiny', sm: 'Small', med: 'Medium', lg: 'Large', huge: 'Huge', grg: 'Gargantuan' }[d.traits?.size] || '';
   const speed = d.attributes?.movement?.walk ?? d.attributes?.speed?.value;
   const acted = items.filter(i => i.type !== 'equipment' && i.type !== 'spell' && desc(i));
-  const isAction = i => i.type === 'weapon' || /action/i.test(i.data?.activation?.type || '') && !/bonus|reaction|legendary/i.test(i.data?.activation?.type || '');
+  const when = i => String(i.data?.activation?.type || '').toLowerCase();
+  const isAction = i => i.type === 'weapon' || when(i) === 'action' || when(i) === 'bonus';
+  const entry = i => ({ name: i.name, text: desc(i) });
   const sb = {
     id: uid('e'), name: actor.name, kind: String(typeOf).toLowerCase(), type: [size, typeOf].filter(Boolean).join(' '), page: null,
     desc: plain(d.details?.biography?.value || '').slice(0, 400),
-    traits: acted.filter(i => !isAction(i)).map(i => ({ name: i.name, text: desc(i) })),
-    actions: acted.filter(isAction).map(i => ({ name: i.name, text: desc(i) })),
-    reactions: [], legendary: [], why: 'creature sheet in the module',
+    traits: acted.filter(i => !isAction(i) && !/reaction|legendary|lair/.test(when(i))).map(entry),
+    actions: acted.filter(isAction).map(entry),
+    reactions: acted.filter(i => i.type !== 'weapon' && when(i) === 'reaction').map(entry),
+    legendary: acted.filter(i => i.type !== 'weapon' && /legendary|lair/.test(when(i))).map(entry), why: 'creature sheet in the module',
     ac: armor(actor) == null ? undefined : String(armor(actor)), hp: d.attributes?.hp?.max == null ? undefined : String(d.attributes.hp.max), hpDice: d.attributes?.hp?.formula || '',
     speed: speed == null ? '' : String(speed), cr: d.details?.cr == null ? undefined : String(d.details.cr),
     abilities: { STR: score('str'), DEX: score('dex'), CON: score('con'), INT: score('int'), WIS: score('wis'), CHA: score('cha') }

@@ -723,7 +723,7 @@ function vResults(){
       ${n.fields&&n.fields.personality?`<details class="small"><summary>From the book</summary><p>${esc(n.fields.personality.slice(0,600))}</p></details>`:''}`,n.enemyId?'<span class="chip warn">has stats</span>':'')).join('')||'<div class="empty">No people found.</div>'}</div>`;
   } else if(I.view==='enemies'){
     body=`${(R.fights||[]).length?`<h4 style="margin-bottom:8px">Fights at level ${R.level}</h4><div class="results">${R.fights.map((f,i)=>card('fights',i,f,f.name,`<p class="small muted">${esc(f.where)}</p><div class="res-foes">${f.foes.map((x,j)=>`<label class="res-foe"><input type="number" min="0" max="99" aria-label="How many ${esc(x.name)}" data-bind="importer.result.fights.${i}.foes.${j}.n" value="${esc(x.n)}"> ${esc(x.name)}</label>`).join('')}</div>${f.askCount?'<p class="small">The book gives no number here. Check the room text and set how many.</p>':''}`)).join('')}</div><h4 style="margin:18px 0 8px">Creatures</h4>`:''}<div class="results">${R.enemies.map((e,i)=>card('enemies',i,e,e.name,e.fromCard&&!e.statsFrom?`<p class="small muted">Stats are on the combat card <b>${esc(e.card)}</b>. The DM is asked for its numbers when the fight starts.</p>`:`<p class="small muted">${esc(e.type)}${e.statsFrom?` · numbers from ${esc(e.statsFrom)}${e.fromCard?`, card <b>${esc(e.card)}</b>`:''}`:''}</p>
-      ${kv([['5e',`AC ${e.acNum??e.ac??'?'} · HP ${e.hpMax??e.hp??'?'} · CR ${e.crNum??e.cr??'?'}`],['Attacks',(e.attacks||[]).map(a=>`${a.name} ${fmt(a.bonus)}, ${a.damage}`).join(' · ')||'None read. The DM is asked when the fight starts.'],['Breaks',e.breaking],['Moves',e.moves.join(', ')]])}`,`${e.npc?'<span class="chip acc">Also in People</span>':''}${e.card&&!e.fromCard?'<span class="chip">card</span>':''}`)).join('')||'<div class="empty">No stat blocks found.</div>'}</div>`;
+      ${kv([['5e',`AC ${e.acNum??e.ac??'?'} · HP ${e.hpMax??e.hp??'?'} · CR ${e.crNum??e.cr??'?'}`],['Attacks',(e.attacks||[]).map(a=>`${a.name} ${fmt(a.bonus)}, ${a.damage}`).join(' · ')||'None read. The DM is asked when the fight starts.'],['Breaks',e.breaking],['Moves',e.moves.join(', ')]])}${foeNotes(e).length?`<details class="small"><summary>Abilities</summary>${foeNotesView(foeNotes(e))}</details>`:''}`,`${e.npc?'<span class="chip acc">Also in People</span>':''}${e.card&&!e.fromCard?'<span class="chip">card</span>':''}`)).join('')||'<div class="empty">No stat blocks found.</div>'}</div>`;
   } else if(I.view==='places'){
     const maps=R.libraryMaps||[];
     body=`${maps.length?`<h4 style="margin-bottom:8px">Maps in the folder</h4><div class="results">${maps.map((m,i)=>card('libraryMaps',i,m,m.name,`<div class="small">${m.variants.map(v=>`<div>${esc(v.variant||'original')}</div>`).join('')}</div>${m.usedIn.length?`<p class="small"><span class="muted">Used in:</span> ${m.usedIn.map(esc).join(', ')}</p>`:''}`)).join('')}</div>`:''}
@@ -972,6 +972,13 @@ async function libPreview(path){
 }
 
 // Reader output → DM desk records
+// What a creature can do, in its book's words, for the DM to run by hand: traits, actions, reactions, legendary actions.
+const foeNotes=e=>[...(e.traits||[]),...(e.actions||[]),...(e.reactions||[]),...(e.legendary||[])].filter(x=>x&&x.name&&x.text).map(x=>({name:x.name,text:x.text}));
+const foeNotesView=notes=>notes.map(n=>`<p class="small"><b>${esc(n.name)}.</b> ${esc(n.text)}</p>`).join('');
+function combatAbilities(c){
+  const refs=[...new Set(c.foes.map(f=>f.ref))].map(ref=>S.bestiary.find(b=>b.id===ref)).filter(b=>b?.notes?.length);
+  return refs.length?`<details class="lt-log lt-abilities" open><summary>Creature abilities · not rolled for you</summary><p class="small muted">Attacks are rolled above. Use these rules yourself, such as saving throws, spells and special effects.</p>${refs.map(b=>`<details><summary>${esc(b.name)}</summary>${foeNotesView(b.notes)}</details>`).join('')}</details>`:'';
+}
 function sendReaderResult(s,R){
   let n=0;
   const on=x=>x.include!==false;
@@ -980,7 +987,8 @@ function sendReaderResult(s,R){
   const next=s.beats.find(b=>b.status!=='done'&&!b.reference); if(!s.beats.some(b=>b.status==='active')&&next) next.status='active';
   R.hooks.filter(on).forEach(h=>add(s.hooks,{id:h.id,text:(h.title?h.title+': ':'')+h.text,status:'dangling',clock:0,source:'Imported'},'text'));
   R.npcs.filter(on).forEach(x=>add(s.npcs,{id:x.id,name:x.name,role:x.role,wants:x.wants,fears:(x.fields&&x.fields.fear)||'',secret:x.secret,voice:x.voice,manner:x.manner,pressed:x.pressed,look:x.look,line:x.line,knows:x.knows,page:x.page,open:false}));
-  R.enemies.filter(on).forEach(e=>add(s.bestiary,{id:e.id,name:e.name,type:e.type,ac:e.ac,hp:e.hp,cr:e.cr,tier:e.tier,slots:e.slots,breakAt:e.breakAt,breaking:e.breaking,goal:e.goal,moves:e.moves,card:e.card||'',...hpFields(e)}));
+  R.enemies.filter(on).forEach(e=>{ const known=s.bestiary.find(x=>(x.name||'').toLowerCase()===(e.name||'').toLowerCase()); if(known&&!known.notes?.length) known.notes=foeNotes(e); });
+  R.enemies.filter(on).forEach(e=>add(s.bestiary,{notes:foeNotes(e),id:e.id,name:e.name,type:e.type,ac:e.ac,hp:e.hp,cr:e.cr,tier:e.tier,slots:e.slots,breakAt:e.breakAt,breaking:e.breaking,goal:e.goal,moves:e.moves,card:e.card||'',...hpFields(e)}));
   s.encounters=s.encounters||[];
   (R.fights||[]).filter(on).forEach(f=>{
     const foes=f.foes.map(x=>{ const b=s.bestiary.find(y=>(y.name||'').toLowerCase()===x.name.toLowerCase()); return b&&Number(x.n)>0?{ref:b.id,n:Number(x.n)}:null; }).filter(Boolean);
@@ -1156,7 +1164,7 @@ function vCombat(){
     <p class="lt-boardhint">Drag tokens to arrange the scene. Or use <b>Place selected token</b> below. Free placement is a DM adjustment; choose Move for a risky action.</p>
     <div class="lt-placement"><span class="small">Place selected token:</span>${Stakes.zones.map(z=>`<button class="btn sm" data-act="lt-place" data-v="${z}" ${l.pending?'disabled':''}>${esc(l.zones[z])}</button>`).join('')}</div>
     <div class="lt-turnstrip"><span class="eyebrow">${Stakes.encounterStatus(S).phase==="cleared"?"No enemies still fighting":Stakes.encounterStatus(S).phase==="party-down"?"All heroes down":"Still to act"}</span>${ready.length?ready.map(a=>`<button class="chip" data-act="lt-pick" data-id="${esc(a.id)}" ${l.pending?'disabled':''}>${esc(a.name)}</button>`).join(''):'<span>Everyone has acted. Ready for the next round.</span>'}</div>
-    ${combatObjectivesView()}
+    ${combatAbilities(c)}${combatObjectivesView()}
     <details class="lt-rules"><summary>The rules in one minute</summary>
       <p>Say what you do, and what's at risk if it goes wrong. Then roll a d20. A natural 20 and a natural 1 always count.</p>
       <p><b>Attack:</b> d20 + your attack bonus against the target’s armor class. Reach it and you hit for your normal damage. Miss by 5 or less and it’s a graze: half damage. The first eligible graze or miss while the enemy is standing may trigger one strike-back for the whole Attack action, unless it can't reach you. Extra Attack means one roll per attack.</p>
