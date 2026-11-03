@@ -284,7 +284,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/app/player-hp.js" data-ui></script>
 <script src="src/app/homebrew.js"></script>
 <script src="src/app/sheet-export.js?v=20261101-profs1"></script>
-<script src="src/app/campaigns.js?v=20261102-adventures1" data-ui></script>
+<script src="src/app/campaigns.js?v=20261103-adventures2" data-ui></script>
 <script src="src/app/hero-import.js" data-ui></script>
 <script src="src/app/table-homebrew.js"></script>
 <script src="src/app/combat-rules.js"></script>
@@ -903,7 +903,7 @@ const ACT={
   'res-level':d=>{QB.applyLevel(S.importer.result,+d.v);},
   'scene-map-rooms':()=>sceneMapRoomsDialog(),
   'res-back':()=>{S.importer.phase=S.importer.lib?'product':'library';},
-  'res-send':()=>{const n=sendReaderResult(S,S.importer.result); toast(n?`Sent ${n} new entries to the DM desk`:'Everything selected is already on the desk'); S.tab='desk'; window.scrollTo(0,0);},
+  'res-send':()=>{const n=sendReaderResult(S,S.importer.result); toast((n?`Sent ${n} new entries to the DM desk.`:'Everything selected is already on the desk.')+(S.importer.result.sendNote||'')); S.tab='desk'; window.scrollTo(0,0);},
   'tbl-roll':d=>{const t=S.tables.find(x=>x.id===d.id); if(!t) return; const r=t.rows[Math.floor(Math.random()*t.rows.length)]; t.last=r.roll+': '+r.text;},
   beat:d=>{const b=S.beats.find(x=>x.id===d.id); if(!b)return; b.status={upcoming:'active',active:'done',done:'upcoming'}[b.status]; if(b.status==='active')S.sceneMapSceneId=b.id;},
   'hook-clock':d=>{const h=S.hooks.find(x=>x.id===d.id); h.clock=(h.clock+1)%5;},
@@ -979,11 +979,29 @@ function combatAbilities(c){
   const refs=[...new Set(c.foes.map(f=>f.ref))].map(ref=>S.bestiary.find(b=>b.id===ref)).filter(b=>b?.notes?.length);
   return refs.length?`<details class="lt-log lt-abilities" open><summary>Creature abilities · not rolled for you</summary><p class="small muted">Attacks are rolled above. Use these rules yourself, such as saving throws, spells and special effects.</p>${refs.map(b=>`<details><summary>${esc(b.name)}</summary>${foeNotesView(b.notes)}</details>`).join('')}</details>`:'';
 }
+const textMark=text=>{ let h=0; for(const c of String(text||'')) h=(h*31+c.charCodeAt(0))|0; return h; };
+// Sending a module again at another level: rooms the DM has not edited and the book's fights move to that level.
+function moduleLevelChange(s,R,on){
+  const out={rooms:0,edited:0};
+  for(const b of R.beats.filter(on)){
+    const old=s.beats.find(x=>x.title===b.title&&x.source===R.product);
+    if(!old||old.moduleLevel===R.level) continue;
+    if(old.moduleMark===undefined||old.moduleMark===textMark(old.summary)){ if(old.summary!==b.summary){ old.summary=b.summary; out.rooms++; } old.moduleMark=textMark(b.summary); }
+    else out.edited++;
+    old.moduleLevel=R.level;
+  }
+  const names=new Set((R.fightPlan||[]).map(f=>f.name+'@'+f.where));
+  s.encounters=(s.encounters||[]).filter(e=>!names.has(e.name+'@'+e.where)||e.moduleLevel===R.level);
+  return out;
+}
 function sendReaderResult(s,R){
   let n=0;
+  const wasEmpty=!(s.beats||[]).length;
   const on=x=>x.include!==false;
   const add=(arr,item,key='name')=>{ if(arr.some(x=>(x[key]||'').toLowerCase()===(item[key]||'').toLowerCase())) return; arr.push(item); n++; };
-  R.beats.filter(on).forEach(b=>add(s.beats,{id:b.id,title:b.title,...(b.reference?{reference:true}:{}),...(b.chapter?{chapter:b.chapter}:{}),summary:b.summary,branches:b.branches||[],question:b.question||'',transition:b.transition||'',senses:b.senses||[],readAloud:b.readAloud||[],page:b.page,source:R.product,status:'upcoming'},'title'));
+  const moved=R.module?moduleLevelChange(s,R,on):{rooms:0,edited:0};
+  R.sendNote=(moved.rooms?` ${moved.rooms} room${moved.rooms===1?'':'s'} moved to level ${R.level}.`:'')+(moved.edited?` ${moved.edited} room${moved.edited===1?'':'s'} you edited ${moved.edited===1?'was':'were'} left as ${moved.edited===1?'it was':'they were'}.`:'');
+  R.beats.filter(on).forEach(b=>add(s.beats,{...(R.module?{moduleLevel:R.level,moduleMark:textMark(b.summary)}:{}),id:b.id,title:b.title,...(b.reference?{reference:true}:{}),...(b.chapter?{chapter:b.chapter}:{}),summary:b.summary,branches:b.branches||[],question:b.question||'',transition:b.transition||'',senses:b.senses||[],readAloud:b.readAloud||[],page:b.page,source:R.product,status:'upcoming'},'title'));
   const next=s.beats.find(b=>b.status!=='done'&&!b.reference); if(!s.beats.some(b=>b.status==='active')&&next) next.status='active';
   R.hooks.filter(on).forEach(h=>add(s.hooks,{id:h.id,text:(h.title?h.title+': ':'')+h.text,status:'dangling',clock:0,source:'Imported'},'text'));
   R.npcs.filter(on).forEach(x=>add(s.npcs,{id:x.id,name:x.name,role:x.role,wants:x.wants,fears:(x.fields&&x.fields.fear)||'',secret:x.secret,voice:x.voice,manner:x.manner,pressed:x.pressed,look:x.look,line:x.line,knows:x.knows,page:x.page,open:false}));
@@ -992,8 +1010,9 @@ function sendReaderResult(s,R){
   s.encounters=s.encounters||[];
   (R.fights||[]).filter(on).forEach(f=>{
     const foes=f.foes.map(x=>{ const b=s.bestiary.find(y=>(y.name||'').toLowerCase()===x.name.toLowerCase()); return b&&Number(x.n)>0?{ref:b.id,n:Number(x.n)}:null; }).filter(Boolean);
-    if(foes.length&&!s.encounters.some(e=>e.name===f.name&&e.where===f.where)){ s.encounters.push({id:uid('e'),name:f.name,where:f.where,goal:f.goal,foes}); n++; }
+    if(foes.length&&!s.encounters.some(e=>e.name===f.name&&e.where===f.where)){ s.encounters.push({id:uid('e'),name:f.name,where:f.where,goal:f.goal,foes,moduleLevel:R.level}); n++; }
   });
+  if(wasEmpty&&(R.title||R.product)&&typeof QBCampaigns==='object'){ const box=QBCampaigns.shelf(s); if(!box.name||box.name==='New adventure') box.name=String(R.title||R.product).slice(0,80); }
   const areasByBeat={};
   R.locations.filter(on).forEach(l=>{ (areasByBeat[l.beat||'Other areas']=areasByBeat[l.beat||'Other areas']||[]).push({key:l.key,name:l.name,text:l.text}); });
   (R.libraryMaps||[]).filter(on).forEach(m=>{ const areas=m.usedIn.flatMap(b=>areasByBeat[b]||[]); add(s.maps,{id:m.id,name:m.name,areas,variants:m.variants.map(v=>v.variant||'original'),usedIn:m.usedIn}); });
