@@ -325,6 +325,20 @@
     if (keep.species) { Object.assign(b, { species: keep.species, sub: keep.sub || '', size: keep.size || '', keenSense: keep.keenSense || '', speciesSkill: keep.speciesSkill || (keep.species === 'human' ? b.speciesSkill : ''), speciesFeat: keep.speciesFeat || '' }); }
     return fillDefaults(b);
   }
+  // A full build for a hero made before the creator: same class, species and level, and the same ability scores.
+  // null when the class isn't one the creator knows. The recommended picks fill the rest, for the DM to check.
+  function fromOldHero(p) {
+    const data = H(), named = (list, v) => list.find(x => x.name.toLowerCase() === String(v || '').trim().toLowerCase());
+    const c = named(data.classes, p.cls), sp = named(data.species, p.anc);
+    if (!c) return null;
+    const b = quickBuild(c.id, p.name || '', p.level || 1, sp ? { species: sp.id } : {});
+    if (p.abil && ABIL.every(k => Number.isInteger(p.abil[k]))) {
+      b.abilities = { method: 'set', base: { ...p.abil } };
+      // What the background and level-ups add is taken back off the base. More than once, because the cap of 20 hides some of it at first.
+      for (let i = 0; i < 3; i++) { const got = derive(b).scores; b.abilities.base = Object.fromEntries(ABIL.map(k => [k, Math.max(3, Math.min(20, b.abilities.base[k] + p.abil[k] - got[k]))])); }
+    }
+    return b;
+  }
   // Fill whatever is still open with the recommended pick (the player can change any of it).
   const STYLE = { fighter: 'defense', paladin: 'defense', ranger: 'archery' };
   function fillDefaults(b) {
@@ -375,5 +389,5 @@
     return b;
   }
 
-  root.QBHeroRules = { customWeapon, equipmentItem:(b,id)=>item(id,b), subOf, featAllowed, featBlockers, getHomebrew, spellList, classProfs, TRAINING, priceOf, setHomebrew, data: () => H(), ABIL, ARRAY, POINT_COST, POINTS, mod, profFor, die, rollAbilities, rollTotal, rollHp, derive, toHero, quickBuild, fillDefaults, inventory, equipped, proficientWith, asiLevels, expertiseCount, abilityChecks, boostCheck };
+  root.QBHeroRules = { fromOldHero, customWeapon, equipmentItem:(b,id)=>item(id,b), subOf, featAllowed, featBlockers, getHomebrew, spellList, classProfs, TRAINING, priceOf, setHomebrew, data: () => H(), ABIL, ARRAY, POINT_COST, POINTS, mod, profFor, die, rollAbilities, rollTotal, rollHp, derive, toHero, quickBuild, fillDefaults, inventory, equipped, proficientWith, asiLevels, expertiseCount, abilityChecks, boostCheck };
 })(globalThis);

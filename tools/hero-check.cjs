@@ -162,4 +162,9 @@ const L=c8.QBSPELLS,R8=c8.QBHeroRules,extra=L.filter(s=>s.source==='phb-2024');a
 assert(extra.every(s=>s.level>=0&&s.level<=9&&s.classes.length&&s.time&&s.range&&s.duration&&s.desc&&(!s.damage||s.damageType)),'every field set');
 const w={...R8.quickBuild('warlock','W',5)};w.spells.cantrips=['toll-the-dead','mind-sliver'];const at=plain(R8.derive(w).attacks).filter(a=>a.kind==='cantrip');
 assert.deepEqual(at.map(a=>[a.name,a.save,a.damage]),[['Toll the Dead','WIS','2d8'],['Mind Sliver','INT','2d6']],'save cantrips scale at level 5');}
+{const old={name:'Old Hand',cls:'Fighter',anc:'Elf',level:5,abil:{STR:17,DEX:12,CON:15,INT:8,WIS:13,CHA:10}},b=plain(R.fromOldHero(old)),s=sheet(b);
+assert.deepEqual([b.cls,b.species,s.level,b.name],['fighter','elf',5,'Old Hand'],'an old hero keeps class, species, level and name');
+assert.deepEqual(plain(s.scores),old.abil,'and the same ability scores, whatever the background and level-ups add');
+assert(s.attacks.length>0,'and gets real attacks');assert.equal(R.fromOldHero({name:'X',cls:'Gardener',level:1}),null,'an unknown class is left for the DM to choose');}
+console.log('PASS: heroes from before the creator rebuild with their class, species, level and ability scores.');
 console.log('PASS: 51 Player’s Handbook spells (summaries; the ones entered from memory confirmed by the DM) join the 339 SRD spells; their attack cantrips calculate.');

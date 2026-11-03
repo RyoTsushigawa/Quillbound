@@ -58,9 +58,7 @@ The **Create a hero** tab builds 2024 (SRD 5.2) heroes from level 1 to 20.
 
 **In combat,** a hero made here fights with the strongest attack on its sheet (highest average damage per action). It also uses the sheet's HP, AC and Hit Dice, and stamina equal to its proficiency bonus.
 
-**What isn't included yet:**
-- Heroes made before this creator keep their simple starter attack. A "Rebuild in the new creator" button for them comes later.
-- Homebrew species, backgrounds and classes come later too.
+**Heroes made before this creator** keep their simple starter attack until the DM presses **Rebuild in the creator** under Adventure characters. That opens a full sheet with the same class, species, level and ability scores, and the recommended choices filled in for the DM to check. Nothing changes until it is saved. Current HP and conditions stay, up to the new maximum. If the creator doesn't know the hero's class, the DM chooses the closest one.
 
 **Character sheet (print / PDF):** the creator's last step and the DM desk's Character sheets show a two-page sheet: abilities, saves, skills (proficiency and expertise marked), attacks, AC, HP, speed, initiative, passive Perception, boxes for stamina, Hit Dice and death saves, equipment and tools, the Quillbound table rules, spells with slots, every feature and feat (summarised), and lines for notes. A switch shows it in German or English (rules text from the data stays English). **Print / save as PDF** opens the browser's print dialog; choose "Save as PDF" for a file. Heroes made before the hero creator have no sheet until they're rebuilt there.
 
