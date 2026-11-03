@@ -56,7 +56,7 @@ function liveBar(){
  if(!liveOwner())return '<section class="live-bar live-off" id="live-table" data-live="bar"><div class="live-bar-main"><div class="live-bar-state"><b>Live table is off</b><span class="small muted">Share maps, chat and dice with connected players.</span></div><div class="row"><button class="btn" data-act="live-start">Start live session</button></div></div>'+liveStatus()+'</section>';
  const s=liveCloud.session,shown=!!s.map?.id,offer=shown?null:liveMapOffer(),elsewhere=s.publisher!==playerPublisherId||s.campaignId!==S.campaigns?.current,count=(s.members || []).length;
  const seen=shown?(liveCloud.mapUrl?'<img id="live-map" class="live-thumb" data-map-key="'+esc(liveCloud.mapKey)+'" src="'+esc(liveCloud.mapUrl)+'" alt="">':'')+'<span><span class="small muted">Players see</span><b>'+esc(s.map.title)+'</b></span>':'<span><span class="small muted">Players see</span><b>No map</b></span>';
- const button=shown?'<button class="btn" data-act="live-hide">Hide map</button>':offer?'<button class="btn primary" data-act="live-show">Show map: '+esc(offer.title)+'</button>':'<span class="small muted live-no-map">This scene has no player map. Link one under Player map below.</span>';
+ const button=shown?'<button class="btn" data-act="live-hide">Hide from players</button>':offer?'<button class="btn primary" data-act="live-show">Show to players: '+esc(offer.title)+'</button>':'<span class="small muted live-no-map">This scene has no player map. Link one under Player map below.</span>';
  return '<section class="live-bar" id="live-table" data-live="bar"><div class="live-bar-main"><div class="live-bar-state"><b><span class="live-dot" aria-hidden="true"></span>Live</b><span class="small muted">until '+liveClock(s)+' · '+count+' player'+(count===1?'':'s')+'</span></div><div class="live-bar-map">'+seen+'</div><div class="row live-bar-actions">'+button+'<button class="btn" data-act="player-dice">Roll dice</button><button class="btn ghost" data-act="live-end">End session</button></div></div>'+(elsewhere?'<p class="hero-note small live-elsewhere">Scene changes in this tab are not reaching players yet. <button class="btn sm" data-act="live-claim">Use this tab</button></p>':'')+liveChat()+liveStatus()+'</section>';
 }
 function livePanel(){
@@ -99,8 +99,8 @@ function liveStart(){
 }
 async function liveCompress(url){
  if(url.length<=2880000){QBLiveSession.split(url);return url;}
- const bitmap=await createImageBitmap(await (await fetch(url)).blob()),scale=Math.min(1,2400/Math.max(bitmap.width,bitmap.height)),canvas=document.createElement('canvas');
- canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();const compressed=canvas.toDataURL('image/jpeg',0.78);QBLiveSession.split(compressed);return compressed;
+ const bitmap=await createImageBitmap(await (await fetch(url)).blob());
+ try{const compressed=await QBLiveSession.fit((size,quality)=>{const scale=Math.min(1,size/Math.max(bitmap.width,bitmap.height)),canvas=document.createElement('canvas');canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);return canvas.toDataURL('image/jpeg',quality);});QBLiveSession.split(compressed);return compressed;}finally{bitmap.close();}
 }
 function livePublish(data){
  const s=liveCloud.session,user=sharedCloud.user;if(S.role!=='dm'||!user||s?.campaignId!==S.campaigns?.current||s?.dmUid!==user.uid||s.publisher!==playerPublisherId||!QBLiveSession.active(s))return;
