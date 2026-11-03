@@ -93,9 +93,9 @@ const load = f => import(pathToFileURL(path.join(__dirname, '..', 'src/importer'
   assert.equal(M.mapTitle(maps[1], maps), 'Second Floor');
   assert.equal(rooms.some(r => r.playerMap), false, 'suggesting links nothing');
   // Sending again at another level moves untouched rooms and replaces the book's fights, and nothing else.
-  const page = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');
-  const start = page.indexOf('const textMark='), stop = page.indexOf('function sendReaderResult(s,R){');
-  const { textMark, moduleLevelChange } = new Function(page.slice(start, stop) + ';return { textMark, moduleLevelChange };')();
+  const appPage = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');
+  const start = appPage.indexOf('const textMark='), stop = appPage.indexOf('function sendReaderResult(s,R){');
+  const { textMark, moduleLevelChange } = new Function(appPage.slice(start, stop) + ';return { textMark, moduleLevelChange };')();
   const desk = { beats: [{ title: 'A', source: 'P', summary: 'level 5', moduleLevel: 5, moduleMark: textMark('level 5'), status: 'active', playerMap: { key: 'k' } }, { title: 'B', source: 'P', summary: 'mine', moduleLevel: 5, moduleMark: textMark('level 5') }, { title: 'C', source: 'Other', summary: 'other' }],
     encounters: [{ name: 'Fight', where: 'A', moduleLevel: 5 }, { name: 'Homemade', where: 'A' }] };
   const moved = moduleLevelChange(desk, { product: 'P', level: 8, beats: [{ title: 'A', summary: 'level 8' }, { title: 'B', summary: 'level 8' }, { title: 'C', summary: 'level 8' }], fightPlan: [{ name: 'Fight', where: 'A' }] }, () => true);
