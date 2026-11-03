@@ -52,7 +52,7 @@ function heroCard(h){
 function vHeroes() {
   const list=S.myHeroes || [],live=QBLiveSession.active(liveCloud.session),unsaved=S.role==='dm'?cmUnsavedParty().length:0;
   const imports='<div class="row"><label class="btn">Open a hero file…<input type="file" id="cm-my-file" accept=".json,application/json" hidden></label><button class="btn" data-act="hi-open" data-v="mine">Import from a sheet…</button></div>';
-  return `<div class="pagehead"><div><div class="eyebrow">My heroes</div><h2>Your heroes</h2><p>Select your character to play or edit.</p></div><div class="row">${inviteButtons(false)}${list.length?'<button class="btn" data-act="player-dice">Free dice roll</button><button class="btn primary" data-act="cm-newhero">Create a hero</button>':''}</div></div>
+  return `<div class="pagehead"><div><h2>Your heroes</h2><p>Select your character to play or edit.</p></div><div class="row">${inviteButtons(false)}${list.length?'<button class="btn" data-act="player-dice">Free dice roll</button><button class="btn primary" data-act="cm-newhero">Create a hero</button>':''}</div></div>
     ${inviteUI.token?`<p class="hero-note hero-invite">You have a campaign invitation. ${sharedCloud.user?'Choose <b>Join a campaign</b> to see it.':'Sign in with Google under <b>Connection &amp; import → Shared characters</b>, then choose <b>Join a campaign</b>.'}</p>`:''}
     ${live?livePanel():''}
     ${sharedConnections()}
@@ -67,11 +67,11 @@ function heroDisclosureRestore(ids){if(S.tab!=='heroes')return;document.querySel
 function cmAdventureChanged(){sceneMapsPause();playerSpotlight=null;if(typeof liveCloud!=='undefined')liveCloud.hidden=null;sceneMapHold=sceneMapContext().token;publishPlayer(true);}
 function cmAdventures(){
   const count=(n,word)=>n+' '+word+(n===1?'':'s'),parked=QBCampaigns.shelf(S).parked;
-  return `<section class="card stack"><h3>Adventures</h3><p class="small muted">Change the adventure whenever you like. Your party, connected players and invitations stay. Scenes, leads, people, maps and fights stay with their adventure and wait here.</p>
+  return `<section class="card stack"><h3>Adventures</h3><p class="small muted">Change adventure whenever you like. Your party and connected players stay, and everything else waits here.</p>
       <div class="row hb-item"><span class="row"><input class="adventure-name" data-act-change="cm-advrename" value="${esc(QBCampaigns.adventureName(S))}" maxlength="80" aria-label="Name of the current adventure"><span class="chip ok">Playing</span></span><span class="small muted">${count((S.beats || []).length,'scene')}</span></div>
       ${parked.map(a=>`<div class="row hb-item"><span><b>${esc(a.name)}</b> <span class="small muted">${count((a.data?.beats || []).length,'scene')} · saved ${new Date(a.updated).toLocaleDateString()}</span></span><span class="row"><button class="btn sm primary" data-act="cm-advplay" data-id="${esc(a.id)}">Play this</button><button class="btn sm ghost" data-act="cm-advdel" data-id="${esc(a.id)}">Delete</button></span></div>`).join('')}
       <div class="row"><input id="cm-adv-name" placeholder="Name of the next adventure" maxlength="80" aria-label="New adventure name"><button class="btn" data-act="cm-advnew">New adventure</button></div>
-      <p class="small muted">A new adventure starts empty, then opens Import adventure. To add one you already have, use <b>Restore campaign / ZIP…</b> above, or <b>Bring adventure here</b> under Your campaigns.</p></section>`;
+      <p class="small muted">To add one you already have, use <b>Restore campaign / ZIP…</b> above, or <b>Bring adventure here</b> under Your campaigns.</p></section>`;
 }
 // A backup can join this party as an adventure, or stay a campaign of its own.
 function cmAdoptAdventure(parsed){
@@ -97,7 +97,7 @@ function cmRestoreChoice(parsed){
 }
 function vCampaigns() {
   const c = QBCampaigns.ensure(S), cur = QBCampaigns.current(S), others = c.list.filter(x => x.id !== cur.id);
-  return `<div class="pagehead"><div><div class="eyebrow">Adventure manager · DM only</div><h2>${esc(cur.name)}</h2><p>Each campaign has its own party, session, adventures and combat. Switching saves this one and opens the other.</p></div>
+  return `<div class="pagehead"><div><h2>${esc(cur.name)}</h2><p>Each campaign has its own party, adventures and fights.</p></div>
       <div class="row"><button class="btn" data-act="cm-export">Back up this campaign…</button><label class="btn">Restore campaign / ZIP…<input type="file" id="cm-camp-file" accept=".json,.zip,application/json,application/zip" hidden></label></div></div>
     ${livePanel()}<div class="stack"><section class="card stack"><h3>This campaign</h3><label class="f">Name<input data-act-change="cm-rename" value="${esc(cur.name)}" maxlength="80"></label>
       <p class="small muted">${(S.adventures || []).length} adventure${(S.adventures || []).length === 1 ? '' : 's'} · ${(S.beats || []).length} scenes on the desk · ${(S.encounters || []).length} prepared fights${S.combat ? ' · a fight is running' : ''}</p>
@@ -108,13 +108,13 @@ function vCampaigns() {
         <span class="row">${p.build ? `<button class="btn sm" data-act="sheet-print" data-id="${esc(p.id)}">Sheet</button>` : ''}${adventureHeroButtons(p)}</span></div>`).join('') || '<p class="muted">No heroes yet.</p>'}
       <h4>Add heroes your players sent</h4>
       <div class="row"><label class="btn primary">Add hero files…<input type="file" id="cm-hero-file" accept=".json,application/json" multiple hidden></label><button class="btn" data-act="hi-open" data-v="party">Import from a sheet (PDF, D&amp;D Beyond, Foundry)…</button></div>
-      <label class="f">…or paste a hero a player copied as text<textarea id="cm-paste" rows="3" placeholder='{"format":"quillbound-hero", …}'></textarea></label><div class="row"><button class="btn" data-act="cm-paste">Add pasted hero</button></div>
+      <details><summary>Paste a hero a player copied as text</summary><label class="f">Hero text<textarea id="cm-paste" rows="3" placeholder='{"format":"quillbound-hero", …}'></textarea></label><div class="row"><button class="btn" data-act="cm-paste">Add pasted hero</button></div></details>
       <p class="small muted">A hero sent again replaces the earlier version and keeps its current hit points. Homebrew the hero uses comes with it.</p>
       <h4>Connect players online</h4><div class="row">${inviteButtons(true)}</div>${sharedPanel()}</section>
     <section class="card stack"><h3>Your campaigns</h3>
       ${c.list.map(x => `<div class="row hb-item"><span><b>${esc(x.name)}</b>${x.id === cur.id ? ' <span class="chip ok">open</span>' : ` <span class="small muted">${(x.data?.party || []).length} heroes · saved ${new Date(x.updated).toLocaleDateString()}</span>`}</span>
         ${x.id === cur.id ? '' : `<span class="row">${x.data?`<button class="btn sm" data-act="cm-advbring" data-id="${esc(x.id)}">Bring adventure here</button>`:''}<button class="btn sm" data-act="cm-switch" data-id="${esc(x.id)}">Open</button><button class="btn sm ghost" data-act="cm-delcamp" data-id="${esc(x.id)}">Delete</button></span>`}</div>`).join('')}
-      <div class="row"><input id="cm-new-name" placeholder="The Night Shift" maxlength="80" aria-label="New campaign name"><button class="btn primary" data-act="cm-newcamp">New campaign</button></div>
+      <div class="row"><input id="cm-new-name" placeholder="The Night Shift" maxlength="80" aria-label="New campaign name"><button class="btn" data-act="cm-newcamp">New campaign</button></div>
       ${others.length ? '' : '<p class="small muted">A new campaign starts empty. Your current one stays here and opens again with one click.</p>'}</section></div>`;
 }
 

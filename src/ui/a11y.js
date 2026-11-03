@@ -1,6 +1,7 @@
 /* Keyboard and screen-reader support for the whole app. render() rebuilds the page, so without this a
    keyboard user would fall back to the top of the page after every action, and page changes would go unheard. */
 (function () {
+  if (typeof render !== 'function') return; // a test that loads this file alone
   const TITLES = { home: 'Home', desk: 'Session', campaigns: 'Campaigns', combat: 'Combat', heroes: 'My heroes', create: 'Create a hero', import: 'Import adventure', homebrew: 'Homebrew' };
   const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex="0"]';
   const shown = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
@@ -51,23 +52,33 @@
     e.preventDefault(); next.focus(); next.click();
   });
 
+  // "Choose file" buttons are labels for hidden inputs, which a keyboard can't reach on its own.
+  const fileInput = l => l.control?.type === 'file' && l.control;
+  function fileButtons(root) {
+    for (const l of root.querySelectorAll('label')) if (fileInput(l) && l.control.hidden) { l.tabIndex = 0; l.setAttribute('role', 'button'); }
+  }
+  document.addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('label[role=button]') && fileInput(e.target)) { e.preventDefault(); e.target.control.click(); }
+  });
+  const dialog = openDialog;
+  openDialog = function (...args) { const dlg = dialog(...args); fileButtons(dlg); return dlg; };
+
   function titlePage() {
     const name = TITLES[S.tab] || 'Quillbound', h1 = document.createElement('h1');
     h1.id = 'page-title'; h1.className = 'sr-only'; h1.tabIndex = -1; h1.textContent = name;
     view().prepend(h1); document.title = name + ' · Quillbound';
   }
 
-  if (typeof render !== 'function') return; // a test that loads this file alone
   let page = null, rollSaid = '';
   const draw = render;
   render = function () {
     const was = remember(), tab = page;
-    draw(); titlePage(); tabLists();
+    draw(); titlePage(); tabLists(); fileButtons(document.body);
     page = S.tab;
     if (tab !== null && tab !== page) { window.scrollTo(0, 0); document.getElementById('page-title').focus({ preventScroll: true }); } else restore(was);
     const roll = document.querySelector('.lt-panel .lt-result')?.innerText.replace(/\s+/g, ' ').slice(0, 240) || '';
     if (roll && roll !== rollSaid) say(roll);
     rollSaid = roll;
   };
-  titlePage(); tabLists(); page = S.tab;
+  titlePage(); tabLists(); fileButtons(document.body); page = S.tab;
 })();
