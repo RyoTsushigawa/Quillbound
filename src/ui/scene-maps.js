@@ -194,6 +194,39 @@ function sceneMapRoomsDialog() {
     } catch (error) { status.textContent = error.message; save.disabled = false; }
   };
 }
+// Handouts wait privately in this browser. Only the DM's button sends one to the players.
+const sceneHandoutUrls = new Map();
+async function sceneHandoutsStore(R) {
+  let saved = 0;
+  for (const made of (R.handouts || []).filter(h => h.include !== false && h.path)) {
+    const handout = (S.handouts || []).find(h => h.title === made.title && h.source === R.product);
+    if (!handout || handout.key) continue;
+    try {
+      const source = await QB.blobFor(made.pi, made.path);
+      const image = { key: await SceneMaps.fingerprint(source.blob), url: await SceneMaps.pixels(source.blob) };
+      await SceneMaps.assets.put(image); handout.key = image.key; sceneHandoutUrls.set(image.key, image.url); saved++;
+    } catch { /* the room says the picture is missing */ }
+  }
+  if (saved && typeof render === 'function') render();
+}
+function sceneHandoutsHydrate() {
+  for (const img of document.querySelectorAll('img[data-handout-key]')) {
+    const key = img.dataset.handoutKey, known = sceneHandoutUrls.get(key);
+    if (known) { img.src = known; continue; }
+    SceneMaps.assets.get(key).then(image => { if (!SceneMaps.imageUrl(image?.url)) return; sceneHandoutUrls.set(key, image.url); if (img.isConnected) img.src = image.url; }).catch(() => {});
+  }
+}
+async function sceneHandoutShow(id) {
+  const handout = (S.handouts || []).find(h => h.id === id); if (!handout) return;
+  if (playerSpotlight?.handout === id) { playerSpotlight = null; sceneMapController?.reset(); publishPlayer(true); render(); toast('Handout hidden from players.'); return; }
+  const ticket = sceneMapsPause();
+  try {
+    const image = await SceneMaps.assets.get(handout.key);
+    if (!SceneMaps.imageUrl(image?.url)) throw Error('missing');
+    if (!sceneMapsCurrent(ticket)) return;
+    playerSpotlight = { type: 'image', title: handout.title, url: image.url, handout: id }; publishPlayer(true); render(); toast('Handout shown to players.');
+  } catch { toast('This picture is not saved in this browser. Read the module again to bring it back.'); }
+}
 async function sceneMapShow(id) {
   const beat = S.beats.find(b => b.id === id), ref = SceneMaps.reference(beat?.playerMap), campaign = S.campaigns?.current;
   if (!ref) return;

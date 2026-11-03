@@ -219,5 +219,10 @@ async function readProductModule(p, root, onProgress) {
   result.source = manifest.title || p.name;
   result.product = p.name;
   result.libraryMaps = mapsOf(p, result);
+  // A handout whose picture isn't in the module is left out rather than shown broken.
+  result.handouts = result.handouts.map(h => {
+    const f = p.files.find(x => x.path === root + h.file.replace(/^modules\/[^/]+\//, ''));
+    return f ? { ...h, pi: RT.products.indexOf(p), path: f.path, fileName: f.path.split('/').pop() } : null;
+  }).filter(Boolean);
   return result;
 }

@@ -6,7 +6,7 @@ ctx.sceneMapHint=()=>'';ctx.SceneMaps={reference:r=>r?.reviewed?r:null};ctx.S={r
 ctx.sceneMapContext=()=>({beat:ctx.S.beats.find(b=>b.id===ctx.S.sceneMapSceneId&&b.status==='active')||ctx.S.beats.find(b=>b.status==='active')});
 vm.runInContext(fs.readFileSync(path.join(root,'src/ui/session-overview.js'),'utf8'),ctx);
 const acts=ctx.sessionOverviewActions();let shown=ctx.sessionOverview(()=>'<div>Legacy preparation</div>');
-assert(shown.includes('DM View · Session'));assert(shown.includes('Reference notes (1)'));assert(shown.includes('NPC roleplay helpers'));assert(shown.includes('Tired'));assert(shown.includes('ov-live" role="status">● Players are here'),'current scene is clearly labelled');
+assert(shown.includes('DM View · Session'));assert(shown.includes('Reference notes (1)'));assert(shown.includes('NPC roleplay helpers'));assert(shown.includes('Tired'));assert(shown.includes('ov-live" role="status">Players are here'),'current scene is clearly labelled');
 assert.equal(ctx.overviewSections('# First\nOne\n# Second\nTwo').length,2);
 assert(shown.includes('data-act="desk-go" data-id="B"'),'location names enter a room in one click');assert(shown.includes('ov-flow-block'),'core notes are readable without opening individual headings');assert(shown.includes('ov-present'),'relevant NPC guidance is immediately visible');
 assert(shown.includes('ov-next-top'),'continuation is available before the long briefing');assert(shown.includes('Briefing shortcuts'));

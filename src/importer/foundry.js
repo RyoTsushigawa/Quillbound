@@ -140,6 +140,20 @@ function enemyFrom(actor) {
   return exactAttacks(actor, shapeFoe(sb));
 }
 
+// A handout page names its picture. The book doesn't say where it belongs, so its own words give a first idea:
+// a fight named the same, or else a room named the same.
+function handoutsFrom(journal, fights, beats) {
+  const roomFor = title => {
+    const words = title.toLowerCase().split(/[^a-z]+/).filter(w => w.length > 4);
+    const named = text => { const own = String(text).toLowerCase().split(/[^a-z]+/); return words.some(w => own.includes(w)); };
+    return fights.find(f => named(f.name))?.where || beats.find(b => !b.reference && named(b.title))?.title || '';
+  };
+  return journal.filter(j => j.img && /handout/i.test(j.name)).map(j => {
+    const title = j.name.split(/[>:]/).pop().trim();
+    return { id: uid('art'), title, file: j.img, where: roomFor(title), why: 'handout page in the module', page: null };
+  });
+}
+
 // packs: { journal: [...], actors: [...], items: [...] }, each the parsed lines of one .db file
 export function readModule({ manifest = {}, journal = [], actors = [], items = [] }, source = '') {
   const pages = journal.filter(j => plain(j.content || ''))
@@ -223,7 +237,7 @@ export function readModule({ manifest = {}, journal = [], actors = [], items = [
   const result = {
     module: true, title: pageTitle(pages[0] || { blocks: [], name: manifest.title || source }), language: 'en', system: /dnd5e/.test(JSON.stringify(manifest.packs || manifest.system || '')) ? '5e' : '',
     summary: readable(firstPara || description), beats, hooks, locations, reference, npcs: [], enemies, items: [...gear, ...treasures.filter(t => !gear.some(g => same(g.name) === same(t.name)))],
-    tables, headings: [], fightPlan: fights, levels, levelChart: chart, kind: 'adventure', importWarnings: [], characterOptions: [],
+    tables, headings: [], handouts: handoutsFrom(journal, fights, beats), fightPlan: fights, levels, levelChart: chart, kind: 'adventure', importWarnings: [], characterOptions: [],
     stats: { pages: pages.length, lines: 0, paragraphs: words, headings: 0, bodySize: 0, fixes: [], imagePages: 0, rooms: locations.length },
     profile: { title: '', themes: [], tone: [], villains: [], levels: levels.length ? [levels[0], levels[levels.length - 1]] : [] }
   };
