@@ -45,7 +45,10 @@ const load = f => import(pathToFileURL(path.join(__dirname, '..', 'src/importer'
       { name: '1. Introduction', content: '<h1>Old Mill</h1><p>A test mill.</p><h5>Mill Hooks</h5><table><thead><tr><th>d2</th><th>Type</th><th>Details</th></tr></thead><tbody><tr><td>1</td><td>Fetch</td><td>Fetch the sack.</td></tr><tr><td>2</td><td>Find</td><td>Find the miller.</td></tr></tbody></table><h2>Level Selection</h2><table><thead><tr><th>Average Party Level</th><th>Recommended Adventure Version</th><th>Relative Difficulty</th></tr></thead><tbody><tr><td>5</td><td>5th-level</td><td>Hard</td></tr><tr><td>6</td><td>5th-level</td><td>Medium</td></tr><tr><td>8</td><td>8th-level</td><td>Hard</td></tr></tbody></table>' },
       { name: '2. Mill Rooms', content: '<h1>Mill Rooms</h1><h2>1 - Door</h2><blockquote><p>A &ldquo;creaking&rdquo; door.</p></blockquote><p>Plain note about @Item[Old Key].</p><p><strong><em>Encounter: Door Rats.</em></strong> Rats attack.</p><h5>Door Rats</h5><table><thead><tr><th>Adventure Level</th><th>Encounter</th></tr></thead><tbody><tr><td>5th</td><td>3 <strong>{Rat}</strong> led by a <strong>{Ghoul}</strong></td></tr><tr><td>8th</td><td>1 {Ghoul} with 99 hit points</td></tr></tbody></table><p><strong><em>Treasure: Old Coins.</em></strong> A few coins.</p><h2>2 - Bell Tower</h2><p>Cold and open.</p><h2>3 - Loft</h2><p><strong><em>Encounter: Sleeper.</em></strong> Each bed hides a {Ghoul}.</p>' },
       { name: '3. Aftermath', content: '<h1>Aftermath</h1><p>The end.</p>' },
-      { name: '0. Handout', content: '' }
+      { name: '0. Handout', content: '' },
+      { name: '0. Handouts > 100. Player Art Handout: Sleeper Portrait', content: '', img: 'modules/test/art/rats.jpg' },
+      { name: '0. Handouts > 101. Player Art Handout: Bell Tower View', content: '', img: 'modules/test/art/view.jpg' },
+      { name: '0. Handouts > 102. Player Art Handout: Nothing Alike', content: '', img: 'modules/test/art/none.jpg' }
     ],
     actors: [
       { name: 'Rat', type: 'npc', data: { abilities: { str: { value: 8 }, dex: { value: 14 } }, attributes: { ac: { flat: 12 }, hp: { max: 5 } }, details: { cr: 0.25, type: { value: 'beast' } } }, items: [{ name: 'Bite', type: 'weapon', data: { actionType: 'mwak', ability: 'dex', damage: { parts: [['1d4 + @mod', 'piercing']] }, description: { value: '<p>Melee Weapon Attack: +4 to hit. Hit: 4 (1d4 + 2) piercing damage.</p>' } } }] },
@@ -56,6 +59,7 @@ const load = f => import(pathToFileURL(path.join(__dirname, '..', 'src/importer'
   assert.deepEqual(mod.beats.map(b => b.title), ['Introduction', '1. Door', '2. Bell Tower', '3. Loft', 'Aftermath'], 'empty pages go and rooms stay in order');
   assert.equal(mod.beats[0].reference, true, 'the introduction stays a private reference');
   assert.equal(mod.beats[4].reference, undefined, 'the ending is a scene');
+  assert.deepEqual(mod.handouts.map(h => [h.title, h.where]), [['Sleeper Portrait', '3. Loft'], ['Bell Tower View', '2. Bell Tower'], ['Nothing Alike', '']], 'a handout is placed by a fight, then a room, or nowhere');
   assert.deepEqual(mod.levels, [5, 8]);
   assert.equal(mod.hooks.length, 2); assert.equal(mod.hooks[0].title, 'Fetch');
   assert.equal(mod.beats[1].readAloud[0], 'A “creaking” door.');

@@ -183,3 +183,8 @@
 .map-rooms-gallery figure.big img{aspect-ratio:auto;object-fit:contain;cursor:zoom-out}
 .map-rooms-list{display:grid;gap:6px;margin:8px 0 12px}.map-room{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,12rem);gap:8px;align-items:center}
 @media (max-width:480px){.map-room{grid-template-columns:1fr}}
+
+/* A handout in a room: a private preview and one button. */
+.ov-handout{margin:8px 0 0;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.ov-handout img{width:min(100%,14rem);max-height:18rem;object-fit:contain;border:1px solid var(--line);border-radius:8px;background:var(--line)}
+.ov-handout figcaption{display:grid;gap:8px;justify-items:start;flex:1 1 10rem}
