@@ -97,11 +97,11 @@ const load = f => import(pathToFileURL(path.join(__dirname, '..', 'src/importer'
   const start = appPage.indexOf('const textMark='), stop = appPage.indexOf('function sendReaderResult(s,R){');
   const { textMark, moduleLevelChange } = new Function(appPage.slice(start, stop) + ';return { textMark, moduleLevelChange };')();
   const desk = { beats: [{ title: 'A', source: 'P', summary: 'level 5', moduleLevel: 5, moduleMark: textMark('level 5'), status: 'active', playerMap: { key: 'k' } }, { title: 'B', source: 'P', summary: 'mine', moduleLevel: 5, moduleMark: textMark('level 5') }, { title: 'C', source: 'Other', summary: 'other' }],
-    encounters: [{ name: 'Fight', where: 'A', moduleLevel: 5 }, { name: 'Homemade', where: 'A' }] };
-  const moved = moduleLevelChange(desk, { product: 'P', level: 8, beats: [{ title: 'A', summary: 'level 8' }, { title: 'B', summary: 'level 8' }, { title: 'C', summary: 'level 8' }], fightPlan: [{ name: 'Fight', where: 'A' }] }, () => true);
+    encounters: [{ name: 'Fight', where: 'A', moduleLevel: 5 }, { name: 'Homemade', where: 'A' }, { name: 'Other fight', where: 'B', moduleLevel: 5 }] };
+  const moved = moduleLevelChange(desk, { product: 'P', level: 8, beats: [{ title: 'A', summary: 'level 8' }, { title: 'B', summary: 'level 8' }, { title: 'C', summary: 'level 8' }], fightPlan: [{ name: 'Fight', where: 'A' }, { name: 'Other fight', where: 'B' }] }, () => true);
   assert.deepEqual(moved, { rooms: 1, edited: 1 });
   assert.equal(desk.beats[0].summary, 'level 8'); assert.equal(desk.beats[0].status, 'active', 'progress stays'); assert.equal(desk.beats[0].playerMap.key, 'k', 'the map link stays');
   assert.equal(desk.beats[1].summary, 'mine', 'an edited room is left alone'); assert.equal(desk.beats[2].summary, 'other', 'another adventure is left alone');
-  assert.deepEqual(desk.encounters.map(e => e.name), ['Homemade'], "only the book's fight is replaced");
+  assert.deepEqual(desk.encounters.map(e => e.name), ['Homemade', 'Other fight'], "only the book's fight in an untouched room is replaced");
   console.log('PASS: Foundry modules give rooms, fights by level, creature numbers and map ideas; wrapped stat lines still reach the challenge rating.');
 })().catch(e => { console.error(e); process.exit(1); });

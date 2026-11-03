@@ -917,7 +917,7 @@ const ACT={
   'c-end':()=>{const C=S.combat, leads=[];
     C.foes.forEach(f=>{ const who=f.name.replace(/ (\d+|mob)$/,'');
       if(f.status==='fled') leads.push(`${who} escaped from ${C.name} and knows the party's faces`);
-      if(f.status==='surrendered') leads.push(`A captured ${who} can be questioned about ${C.where}`);
+      if(f.status==='surrendered') leads.push(`A captured ${who} can be questioned about ${String(C.where).replace(/^\d+\.\s*/,'')}`);
       if(f.status==='bargained') leads.push(`The party owes, or is owed, a deal made with ${who}`); });
     endFightDialog(leads);}
 };
@@ -982,16 +982,16 @@ function combatAbilities(c){
 const textMark=text=>{ let h=0; for(const c of String(text||'')) h=(h*31+c.charCodeAt(0))|0; return h; };
 // Sending a module again at another level: rooms the DM has not edited and the book's fights move to that level.
 function moduleLevelChange(s,R,on){
-  const out={rooms:0,edited:0};
+  const out={rooms:0,edited:0}, kept=new Set();
   for(const b of R.beats.filter(on)){
     const old=s.beats.find(x=>x.title===b.title&&x.source===R.product);
     if(!old||old.moduleLevel===R.level) continue;
     if(old.moduleMark===undefined||old.moduleMark===textMark(old.summary)){ if(old.summary!==b.summary){ old.summary=b.summary; out.rooms++; } old.moduleMark=textMark(b.summary); }
-    else out.edited++;
+    else { out.edited++; kept.add(old.title); }
     old.moduleLevel=R.level;
   }
   const names=new Set((R.fightPlan||[]).map(f=>f.name+'@'+f.where));
-  s.encounters=(s.encounters||[]).filter(e=>!names.has(e.name+'@'+e.where)||e.moduleLevel===R.level);
+  s.encounters=(s.encounters||[]).filter(e=>!names.has(e.name+'@'+e.where)||e.moduleLevel===R.level||kept.has(e.where));
   return out;
 }
 function sendReaderResult(s,R){
@@ -1000,7 +1000,7 @@ function sendReaderResult(s,R){
   const on=x=>x.include!==false;
   const add=(arr,item,key='name')=>{ if(arr.some(x=>(x[key]||'').toLowerCase()===(item[key]||'').toLowerCase())) return; arr.push(item); n++; };
   const moved=R.module?moduleLevelChange(s,R,on):{rooms:0,edited:0};
-  R.sendNote=(moved.rooms?` ${moved.rooms} room${moved.rooms===1?'':'s'} moved to level ${R.level}.`:'')+(moved.edited?` ${moved.edited} room${moved.edited===1?'':'s'} you edited ${moved.edited===1?'was':'were'} left as ${moved.edited===1?'it was':'they were'}.`:'');
+  R.sendNote=(moved.rooms?` ${moved.rooms} room${moved.rooms===1?'':'s'} moved to level ${R.level}.`:'')+(moved.edited?` ${moved.edited} room${moved.edited===1?'':'s'} you edited kept ${moved.edited===1?'its':'their'} text and fight.`:'');
   R.beats.filter(on).forEach(b=>add(s.beats,{...(R.module?{moduleLevel:R.level,moduleMark:textMark(b.summary)}:{}),id:b.id,title:b.title,...(b.reference?{reference:true}:{}),...(b.chapter?{chapter:b.chapter}:{}),summary:b.summary,branches:b.branches||[],question:b.question||'',transition:b.transition||'',senses:b.senses||[],readAloud:b.readAloud||[],page:b.page,source:R.product,status:'upcoming'},'title'));
   const next=s.beats.find(b=>b.status!=='done'&&!b.reference); if(!s.beats.some(b=>b.status==='active')&&next) next.status='active';
   R.hooks.filter(on).forEach(h=>add(s.hooks,{id:h.id,text:(h.title?h.title+': ':'')+h.text,status:'dangling',clock:0,source:'Imported'},'text'));
