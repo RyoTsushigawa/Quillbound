@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="clarity.css">
-<link rel="stylesheet" href="creator.css?v=20261103-groupmaps1">
+<link rel="stylesheet" href="creator.css?v=20261103-modules1">
 <link rel="stylesheet" href="combat.css">
 <link rel="stylesheet" href="drama.css">
 <link rel="stylesheet" href="session-overview.css">
@@ -267,7 +267,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <div id="toast"></div>
 
 <script src="src/app/player-core.js"></script>
-<script src="src/app/scene-maps.js?v=20261103-groupmaps1" data-ui></script>
+<script src="src/app/scene-maps.js?v=20261103-modules1" data-ui></script>
 <script src="src/app/security-alert.js" data-ui></script>
 <script src="src/app/drive.js?v=20261031-drive4" data-ui></script>
 <script src="src/app/srd-monsters.js"></script>
@@ -307,7 +307,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/ui/player-hp.js?v=20261102-heroes1"></script>
 <script src="src/ui/hero-import.js"></script>
 <script src="src/ui/combat-objectives.js"></script>
-<script src="src/ui/scene-maps.js?v=20261103-groupmaps1"></script>
+<script src="src/ui/scene-maps.js?v=20261103-modules2"></script>
 <script src="src/ui/session-overview.js?v=20261102-rooms1"></script>
 <script src="src/ui/security-alert.js"></script>
 <script src="src/ui/package-import.js?v=20261102-rooms1"></script>
@@ -627,6 +627,12 @@ const CLASS_PITCH={...Object.fromEntries(Object.entries(CLASSES).map(([k,v])=>[k
 const SPECIES_BLURB={...Object.fromEntries(Object.entries(ANCESTRY).map(([k,v])=>[k,v.blurb])),Goliath:'Descended from giants. Big, strong and hard to stop.'};
 /* ---------- views: importer (library → product → read results) ---------- */
 const TYPE_LABEL={adventure:'Adventure',cards:'Card pack',supplement:'Supplement',maps:'Map pack',handouts:'Handouts',other:'Other'};
+// A module with versions for several levels: fights, creatures and room text all follow this choice.
+function resultsLevelBar(R){
+  if(!R.module||!(R.levels||[]).length) return '';
+  const advice=R.partyLevel?QB.levelForParty(R,R.partyLevel):null, hit=(R.levelChart||[]).find(c=>c.party===Math.round(R.partyLevel)&&c.level===R.level);
+  return `<div class="card res-level"><label class="f">Adventure level<select data-act-change="res-level">${R.levels.map(l=>`<option value="${l}" ${l===R.level?'selected':''}>Level ${l}</option>`).join('')}</select></label><p class="small">${R.partyLevel?`Your party averages level ${+R.partyLevel.toFixed(1)}. ${hit?`The book suggests this version (${esc(hit.difficulty.toLowerCase())} for them).`:advice.level===R.level?'This is the closest version in the book.':`The closest version in the book is level ${advice.level}.`}`:'Add your party to get a suggestion from the book.'} Fights and room text follow your choice.</p></div>`;
+}
 const SYS_LABEL={'5e':'D&D 5e',coc:'Call of Cthulhu',pf2:'Pathfinder 2e',dsa:'Das Schwarze Auge'};
 const fmtSize=b=>b>1e6?(b/1e6).toFixed(b>1e8?0:1)+' MB':Math.max(1,Math.round(b/1e3))+' KB';
 function vImport(){
@@ -687,14 +693,14 @@ function vProduct(){
         ${g.files.map(f=>fileRow(g,f)).join('')}</div>`).join('')}</div>`;}).join('');
   return `<div class="pagehead"><div><button class="btn sm ghost" data-act="lib-back">← All products</button><div class="eyebrow" style="margin-top:8px">${TYPE_LABEL[p.type]}${p.system?' · '+(SYS_LABEL[p.system]||p.system):''}${p.language==='de'?' · Deutsch':''}</div><h2>${esc(p.name)}</h2>
       <p>★ marks the version Quillbound shows first. Copies are listed but never read twice.</p></div>
-    ${p.groups.some(g=>g.kind==='book')?`<button class="btn primary" data-act="lib-read" ${I.busy?'disabled':''}>Read this adventure</button>`:''}</div>
+    ${p.groups.some(g=>g.kind==='book')||p.module?`<button class="btn primary" data-act="lib-read" ${I.busy?'disabled':''}>Read this adventure</button>`:''}</div>
     ${I.busy||I.status?`<div class="card readout" style="margin-bottom:12px"><div style="color:var(--${I.busy?'accent':'warn'})">${esc(I.status)}</div></div>`:''}
     <div class="stack">${sections}</div>`;
 }
 function vResults(){
   const I=S.importer, R=I.result;
-  const tabs=[['story','Scenes & leads',R.beats.length+R.hooks.length],['npcs','People',R.npcs.length],['enemies','Enemies',R.enemies.length],['places','Places & maps',R.locations.length+(R.libraryMaps||[]).length],['items','Items',R.items.length],['tables','Roll tables',R.tables.length]];
-  const kinds=['beats','hooks','npcs','enemies','locations','libraryMaps','items','tables'];
+  const tabs=[['story','Scenes & leads',R.beats.length+R.hooks.length],['npcs','People',R.npcs.length],['enemies','Enemies & fights',R.enemies.filter(e=>e.include!==false).length+(R.fights||[]).length],['places','Places & maps',R.locations.length+(R.libraryMaps||[]).length],['items','Items',R.items.length],['tables','Roll tables',R.tables.length]];
+  const kinds=['beats','hooks','npcs','enemies','fights','locations','libraryMaps','items','tables'];
   const sel=kinds.reduce((n,k)=>n+(R[k]||[]).filter(x=>x.include!==false).length,0);
   const inc=(k,i,x,label)=>`<label><input type="checkbox" data-bind="importer.result.${k}.${i}.include" data-rerender ${x.include!==false?'checked':''}> ${esc(label)}</label>`;
   const pg=x=>x.page?`<span class="chip">p. ${x.page}</span>`:'';
@@ -716,7 +722,7 @@ function vResults(){
       ${kv([['Looks',n.look],['Wants',n.wants],['Secret',n.secret],['Knows',n.knows],['Voice',n.voice],['Gesture',n.manner],['If pressed',n.pressed]])}
       ${n.fields&&n.fields.personality?`<details class="small"><summary>From the book</summary><p>${esc(n.fields.personality.slice(0,600))}</p></details>`:''}`,n.enemyId?'<span class="chip warn">has stats</span>':'')).join('')||'<div class="empty">No people found.</div>'}</div>`;
   } else if(I.view==='enemies'){
-    body=`<div class="results">${R.enemies.map((e,i)=>card('enemies',i,e,e.name,e.fromCard&&!e.statsFrom?`<p class="small muted">Stats are on the combat card <b>${esc(e.card)}</b>. The DM is asked for its numbers when the fight starts.</p>`:`<p class="small muted">${esc(e.type)}${e.statsFrom?` · numbers from ${esc(e.statsFrom)}${e.fromCard?`, card <b>${esc(e.card)}</b>`:''}`:''}</p>
+    body=`${(R.fights||[]).length?`<h4 style="margin-bottom:8px">Fights at level ${R.level}</h4><div class="results">${R.fights.map((f,i)=>card('fights',i,f,f.name,`<p class="small muted">${esc(f.where)}</p><div class="res-foes">${f.foes.map((x,j)=>`<label class="res-foe"><input type="number" min="0" max="99" aria-label="How many ${esc(x.name)}" data-bind="importer.result.fights.${i}.foes.${j}.n" value="${esc(x.n)}"> ${esc(x.name)}</label>`).join('')}</div>${f.askCount?'<p class="small">The book gives no number here. Check the room text and set how many.</p>':''}`)).join('')}</div><h4 style="margin:18px 0 8px">Creatures</h4>`:''}<div class="results">${R.enemies.map((e,i)=>card('enemies',i,e,e.name,e.fromCard&&!e.statsFrom?`<p class="small muted">Stats are on the combat card <b>${esc(e.card)}</b>. The DM is asked for its numbers when the fight starts.</p>`:`<p class="small muted">${esc(e.type)}${e.statsFrom?` · numbers from ${esc(e.statsFrom)}${e.fromCard?`, card <b>${esc(e.card)}</b>`:''}`:''}</p>
       ${kv([['5e',`AC ${e.acNum??e.ac??'?'} · HP ${e.hpMax??e.hp??'?'} · CR ${e.crNum??e.cr??'?'}`],['Attacks',(e.attacks||[]).map(a=>`${a.name} ${fmt(a.bonus)}, ${a.damage}`).join(' · ')||'None read. The DM is asked when the fight starts.'],['Breaks',e.breaking],['Moves',e.moves.join(', ')]])}`,`${e.npc?'<span class="chip acc">Also in People</span>':''}${e.card&&!e.fromCard?'<span class="chip">card</span>':''}`)).join('')||'<div class="empty">No stat blocks found.</div>'}</div>`;
   } else if(I.view==='places'){
     const maps=R.libraryMaps||[];
@@ -727,9 +733,9 @@ function vResults(){
   } else {
     body=`<div class="results">${R.tables.map((t,i)=>card('tables',i,t,t.title,`<table class="rt"><tbody>${t.rows.slice(0,12).map(r=>`<tr><td class="mono">${esc(r.roll)}</td><td>${esc(r.text)}</td></tr>`).join('')}</tbody></table>${t.rows.length>12?`<p class="small muted">+${t.rows.length-12} more rows</p>`:''}`,`<span class="chip">${esc(t.die)}</span>`)).join('')||'<div class="empty">No roll tables found.</div>'}</div>`;
   }
-  return `<div class="pagehead"><div><button class="btn sm ghost" data-act="res-back">← ${esc(R.product||'Library')}</button><div class="eyebrow" style="margin-top:8px">Read offline from ${esc(R.source||'the book')} · ${R.stats.pages} pages${R.system?' · '+(SYS_LABEL[R.system]||R.system):''}${R.language==='de'?' · Deutsch':''}</div>
-    <h2>${esc(R.title||R.product)}</h2><p>Untick anything the reader got wrong. Page numbers point to the PDF, so you can check.${R.stats.fixes.length?' Repaired while reading: '+esc(R.stats.fixes.join(', '))+'.':''}</p></div></div>
-    <div class="rtabs" role="tablist">${tabs.map(([k,l,n])=>`<button class="rtab" role="tab" data-act="res-view" data-v="${k}" aria-selected="${I.view===k}">${l} <span class="n">${n}</span></button>`).join('')}</div>
+  return `<div class="pagehead"><div><button class="btn sm ghost" data-act="res-back">← ${esc(R.product||'Library')}</button><div class="eyebrow" style="margin-top:8px">Read offline from ${esc(R.source||'the book')} · ${R.module?`${R.stats.rooms} rooms, ${R.enemies.filter(e=>!e.variantOf).length} creatures`:`${R.stats.pages} pages`}${R.system?' · '+(SYS_LABEL[R.system]||R.system):''}${R.language==='de'?' · Deutsch':''}</div>
+    <h2>${esc(R.title||R.product)}</h2><p>Untick anything the reader got wrong.${R.module?'':' Page numbers point to the PDF, so you can check.'}${R.stats.fixes.length?' Repaired while reading: '+esc(R.stats.fixes.join(', '))+'.':''}</p></div></div>
+    ${resultsLevelBar(R)}<div class="rtabs" role="tablist">${tabs.map(([k,l,n])=>`<button class="rtab" role="tab" data-act="res-view" data-v="${k}" aria-selected="${I.view===k}">${l} <span class="n">${n}</span></button>`).join('')}</div>
     ${body}
     <div class="send"><span class="small"><b>${sel}</b> entries selected</span><button class="btn primary" data-act="res-send" ${sel?'':'disabled'}>Send ${sel} to the DM desk</button></div>`;
 }
@@ -894,6 +900,8 @@ const ACT={
   'camp-forget':d=>{S.adventures=S.adventures.filter(a=>a.id!==d.id); const C=campaign(); C.order=C.order.filter(x=>x!==d.id);},
   'lib-preview':d=>{libPreview(d.path);},
   'res-view':d=>{S.importer.view=d.v;},
+  'res-level':d=>{QB.applyLevel(S.importer.result,+d.v);},
+  'scene-map-rooms':()=>sceneMapRoomsDialog(),
   'res-back':()=>{S.importer.phase=S.importer.lib?'product':'library';},
   'res-send':()=>{const n=sendReaderResult(S,S.importer.result); toast(n?`Sent ${n} new entries to the DM desk`:'Everything selected is already on the desk'); S.tab='desk'; window.scrollTo(0,0);},
   'tbl-roll':d=>{const t=S.tables.find(x=>x.id===d.id); if(!t) return; const r=t.rows[Math.floor(Math.random()*t.rows.length)]; t.last=r.roll+': '+r.text;},
@@ -929,7 +937,8 @@ const libAddDrop=dt=>libRun('Looking through the files…',async()=>{ S.importer
 const libCompare=gi=>libRun('Comparing the book versions by their text…',async()=>{ S.importer.versions[S.importer.pi+':'+gi]=await QB.compareVersions(S.importer.pi,gi); });
 const libRead=()=>libRun('Loading the PDF reader…',async progress=>{
   const r=await QB.readProduct(S.importer.pi,progress);
-  for(const k of ['beats','hooks','npcs','enemies','locations','items','tables','libraryMaps']) (r[k]||[]).forEach(x=>{ if(x.include===undefined) x.include=true; });
+  if(r.module&&r.levels.length){ const party=(S.party||[]).map(p=>+p.level).filter(n=>n>0); const avg=party.length?party.reduce((a,b)=>a+b,0)/party.length:0; r.partyLevel=avg; QB.applyLevel(r,QB.levelForParty(r,avg).level); }
+  for(const k of ['beats','hooks','npcs','enemies','locations','items','tables','libraryMaps','fights']) (r[k]||[]).forEach(x=>{ if(x.include===undefined) x.include=true; });
   r.items.forEach(x=>{ if(x.mention) x.include=false; });       // passing mentions start unticked
   r.enemies.forEach(x=>{ if(x.fromCard) x.include=true; });
   S.importer.result=r; S.importer.phase='results'; S.importer.view='story';
@@ -967,11 +976,16 @@ function sendReaderResult(s,R){
   let n=0;
   const on=x=>x.include!==false;
   const add=(arr,item,key='name')=>{ if(arr.some(x=>(x[key]||'').toLowerCase()===(item[key]||'').toLowerCase())) return; arr.push(item); n++; };
-  R.beats.filter(on).forEach(b=>add(s.beats,{id:b.id,title:b.title,...(b.reference?{reference:true}:{}),summary:b.summary,branches:b.branches||[],question:b.question||'',transition:b.transition||'',senses:b.senses||[],readAloud:b.readAloud||[],page:b.page,source:R.product,status:'upcoming'},'title'));
+  R.beats.filter(on).forEach(b=>add(s.beats,{id:b.id,title:b.title,...(b.reference?{reference:true}:{}),...(b.chapter?{chapter:b.chapter}:{}),summary:b.summary,branches:b.branches||[],question:b.question||'',transition:b.transition||'',senses:b.senses||[],readAloud:b.readAloud||[],page:b.page,source:R.product,status:'upcoming'},'title'));
   const next=s.beats.find(b=>b.status!=='done'&&!b.reference); if(!s.beats.some(b=>b.status==='active')&&next) next.status='active';
   R.hooks.filter(on).forEach(h=>add(s.hooks,{id:h.id,text:(h.title?h.title+': ':'')+h.text,status:'dangling',clock:0,source:'Imported'},'text'));
   R.npcs.filter(on).forEach(x=>add(s.npcs,{id:x.id,name:x.name,role:x.role,wants:x.wants,fears:(x.fields&&x.fields.fear)||'',secret:x.secret,voice:x.voice,manner:x.manner,pressed:x.pressed,look:x.look,line:x.line,knows:x.knows,page:x.page,open:false}));
   R.enemies.filter(on).forEach(e=>add(s.bestiary,{id:e.id,name:e.name,type:e.type,ac:e.ac,hp:e.hp,cr:e.cr,tier:e.tier,slots:e.slots,breakAt:e.breakAt,breaking:e.breaking,goal:e.goal,moves:e.moves,card:e.card||'',...hpFields(e)}));
+  s.encounters=s.encounters||[];
+  (R.fights||[]).filter(on).forEach(f=>{
+    const foes=f.foes.map(x=>{ const b=s.bestiary.find(y=>(y.name||'').toLowerCase()===x.name.toLowerCase()); return b&&Number(x.n)>0?{ref:b.id,n:Number(x.n)}:null; }).filter(Boolean);
+    if(foes.length&&!s.encounters.some(e=>e.name===f.name&&e.where===f.where)){ s.encounters.push({id:uid('e'),name:f.name,where:f.where,goal:f.goal,foes}); n++; }
+  });
   const areasByBeat={};
   R.locations.filter(on).forEach(l=>{ (areasByBeat[l.beat||'Other areas']=areasByBeat[l.beat||'Other areas']||[]).push({key:l.key,name:l.name,text:l.text}); });
   (R.libraryMaps||[]).filter(on).forEach(m=>{ const areas=m.usedIn.flatMap(b=>areasByBeat[b]||[]); add(s.maps,{id:m.id,name:m.name,areas,variants:m.variants.map(v=>v.variant||'original'),usedIn:m.usedIn}); });
@@ -1329,7 +1343,7 @@ const clReset=ACT.reset;ACT.reset=()=>clConfirm('Replace your saved work with ex
 const clRun=ACT['enc-run'];ACT['enc-run']=d=>{if(S.combat)clConfirm('Start a new fight?','A fight is already open. Starting another replaces its current progress. Your saved fight and hero sheets remain.',()=>clRun(d),'Start new fight');else clRun(d);};
 const clDel=ACT['enc-del'];ACT['enc-del']=d=>clConfirm('Remove this saved fight?','This removes the saved fight from the DM desk. It does not delete the enemy entries or change a fight already running.',()=>clDel(d),'Remove saved fight');
 const clForget=ACT['camp-forget'];ACT['camp-forget']=d=>clConfirm('Remove this adventure from the planner?','The adventure profile and its place in the order will be removed. Notes already sent to the DM desk remain. You can read the book again to add it back.',()=>clForget(d),'Remove from planner');
-const clSend=ACT['res-send'];ACT['res-send']=()=>{clSend();S.deskView='session';};
+const clSend=ACT['res-send'];ACT['res-send']=()=>{clSend();S.deskView='session';if((S.importer.result?.locations||[]).length>2&&sceneMapRoomsReady()&&!sceneMapRooms().rooms.some(b=>b.playerMap))setTimeout(sceneMapRoomsDialog);};
 const heroTabAction=ACT.tab;ACT.tab=d=>{if(d.v==='desk')S.deskView='session';if(!heroConfirmLeave(d.v))heroTabAction(d);};
 const clAddHero=ACT['cr-add'];ACT['cr-add']=()=>{const name=crState().build.name.trim(),before=S.party.length;clAddHero();if(S.party.length===before)return;const dlg=openDialog('Hero added to the party',`<p><b>${esc(name)}</b> is saved in My heroes and your party. Their story answers were added to your private DM notes.</p><p>You can start playing with this hero or create another one.</p><button class="btn primary" id="cl-hero-desk">Open the DM desk</button><p class="small muted">Close this message to create another hero.</p>`);dlg.querySelector('#cl-hero-desk').onclick=()=>{dlg.close();S.tab='desk';S.deskView='session';render();};};
 Object.assign(ACT,{'home-resume':homeResume,'home-switch':homeSwitch,'cl-help':helpScreen,'cl-go':d=>{S.tab=d.v;window.scrollTo(0,0);},'cl-session':()=>{S.tab='desk';S.deskView='session';window.scrollTo(0,0);},'cl-campaign':()=>{S.tab='desk';S.deskView='campaign';window.scrollTo(0,0);},'cl-fight':()=>{S.tab=S.combat?'combat':'desk';if(!S.combat)S.deskView='session';window.scrollTo(0,0);}});

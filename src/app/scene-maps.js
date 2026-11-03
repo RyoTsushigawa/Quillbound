@@ -106,5 +106,32 @@
     const a = beats.findIndex(b => b.id === fromId), z = beats.findIndex(b => b.id === toId);
     return a < 0 || z < 0 ? [] : beats.slice(Math.min(a, z), Math.max(a, z) + 1).map(b => b.id);
   }
-  root.SceneMaps = { linkScenes, scenesBetween, imageUrl, basename, dmFile, candidates, hint, suggested, reference, fingerprint, pixels, assets, controller };
+  // What a map file's name says once the words all its neighbours share are gone: "first floor", "crypts".
+  function mapLabels(files) {
+    const all = files.map(f => basename(f.name || f.path).replace(/\.[^.]+$/, '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
+    const shared = all.length > 1 ? all[0].filter(w => all.every(x => x.includes(w))) : [];
+    return all.map(words => words.filter(w => !shared.includes(w)));
+  }
+  const mapTitle = (file, files) => {
+    const label = mapLabels(files)[files.indexOf(file)];
+    return (label.length ? label.join(' ') : basename(file.name || file.path).replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ')).replace(/\b[a-z]/g, c => c.toUpperCase());
+  };
+  // A first idea for which map fits which room, from names alone. It links nothing: the DM confirms every one.
+  function suggestRooms(rooms, files) {
+    const labels = mapLabels(files), plan = {};
+    const single = w => w.replace(/s$/, ''), tokens = s => String(s || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    const inOrder = (words, text) => words.length > 0 && text.join(' ').includes(words.join(' ')) && new RegExp('(^| )' + words.join(' ') + '( |$)').test(text.join(' '));
+    const ground = labels.findIndex(l => /^(first|ground|1st|main)$/.test(l[0] || '') && /^(floor|level|story|storey)$/.test(l[1] || ''));
+    for (const room of rooms) {
+      const name = tokens(String(room.title || '').replace(/^\s*\d+[.:\s-]*/, '')), chapter = tokens(room.chapter).map(single);
+      let file = labels.findIndex(l => inOrder(l, name));
+      if (file < 0) file = labels.findIndex(l => l.length > 0 && l.every(w => chapter.includes(single(w))));
+      if (file >= 0) { plan[room.id] = { file, sure: true }; continue; }
+      if (!/^\s*\d/.test(room.title || '')) continue;
+      const guess = ground >= 0 ? ground : files.length === 1 ? 0 : -1;
+      if (guess >= 0) plan[room.id] = { file: guess, sure: false };
+    }
+    return plan;
+  }
+  root.SceneMaps = { mapTitle, suggestRooms, linkScenes, scenesBetween, imageUrl, basename, dmFile, candidates, hint, suggested, reference, fingerprint, pixels, assets, controller };
 })(globalThis);

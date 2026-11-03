@@ -173,3 +173,13 @@
 /* One player map for several scenes. */
 .map-also{margin:8px 0}.map-also .row{align-items:flex-end;margin-top:8px}
 .map-also-list{display:grid;gap:4px;max-height:14rem;overflow:auto;margin-top:10px;padding:8px;border:1px solid var(--line);border-radius:8px}
+
+/* Reading a module: adventure level, fights, and matching maps to rooms. */
+.res-level{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-end;margin-bottom:12px}.res-level .f{margin:0;min-width:9rem}.res-level p{flex:1 1 16rem;margin:0}
+.res-foes{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px}.res-foe{display:inline-flex;align-items:center;gap:6px}.res-foe input{width:4rem}
+.map-rooms-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,13rem),1fr));gap:12px;margin:12px 0}
+.map-rooms-gallery figure{margin:0;display:grid;gap:6px;align-content:start}.map-rooms-gallery figure.big{grid-column:1/-1}
+.map-rooms-gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border:1px solid var(--line);border-radius:8px;cursor:zoom-in;background:var(--line)}
+.map-rooms-gallery figure.big img{aspect-ratio:auto;object-fit:contain;cursor:zoom-out}
+.map-rooms-list{display:grid;gap:6px;margin:8px 0 12px}.map-room{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,12rem);gap:8px;align-items:center}
+@media (max-width:480px){.map-room{grid-template-columns:1fr}}
