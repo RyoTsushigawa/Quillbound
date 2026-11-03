@@ -273,7 +273,7 @@ function creatorActions(){ const B=()=>crState().build, D=()=>crData();
     const bg=D().backgrounds.find(x=>x.id===q.background); crRestoreSelections(c);
     toast(`Quick build: ${D().species.find(x=>x.id===q.species)?.name}, ${bg.name} background, standard array. Change anything you like.`); },
   'cr-printsheet':()=>{ const c=crState(); crSheet(c); openSheet(c.build,{want:c.story?.want,fear:c.story?.fear}); },
-  'sheet-print':d=>{ const p=pc(d.id); if(!p?.build){ toast('This hero was made before the hero creator. Rebuild them there to print a sheet.'); return; } openSheet({...p.build,name:p.name},{want:p.want}); },
+  'sheet-print':d=>{ const p=pc(d.id); if(!p?.build){ toast('This hero was made before the hero creator. Press Rebuild in the creator to give them a sheet.'); return; } openSheet({...p.build,name:p.name},{want:p.want}); },
   'cr-featview':d=>{ const c=crState(); c[d.v]=!c[d.v]; },
   'cr-level':d=>{ B().level=Number(d.v)||1; },
   'cr-hp':d=>{ B().hp.method=d.v; },
