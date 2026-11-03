@@ -1,0 +1,32 @@
+/* The last style layer: flat, quiet surfaces, readable small text and controls big enough to press. */
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+#page-title:focus{outline:none}
+
+/* One flat background instead of graph paper. */
+body{background-image:none}
+
+/* Small labels read as plain words: no capitals, no typewriter font. */
+.eyebrow,.qb-app .eyebrow,.qb-app .ov-scene .eyebrow,.ov-label,.ov-session-head .eyebrow,.qb-app .nav-caption,.nav-caption{font-family:var(--body);font-size:.8125rem;font-weight:500;letter-spacing:0;text-transform:none;line-height:1.4}
+.ov-progress{font-family:var(--body);font-size:.8125rem}
+
+/* A card inside a card is a soft patch, not a second box. */
+.qb-app .card .card{border-color:transparent;background:var(--surface-2)}
+
+/* Everything you can press is at least 24 pixels each way. */
+.beat .dot{width:24px;height:24px;margin-top:0}
+.qb-app summary{padding-block:4px}
+.linklike{min-height:24px}
+.cr-glossary-term{min-height:24px;display:inline-block}
+
+/* Windows high-contrast mode drops backgrounds, so the current choice needs a line of its own. */
+@media (forced-colors:active){
+  .tab[aria-current="page"],.rtab[aria-selected="true"],.choice[aria-pressed="true"],.cr-tabs button[aria-selected="true"]{outline:2px solid Highlight;outline-offset:-2px}
+}
+
+/* The last few small controls and labels. */
+.clock,[data-act="lt-hurt"],.chip[data-act]{min-height:24px}
+.qb-app .ov-place small,.abils6 small,.home-footnote{font-size:.75rem}
+.ov-nav h2{font-size:1.25rem}
+
+/* Page shortcuts sit on the page, not in a box of their own. */
+.ov-quick{padding:0;border:0;background:none}

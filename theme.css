@@ -4,8 +4,8 @@
   --paper:#e8edf0; --grid:rgba(29,107,102,.075); --surface:#fbfcfc; --surface-2:#f1f4f5;
   --ink:#17212b; --muted:#566573; --line:#cdd6dc;
   --accent:#1d6b66; --accent-ink:#ffffff; --accent-soft:#d5e8e5;
-  --gold:#946a0c; --gold-soft:#f3e6c2;
-  --ok:#2a7347; --ok-soft:#dbeee1; --warn:#9a5e0b; --warn-soft:#f5e6c9; --bad:#a53727; --bad-soft:#f5dbd6;
+  --gold:#7d5908; --gold-soft:#f3e6c2;
+  --ok:#2a7347; --ok-soft:#dbeee1; --warn:#8a5308; --warn-soft:#f5e6c9; --bad:#a53727; --bad-soft:#f5dbd6;
   --display:"Grenze", Georgia, "Times New Roman", serif;
   --body:"Alegreya Sans", "Segoe UI", system-ui, sans-serif;
   --mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
@@ -35,6 +35,6 @@ h2{font-size:1.75rem} h3{font-size:1.25rem} h4{font-size:1.05rem}
 p{margin:0}
 .muted{color:var(--muted)}
 .small{font-size:.88rem}
-.eyebrow{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
