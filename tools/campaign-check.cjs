@@ -28,7 +28,7 @@ run(`ACT['cm-edit']({id:'${id}'});S.creator.build.name='Toxik';ACT['cr-savehero'
 /* the DM: a passphrase opens DM mode on this device */
 await C.setLock(run('S'),'nightshift');assert(await C.unlock(run('S'),'nightshift'));assert(!(await C.unlock(run('S'),'wrong')));
 await assert.rejects(C.setLock({},'abc'),/at least 4/);
-run(`S.role='dm';S.tab='campaigns';render();`);assert.deepEqual(shown(),tabs.map(t=>t.dataset.v));assert(view().includes('Adventure manager'));
+run(`S.role='dm';S.tab='campaigns';render();`);assert.deepEqual(shown(),tabs.map(t=>t.dataset.v));assert(view().includes('Adventures'));
 
 /* a new campaign starts empty; the first one keeps everything; switching back restores it */
 const before=run('S.party.length'),beats=run('S.beats.length');

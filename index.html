@@ -232,7 +232,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 }
 </style>
 <link rel="stylesheet" href="campaign-ui.css?v=20261103-clean1">
-<link rel="stylesheet" href="clean.css?v=20261103-clean1">
+<link rel="stylesheet" href="clean.css?v=20261103-clean2">
 <body class="qb-app">
 <a class="skip-link" href="#view">Skip to content</a>
 <header class="top">
@@ -302,7 +302,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/ui/creator.js?v=20261102-combat-glossary12"></script>
 <script src="src/ui/homebrew.js"></script>
 <script src="src/ui/campaign-home.js?v=20261102-home-steps1"></script>
-<script src="src/ui/campaigns.js?v=20261103-levelup1"></script>
+<script src="src/ui/campaigns.js?v=20261103-clean2"></script>
 <script src="src/ui/adventure-heroes.js?v=20261103-levelup1"></script>
 <script src="src/ui/player-dice.js?v=20261101-sync1"></script>
 <script src="src/ui/player-hp.js?v=20261102-heroes1"></script>
@@ -651,7 +651,7 @@ function dropZone(){
     <p class="small muted">Nothing is uploaded. Files are read on this computer and only kept while this page is open.</p>
     ${I.busy?`<div class="readout"><div style="color:var(--accent)">${esc(I.status||'Working…')}</div></div>`:I.status?`<div class="readout"><div style="color:var(--warn)">${esc(I.status)}</div></div>`:''}
     ${I.lib?`<div class="readout"><div><b>${I.lib.files}</b> files · <b>${I.lib.products.length}</b> products</div>${I.lib.mirrors.length?`<div>${I.lib.mirrors.length} zip${I.lib.mirrors.length>1?'s':''} also unpacked next to ${I.lib.mirrors.length>1?'themselves':'itself'}: copies set aside</div>`:''}<div class="row"><button class="btn sm primary" data-act="lib-readall" ${I.busy?'disabled':''}>Read all adventures for a campaign</button><button class="btn sm ghost" data-act="lib-clear">Clear the library</button></div></div>`:''}
-    <div class="mode"><div class="eyebrow">Read on this device</div><p class="small">No account is needed. The PDF reader may need internet the first time it loads. The PDF must contain selectable text; pictures of pages cannot be read yet.</p></div>
+    <p class="small muted">No account needed. PDFs must contain selectable text; scanned pages cannot be read yet.</p>
   </div>`;
 }
 function bookVersions(g){ return g.files.filter(f=>!f.copyOf).length; }
@@ -674,7 +674,7 @@ function vLibrary(){
         <div class="desc">${parts.join(' · ')||'—'}</div>
         ${p.duplicates?`<div class="small muted">${p.duplicates} duplicate cop${p.duplicates>1?'ies':'y'} set aside</div>`:''}
         ${(S.adventures||[]).some(a=>a.product===p.name)?'<div class="small" style="color:var(--ok)">Read · in the campaign planner</div>':''}</button>`;}).join('')}</div>`;
-  return `<div class="pagehead"><div><div class="eyebrow">Adventure library · for DMs</div><h2>Bring in your adventures</h2><p>Drop the folders you bought or downloaded. Quillbound sorts out what belongs together and which file is which version, then reads the book for you.</p></div></div>
+  return `<div class="pagehead"><div><h2>Bring in your adventures</h2><p>Drop the folders you bought or downloaded. Quillbound sorts out what belongs together and which file is which version, then reads the book for you.</p></div></div>
   <div class="imp">${dropZone()}<div style="min-width:0">${list}</div></div>`;
 }
 function vProduct(){
@@ -752,7 +752,7 @@ const lvlText=l=>l?(l.min===l.max?`Level ${l.min}`:`Levels ${l.min}–${l.max}`)
 const themeChips=p=>Object.entries(p.themes||{}).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k])=>`<span class="chip">${THEME_LABEL[k]||k}</span>`).join('');
 function vCampaign(){
   const C=campaign(), all=S.adventures||[];
-  const head=`<div class="pagehead"><div><div class="eyebrow">DM desk · Campaign</div><h2>Campaign planner</h2><p>Put adventures in order, see where the levels jump, and use the threads the books already share to tie them together. Everything here is a suggestion; you decide.</p></div>${deskToggle()}</div>${driveControls()}`;
+  const head=`<div class="pagehead"><div><h2>Campaign planner</h2><p>Put adventures in order, see where the levels jump, and use the threads the books already share to tie them together. Everything here is a suggestion; you decide.</p></div>${deskToggle()}</div>${driveControls()}`;
   if(!all.length) return head+`<div class="card stack" style="max-width:640px"><h3>No adventures read yet</h3><p>Go to <b>Import adventure</b>, drop your folders, and click <b>Read all adventures for a campaign</b>. Each book you read shows up here.</p><div><button class="btn primary" data-act="tab" data-v="import">Go to Import adventure</button></div></div>`;
   if(!window.QB) return head+'<div class="empty">Loading the planner…</div>';
   const advs=C.order.map(id=>all.find(a=>a.id===id)).filter(Boolean);
@@ -821,7 +821,7 @@ function vDesk(){
       <label class="f" for="en-n">How many<input id="en-n" type="number" min="1" max="12" data-bind="draft.n" value="${D.n}"></label><button class="btn" data-act="enc-addfoe">Add enemies</button></div>
     ${D.foes.length?`<div class="pickrow">${D.foes.map((f,i)=>{const b=S.bestiary.find(x=>x.id===f.ref);return `<button class="chip" data-act="enc-rmfoe" data-i="${i}" title="Remove">${f.n}× ${esc(b?b.name:'?')} ✕</button>`;}).join('')}</div>`:''}
     <div><button class="btn primary" data-act="enc-save" ${D.foes.length&&D.name.trim()?'':'disabled'}>Save fight</button><p class="small muted" style="margin-top:8px">Give the fight a name and add at least one enemy. Save it, then choose Start this fight above.</p></div></div>`;
-  return `<div class="pagehead"><div><div class="eyebrow">DM desk</div><h2>${active?esc(active.title):'Your campaign'}</h2>
+  return `<div class="pagehead"><div><h2>${active?esc(active.title):'Your campaign'}</h2>
     <p>${dangling} open lead${dangling===1?'':'s'} · ${S.npcs.length} people · ${S.encounters.length} saved fights · party of ${S.party.length}</p></div>
     <div class="row">${deskToggle()}<button class="btn discord" data-act="discord" data-v="recap">Preview session recap</button></div></div>
   <div class="desk-grid">
@@ -1169,7 +1169,7 @@ function partyRest(){
 }
 function vCombat(){
   const c=S.combat;
-  if(!c) return `<div class="pagehead"><div><div class="eyebrow">Stakes combat</div><h2>No fight running</h2><p>Prepare a fight on the DM desk, then choose Start this fight.</p></div></div><button class="btn primary" data-act="tab" data-v="desk">DM desk</button>${partyRest()}`;
+  if(!c) return `<div class="pagehead"><div><h2>No fight running</h2><p>Prepare a fight on the DM desk, then choose Start this fight.</p></div></div><button class="btn primary" data-act="tab" data-v="desk">DM desk</button>${partyRest()}`;
   combatSettle();
   const l=c.lite, actors=[...S.party,...c.foes], ready=actors.filter(a=>Stakes.active(S,a)&&!l.acted[a.id]);
   const dying=S.party.filter(p=>p.hpNow<=0&&!p.dead&&!p.dying?.stable);
@@ -1493,7 +1493,7 @@ Object.assign(S.importer,{busy:false,status:''});
 if(S.importer.lib){ S.importer.lib=null; if(S.importer.phase==='product') S.importer.phase='library'; }
 render();
 </script>
-<script src="src/ui/a11y.js?v=20261103-clean1"></script>
+<script src="src/ui/a11y.js?v=20261103-clean2"></script>
 <script type="module">
 import * as QB from './src/app/library-session.js';
 window.QB=QB;
