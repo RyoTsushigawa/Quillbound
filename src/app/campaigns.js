@@ -55,7 +55,8 @@
   function parkAdventure(s) {
     if (s.combat) throw Error('Finish the current fight before changing the adventure.');
     const box = shelf(s);
-    if (hasAdventure(s) || box.name) box.parked.push({ id: uid('a'), name: adventureName(s), updated: Date.now(), data: pickAdventure(s) });
+    // An empty adventure that was never named leaves nothing behind.
+    if (hasAdventure(s) || (box.name && box.name !== 'New adventure')) box.parked.push({ id: uid('a'), name: adventureName(s), updated: Date.now(), data: pickAdventure(s) });
     for (const k of adventureKeys(s)) delete s[k];
     return box;
   }
