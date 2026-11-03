@@ -247,7 +247,7 @@ The SRD 5.1 is by Wizards of the Coast LLC and licensed under CC-BY 4.0. The att
 - So a fight can end without anyone going down. When you end it, enemies that fled, surrendered or made a deal become suggested leads on the DM desk.
 - **Status…** on an enemy card is for corrections by hand.
 - **Conditions** are plain words such as Disarmed, Pinned or Exposed. They change what is possible in the story; there are no hidden number penalties. Each has a description and a way to clear it (the ⓘ button), and the **Conditions guide** lists them all. You can write your own.
-- The scene has three areas you can rename (by default Cover, Open ground, The objective). Drag tokens or use *Place selected token*. Free placement is a DM correction; use Move when getting there is risky. Areas carry no distance math.
+- The scene has three areas you can rename (by default Cover, Open ground, The objective). Drag tokens or use *Place selected token* under **More tools**, below the board, with the conditions guide, DM secret roll, objectives and area names. On the right, a description and what's at risk fold away as optional, and so do physical dice. Free placement is a DM correction; use Move when getting there is risky. Areas carry no distance math.
 - **Next round** lets everyone act again. It asks first if someone hasn't acted yet.
 - Every fight has a goal for the opposition, set when you prepare the fight ("Get the crates onto the boat"). It is shown at the top of the Combat tab.
 

@@ -232,7 +232,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 }
 </style>
 <link rel="stylesheet" href="campaign-ui.css?v=20261103-clean1">
-<link rel="stylesheet" href="clean.css?v=20261103-clean2">
+<link rel="stylesheet" href="clean.css?v=20261103-combat1">
 <body class="qb-app">
 <a class="skip-link" href="#view">Skip to content</a>
 <header class="top">
@@ -1103,8 +1103,9 @@ function combatComposer(){
     <label class="f">Apply this change<select data-bind="combat.lite.draft.effect" data-rerender>${[['condition','Create a condition'],['damage','Deal your attack’s damage'],['move','Move the target'],['objective','Achieve a scene objective'],['context','Resolve a physical situation (automatic conditions)']].map(([v,x])=>`<option value="${v}" ${d.effect===v?'selected':''}>${x}</option>`).join('')}</select></label>
     ${d.effect==='condition'?`<label class="f">Condition<input data-bind="combat.lite.draft.condition" maxlength="80" value="${esc(d.condition)}" list="lt-conditions"></label>`:''}`:'';
   const destination=!enemy&&(d.action==='move'||(d.action==='improvise'&&d.effect==='move'))?zoneSelect('combat.lite.draft.destination',d.destination):'';
-  const describe=!enemy&&d.action!=='improvise'?`<details><summary>Add a description (optional)</summary><input data-bind="combat.lite.draft.intent" value="${esc(d.intent)}" placeholder="A plain attack is a complete action." aria-label="Description of the action"></details>`:'';
-  const stakes=!enemy?`<label class="f">What's at risk? Say it before you roll.<input data-bind="combat.lite.draft.stakes" value="${esc(d.stakes)}" maxlength="200" placeholder="${esc(STAKES_HINT[d.action]||'')}"><span class="small muted">Optional. If the roll goes wrong and the enemy can’t strike back, this becomes the suggested consequence.</span></label>`:'';
+  const describe=!enemy&&d.action!=='improvise'?`<label class="f">Description<input data-bind="combat.lite.draft.intent" value="${esc(d.intent)}" placeholder="A plain attack is a complete action."></label>`:'';
+  const stakes=!enemy?`<label class="f">What's at risk? Say it before you roll.<input data-bind="combat.lite.draft.stakes" value="${esc(d.stakes)}" maxlength="200" placeholder="${esc(STAKES_HINT[d.action]||'')}"><span class="small muted">If the roll goes wrong and the enemy can’t strike back, this becomes the suggested consequence.</span></label>`:'';
+  const extras=describe||stakes?`<details class="lt-extras" data-keep="lt-extras"><summary>Add a description or what's at risk (optional)</summary><div class="stack">${describe}${stakes}</div></details>`:'';
   const atk=!enemy&&roller?QBAttacks.heroAttack(roller):null, n=Stakes.rollsNeeded(S,d);
   const choices=!enemy&&d.action==='attack'?QBAttacks.heroAttackOptions(roller):[];
   const sequence=choices.length?QBAttacks.heroAttackSequence(roller,d.attackNames||[]):[];
@@ -1114,17 +1115,18 @@ function combatComposer(){
      ${ts.map(x=>`<option value="${esc(x.id)}" ${(d.targets?.[i]||d.target)===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>`).join('')}</div>`:'';
   const attackPickers=choices.length>1?`<div class="lt-attack-picks"><p class="small muted">Choose the weapon for each attack. These choices share one Attack action; targets may differ.</p>${sequence.map((current,i)=>`<label class="f">Attack ${i+1}<select data-bind="combat.lite.draft.attackNames.${i}" data-rerender>${(i===0?choices:choices.filter(x=>x.count===sequence[0].count)).map(x=>`<option value="${esc(x.name)}" ${x.name===current.name?'selected':''}>${esc(x.name)} · d20 ${fmt(x.bonus)} · ${esc(x.damage)}${i===0?' · '+x.count+' roll'+(x.count===1?'':'s'):''}</option>`).join('')}</select></label>`).join('')}</div>`:'';
   const sheet=enemy?`<p class="lt-sheet">${esc(roller?.name||'The hero')} rolls <b>d20 ${fmt((roller?.ac||10)-10)}</b> (AC ${roller?.ac||10} − 10) for each attack and must beat 11 + its attack bonus.<span>${esc(a.name)}: ${esc(attackText(a))}</span></p>`
-    :d.action==='attack'?`<p class="lt-sheet">${sequence.map((x,i)=>`${i+1}. ${esc(x.name)}: <b>d20 ${fmt(x.bonus)}</b>, damage ${esc(x.damage)}`).join(' · ')} against ${esc(t?.name||'the target')}’s AC ${t?.acNum??'?'}<span>One strike-back at most per Attack action, from the first eligible graze or miss while the enemy can respond.</span></p>`
+    :d.action==='attack'?`<p class="lt-sheet">${sequence.map((x,i)=>`${i+1}. ${esc(x.name)}: <b>d20 ${fmt(x.bonus)}</b>, damage ${esc(x.damage)}`).join(' · ')} against ${esc(t?.name||'the target')}’s AC ${t?.acNum??'?'}</p>`
     :combatCheckSummary(S,d,roller);
   const edge=enemy?ts.some(x=>(x.id===d.target||d.targets?.includes(x.id))&&(l.openings[x.id]||l.protected[x.id])):roller&&l.openings[roller.id];
   const enemyEffect=enemy?`<label class="f">If the defense fails<select data-bind="combat.lite.draft.enemyEffect" data-rerender>${[['damage',`Deal damage (${attackText(a)})`],['position','Change position'],['condition','Create a condition'],['goal','Advance an enemy objective'],['context','Resolve a physical situation (automatic conditions)']].map(([v,x])=>`<option value="${v}" ${d.enemyEffect===v?'selected':''}>${esc(x)}</option>`).join('')}</select></label>${d.enemyEffect!=='damage'?`<label class="f">Agree what happens before rolling<textarea data-bind="combat.lite.draft.enemyOutcome">${esc(d.enemyOutcome)}</textarea></label><p class="small muted">One defense roll against its best attack. On a failed defense, apply this stated consequence instead of damage.</p>`:''}${d.enemyEffect==='condition'?`<label class="f">Condition<input data-bind="combat.lite.draft.enemyCondition" value="${esc(d.enemyCondition)}"></label>`:''}${d.enemyEffect==='position'?zoneSelect('combat.lite.draft.destination',d.destination):''}`:'';
-  return `<section class="lt-compose">${who}<div class="eyebrow">${enemy?'Enemy move · the hero rolls to defend':'1 · Choose an action'}</div><h3>${esc(a.name)}${l.acted[a.id]?' · already acted':''}</h3>
-    ${actions}${((enemy&&d.enemyEffect==='context')||(!enemy&&d.action==='improvise'&&d.effect==='context'))?contextSelect(d):''}${enemyEffect}${target}${splitTargets}${improvise}${combatObjectiveDraftFields(d)}${destination}${describe}${stakes}${attackPickers}${sheet}
+  return `<section class="lt-compose">${who}<div class="eyebrow">${enemy?'Enemy move · the hero rolls to defend':'Choose an action'}</div>${l.acted[a.id]?`<p class="small muted">${esc(a.name)} has already acted.</p>`:''}
+    ${actions}${((enemy&&d.enemyEffect==='context')||(!enemy&&d.action==='improvise'&&d.effect==='context'))?contextSelect(d):''}${enemyEffect}${target}${splitTargets}${improvise}${combatObjectiveDraftFields(d)}${destination}${attackPickers}${sheet}${extras}
     ${blocked.length?`<p class="lt-warning">${esc(blockedName)} needs ${esc(blocked.join(', '))} first. <button class="btn sm" data-act="lt-stats" data-id="${esc(enemy?a.id:t.id)}">Add numbers</button></p>`:''}
     ${edge?`<p class="lt-tip">${l.openings[roller.id]?'An ally created an opening':'An ally is covering this hero'}: roll two fair d20s on the first roll, keep the higher. At the table, enter both like 3/17.</p>`:''}
-    <div class="lt-roll-controls"><button class="btn primary" data-act="lt-roll" ${canAct&&!blocked.length?'':'disabled'}>${enemy?`Roll defense${n>1?' ×'+n:''} · public`:`Roll ${n>1?n+' d20s':'d20'} · public`}</button><div class="lt-table"><label for="lt-die">Or enter physical dice${n>1?` (${n}, in order)`:''}:</label><div class="row"><input id="lt-die" type="text" inputmode="numeric" data-bind="combat.lite.draft.die" value="${esc(d.die)}" placeholder="${n>1?Array.from({length:n},(_,i)=>12-i*3).join(' '):'12'}" aria-label="Table d20 results"><button class="btn" data-act="lt-table" ${canAct&&!blocked.length?'':'disabled'}>Use roll</button></div></div></div>
-    ${l.acted[a.id]?'<p class="small muted">Choose a ready character or start the next round.</p>':`<button class="btn sm ghost" data-act="co-table-action" ${canAct?'':'disabled'}>Record an action resolved at the table…</button>`}
-    <p class="small muted">${enemy?'Natural 20 always avoids; natural 1 is a critical hit.':d.action==='attack'?'Natural 20 doubles damage dice; a natural 1 can trigger a critical strike-back if it is the first eligible graze or miss.':'Natural 1 / 20 always count. Otherwise: 15+ success · 8–14 success with a consequence · 7 or less setback.'}</p></section>`;
+    <div class="lt-roll-controls"><button class="btn primary" data-act="lt-roll" ${canAct&&!blocked.length?'':'disabled'}>${enemy?`Roll defense${n>1?' ×'+n:''} · public`:`Roll ${n>1?n+' d20s':'d20'} · public`}</button></div>
+    <details class="lt-physical" data-keep="lt-physical"><summary>Use physical dice</summary><div class="lt-table"><label for="lt-die">Your roll${n>1?` (${n}, in order)`:''}:</label><div class="row"><input id="lt-die" type="text" inputmode="numeric" data-bind="combat.lite.draft.die" value="${esc(d.die)}" placeholder="${n>1?Array.from({length:n},(_,i)=>12-i*3).join(' '):'12'}" aria-label="Table d20 results"><button class="btn" data-act="lt-table" ${canAct&&!blocked.length?'':'disabled'}>Use roll</button></div></div>${l.acted[a.id]?'':`<button class="btn sm ghost" data-act="co-table-action" ${canAct?'':'disabled'}>Record an action resolved at the table…</button>`}</details>
+    ${l.acted[a.id]?'<p class="small muted">Choose a ready character or start the next round.</p>':''}
+    ${!enemy&&d.action!=='attack'?'<p class="small muted">15+ succeeds · 8–14 succeeds with a consequence · 7 or less is a setback.</p>':''}</section>`;
 }
 const ATTACK_LABEL={crit:'Critical hit: damage dice double',success:'Hit',mixed:'Graze: half damage',setback:'Miss',disaster:'Natural 1: miss'};
 const DEFENSE_LABEL={crit:'Natural 20: avoided, with a bonus',success:'Avoided',setback:'Hit',disaster:'Natural 1: critical hit'};
@@ -1173,31 +1175,32 @@ function vCombat(){
   combatSettle();
   const l=c.lite, actors=[...S.party,...c.foes], ready=actors.filter(a=>Stakes.active(S,a)&&!l.acted[a.id]);
   const dying=S.party.filter(p=>p.hpNow<=0&&!p.dead&&!p.dying?.stable);
-  const hint=l.pending?['Next: confirm the result','Enter or roll damage for each hit, then choose Confirm result. Nothing is applied until then. The dice themselves are already public.']
+  const hint=l.pending?['Next: confirm the result','Check the damage, then choose Confirm result. Nothing is applied until then.']
     :Object.keys(l.breaking).length?['Next: an enemy is wavering','Decide on its card whether it flees, surrenders, makes a deal or fights on.']
     :dying.length?['A hero is dying',`${dying.map(p=>p.name).join(', ')} at 0 HP: roll a death save on their turn, or heal them.`]
-    :['Next: choose who acts','Choose who acts, choose an action, say what is at risk, then roll. Bonuses come from the sheet and the stat block.'];
+    :['Next: choose who acts','Choose who acts and an action, then roll.'];
   return `${clHint(hint[0],hint[1])}
-  <div class="pagehead lt-heading"><div><div class="eyebrow">Stakes combat · round ${c.round}</div><h2>${esc(c.name)}</h2>${c.goal?`<p><b>They want:</b> ${esc(c.goal)}</p>`:'<p>Pick a token. Choose an action. Let the die decide.</p>'}</div>
+  <div class="pagehead lt-heading"><div><div class="eyebrow">Round ${c.round}</div><h2>${esc(c.name)}</h2>${c.goal?`<p><b>They want:</b> ${esc(c.goal)}</p>`:''}</div>
     <div class="row"><button class="btn" data-act="lt-undo" ${l.history.length?'':'disabled'}>↶ Undo</button><button class="btn" data-act="lt-round" ${l.pending?'disabled':''}>Next round</button><button class="btn ghost" data-act="c-end">End fight</button></div></div>
-  <p class="small muted" aria-label="Combat terms explained">Combat terms: ${crGlossaryTerm('Advantage')} · ${crGlossaryTerm('Disadvantage')} · ${crGlossaryTerm('Saving Throw')} · ${crGlossaryTerm('Death Save')} · ${crGlossaryTerm('Opportunity Attack')}</p>
-  <div class="row hd-controls"><button class="btn sm" data-act="hd-guide">Conditions guide</button><button class="btn sm" data-act="hd-secret">DM secret roll</button><button class="btn sm" data-act="co-edit" ${l.pending?'disabled':''}>Prepare objective…</button></div>
+
+
   <div class="lt-layout"><div class="lt-stage">
-    <div class="lt-scenehead"><span class="eyebrow">The scene · ${esc(c.where||'')}</span><button class="btn sm ghost" data-act="lt-zones" ${l.pending?'disabled':''}>Name areas</button></div>
+    <div class="lt-scenehead"><span class="eyebrow">${esc(c.where||'')}</span></div>
     <div class="lt-board">${Stakes.zones.map(z=>`<section class="lt-zone" data-zone="${z}" aria-label="${esc(l.zones[z])}"><h3>${esc(l.zones[z])}</h3><div class="lt-zone-body">${zoneTokens(actors.filter(a=>l.positions[a.id]===z))||'<p class="small muted">Drop a token here</p>'}</div></section>`).join('')}</div>
-    <p class="lt-boardhint">Drag tokens to arrange the scene. Or use <b>Place selected token</b> below. Free placement is a DM adjustment; choose Move for a risky action.</p>
-    <div class="lt-placement"><span class="small">Place selected token:</span>${Stakes.zones.map(z=>`<button class="btn sm" data-act="lt-place" data-v="${z}" ${l.pending?'disabled':''}>${esc(l.zones[z])}</button>`).join('')}</div>
     <div class="lt-turnstrip"><span class="eyebrow">${Stakes.encounterStatus(S).phase==="cleared"?"No enemies still fighting":Stakes.encounterStatus(S).phase==="party-down"?"All heroes down":"Still to act"}</span>${ready.length?ready.map(a=>`<button class="chip" data-act="lt-pick" data-id="${esc(a.id)}" ${l.pending?'disabled':''}>${esc(a.name)}</button>`).join(''):'<span>Everyone has acted. Ready for the next round.</span>'}</div>
+    <details class="lt-more" data-keep="lt-more"><summary>More tools</summary><div class="row"><button class="btn sm" data-act="hd-guide">Conditions guide</button><button class="btn sm" data-act="hd-secret">DM secret roll</button><button class="btn sm" data-act="co-edit" ${l.pending?'disabled':''}>Prepare objective…</button><button class="btn sm" data-act="lt-zones" ${l.pending?'disabled':''}>Name areas</button></div>
+      <p class="small muted">Drag tokens to arrange the scene, or place the selected one here. This is a free DM adjustment; choose Move for a risky action.</p><div class="lt-placement"><span class="small">Place selected token:</span>${Stakes.zones.map(z=>`<button class="btn sm" data-act="lt-place" data-v="${z}" ${l.pending?'disabled':''}>${esc(l.zones[z])}</button>`).join('')}</div></details>
     ${combatAbilities(c)}${combatObjectivesView()}
-    <details class="lt-rules"><summary>The rules in one minute</summary>
+    <details class="lt-rules" data-keep="lt-rules"><summary>The rules in one minute</summary>
+      <p class="small muted">Terms: ${crGlossaryTerm('Advantage')} · ${crGlossaryTerm('Disadvantage')} · ${crGlossaryTerm('Saving Throw')} · ${crGlossaryTerm('Death Save')} · ${crGlossaryTerm('Opportunity Attack')}</p>
       <p>Say what you do, and what's at risk if it goes wrong. Then roll a d20. A natural 20 and a natural 1 always count.</p>
-      <p><b>Attack:</b> d20 + your attack bonus against the target’s armor class. Reach it and you hit for your normal damage. Miss by 5 or less and it’s a graze: half damage. The first eligible graze or miss while the enemy is standing may trigger one strike-back for the whole Attack action, unless it can't reach you. Extra Attack means one roll per attack.</p>
-      <p><b>Defending:</b> when an enemy acts, the hero rolls d20 + armor class − 10 and must beat 11 + the enemy’s attack bonus. These are exactly 5e’s chances. Damage comes from the stat block.</p>
+      <p><b>Attack:</b> d20 + your attack bonus against the target’s armor class. Reach it and you hit for your normal damage. Miss by 5 or less and it’s a graze: half damage. The first eligible graze or miss while the enemy is standing may trigger one strike-back for the whole Attack action, unless it can't reach you. Extra Attack means one roll per attack. A natural 20 doubles the damage dice; a natural 1 can trigger a critical strike-back if it is the first eligible graze or miss.</p>
+      <p><b>Defending:</b> when an enemy acts, the hero rolls d20 + armor class − 10 and must beat 11 + the enemy’s attack bonus. These are exactly 5e’s chances. Damage comes from the stat block. A natural 20 always avoids; a natural 1 is a critical hit.</p>
       <p><b>Stamina:</b> after seeing your own roll, spend 1 stamina to add 1d4. Stamina equals your proficiency bonus and comes back on a long rest. When it runs out you are Winded and can still push by spending a Hit Die instead.</p>
       <p><b>Other actions</b> (Help, Defend, Move, Improvise): 15+ succeeds, 8–14 succeeds with a consequence, 7 or less is a setback. Defend gives an ally an opening on their next defense roll; Help gives an opening on their next roll.</p>
       <p><b>Hit points:</b> at 0 HP a hero is dying and makes death saves; an enemy is out. Enemies waver at their breaking point (15–30% of their HP, tougher ones hold out longer; a group when half of it is down) and the DM decides whether they flee, surrender, make a deal or fight on.</p>
       <p>Conditions change what is possible. Resolve a condition with × when the story allows it. Spell slots and limited features stay on your sheet; Stakes is still being playtested and is not a complete conversion of every 5e feature.</p></details>
-    <details class="lt-log"><summary>Recent actions · ${c.log.length}</summary>${c.log.slice(0,15).map(x=>`<p>${esc(x.text)}</p>`).join('')}</details></div>
+    <details class="lt-log" data-keep="lt-log"><summary>Recent actions · ${c.log.length}</summary>${c.log.slice(0,15).map(x=>`<p>${esc(x.text)}</p>`).join('')}</details></div>
     <aside class="lt-panel">${l.uiError?`<div class="cl-error" role="alert">${esc(l.uiError)}</div>`:''}${l.pending?combatResult():combatComposer()}</aside></div>
   <datalist id="lt-conditions">${['Disarmed','Pinned','Exposed','Distracted','Hidden','Separated','Spell interrupted'].map(x=>`<option value="${x}">`).join('')}</datalist>`;
 }
@@ -1493,7 +1496,7 @@ Object.assign(S.importer,{busy:false,status:''});
 if(S.importer.lib){ S.importer.lib=null; if(S.importer.phase==='product') S.importer.phase='library'; }
 render();
 </script>
-<script src="src/ui/a11y.js?v=20261103-clean2"></script>
+<script src="src/ui/a11y.js?v=20261103-combat1"></script>
 <script type="module">
 import * as QB from './src/app/library-session.js';
 window.QB=QB;
