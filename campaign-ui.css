@@ -11,18 +11,18 @@
 .qb-app .top{position:fixed;inset:0 auto 0 0;width:224px;border:0;border-right:1px solid var(--line);z-index:20}
 .qb-app .top-in{padding:30px 16px 20px;display:flex;flex-flow:column nowrap;align-items:stretch;gap:0;height:100dvh;overflow-y:auto}
 .qb-app .brand{gap:10px;font-size:1.6rem;flex-wrap:wrap;padding:0 9px 28px;line-height:1.2}
-.qb-app .brand svg{width:28px;height:28px;flex:none}.qb-app .proto{font-size:.55rem;margin-left:38px;border:0;padding:0;letter-spacing:.15em}
+.qb-app .brand svg{width:28px;height:28px;flex:none}.qb-app .proto{font-size:.75rem;margin-left:38px;border:0;padding:0;letter-spacing:.15em}
 .qb-app .tabs{display:flex;flex-direction:column;flex:0 0 auto;order:0;gap:5px;width:100%}
-.nav-caption{font-size:.65rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.11em;padding:12px 12px 8px}
+.nav-caption{font-size:.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.11em;padding:12px 12px 8px}
 .qb-app .tab{width:100%;padding:11px 12px;gap:11px;font-size:.875rem;text-align:left;align-items:center;border-radius:8px;min-height:44px}
-.qb-app .tab[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);font-weight:650;box-shadow:inset 3px 0 var(--accent)}
+.qb-app .tab[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:650;box-shadow:inset 3px 0 var(--accent)}
 .nav-icon{width:21px;height:21px;flex:none;text-align:center;font:1.3rem/1 "Segoe UI Symbol",sans-serif}
 #nav-preparation{margin-top:22px}#nav-preparation>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:8px;min-height:44px;align-items:center}
 #nav-preparation>summary::-webkit-details-marker{display:none}#nav-preparation>summary:after{content:"＋";font-size:.85rem}#nav-preparation[open]>summary:after{content:"−"}
 .nav-prep-items{display:grid;gap:5px}
 .shell-utilities{display:grid;gap:8px;margin-top:auto;padding:36px 8px 0}
 .shell-utilities .btn{background:transparent;border-color:transparent;font-size:.8rem;font-weight:500;min-height:36px}
-.shell-utilities .cl-save{font-size:.65rem;padding:8px 12px 0;line-height:1.5}
+.shell-utilities .cl-save{font-size:.75rem;padding:8px 12px 0;line-height:1.5}
 .top[data-role="player"] .nav-dm{display:none}
 .qb-app #view{margin-left:224px;max-width:calc(1600px - 224px);padding:44px clamp(24px,3.2vw,56px) 64px;width:calc(100% - 224px)}
 .qb-app .pagehead{margin-bottom:28px;gap:20px}.qb-app .pagehead p{line-height:1.65;margin-top:10px}
@@ -50,7 +50,7 @@
 .home-tool-number{font: .68rem var(--mono);color:var(--gold);margin-bottom:16px}.home-tool-arrow{width:18px;height:18px;position:absolute;right:22px;top:20px;color:var(--muted);font-size:1.1rem}
 .home-more{border-top:1px solid var(--line);margin-top:32px;padding-top:20px;font-size:.85rem}.home-more>summary{color:var(--muted);width:fit-content;min-height:40px}
 .home-other-campaigns{display:grid;gap:18px;padding:10px 0}.home-other{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-bottom:18px;border-bottom:1px solid var(--line)}.home-other>div{min-width:0;overflow-wrap:anywhere}
-.home-footnote{margin-top:26px;font-size:.73rem;color:var(--muted);max-width:85ch}.home-player-options{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px}
+.home-footnote{margin-top:26px;font-size:.75rem;color:var(--muted);max-width:85ch}.home-player-options{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px}
 /* Give the scene the largest share of the screen and keep help at reading size. */
 .qb-app .ov-grid{grid-template-columns:minmax(175px,.72fr) minmax(320px,2fr) minmax(235px,.95fr);gap:18px}
 .qb-app .ov-nav,.qb-app .ov-people{top:24px;max-height:calc(100dvh - 48px)}
@@ -58,7 +58,7 @@
 .qb-app .ov-flow-block p,.qb-app .ov-notes p{line-height:1.8;font-size:.95rem}.qb-app .ov-flow-block h4{margin:10px 0 12px;font-size:.95rem}
 .qb-app .ov-people .rp dd,.qb-app .ov-delivery p{font-size:.85rem;line-height:1.7}.qb-app .ov-reading-nav a{font-size:.75rem;padding:8px 10px}
 .qb-app .ov-place{padding:14px 52px 14px 12px;font-size:.85rem;line-height:1.5;border-color:transparent;background:transparent}.qb-app .ov-place.selected{background:var(--accent-soft);border-color:transparent}.qb-app .ov-place:hover{border-color:var(--line)}
-.qb-app .ov-place small{font-family:inherit;font-size:.7rem}.qb-app .ov-peek{top:12px;right:0;font-family:inherit;font-size:.68rem;line-height:1.4;min-height:36px}
+.qb-app .ov-place small{font-family:inherit;font-size:.7rem}.qb-app .ov-peek{top:12px;right:0;font-family:inherit;font-size:.75rem;line-height:1.4;min-height:36px}
 .qb-app .ov-now{font-size:.95rem}.qb-app .ov-progress{font-family:inherit;font-size:.78rem}.qb-app .ov-reading-nav{gap:6px}
 .qb-app .ov-scene,.qb-app #ov-opening,.qb-app #ov-running,.qb-app #ov-clues,.qb-app #ov-details,.qb-app #ov-people{scroll-margin-top:24px}
 @media(min-width:1600px){.qb-app #view{margin-inline:auto;padding-left:280px;width:100%;max-width:1648px}}
@@ -71,16 +71,16 @@
   .shell-utilities{margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px}.shell-utilities .btn{padding:6px 9px;min-height:36px}.shell-utilities .cl-save{display:none}
   .qb-app .tabs{order:3;flex-basis:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
   .nav-dm{display:none}.qb-app .tab{justify-content:center;padding:9px 6px;font-size:.8rem;gap:6px}.nav-icon{font-size:1.1rem;width:18px}
-  #nav-preparation{grid-column:1/-1;margin-top:3px;border-top:1px solid var(--line)}#nav-preparation>summary{padding:10px 6px;min-height:38px;font-size:.6rem;justify-content:flex-start;gap:12px}
+  #nav-preparation{grid-column:1/-1;margin-top:3px;border-top:1px solid var(--line)}#nav-preparation>summary{padding:10px 6px;min-height:38px;font-size:.75rem;justify-content:flex-start;gap:12px}
   .nav-prep-items{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
   .top[data-role="player"] .tabs{grid-template-columns:1fr 3fr}.top[data-role="player"] #nav-preparation{grid-column:auto;margin:0;border:0}.top[data-role="player"] #nav-preparation>summary{display:none}.top[data-role="player"] .nav-prep-items{grid-template-columns:repeat(3,minmax(0,1fr))}
   .qb-app #view{margin:0;padding:30px 24px 48px;width:100%;max-width:none}.qb-app .ov-nav,.qb-app .ov-people{top:16px;max-height:calc(100dvh - 32px)}
 }
 @media(max-width:650px){
   .qb-app .top-in{padding:14px 12px;gap:10px}.qb-app .brand svg{width:24px;height:24px}.qb-app .brand{font-size:1.25rem}.shell-utilities .btn{font-size:.7rem;padding:5px 6px}
-  .qb-app .tab{font-size:.73rem;gap:4px}.nav-icon{display:none}.qb-app #view{padding:26px 16px 48px}.qb-app .pagehead{gap:12px;margin-bottom:22px}.home-heading .btn{font-size:.75rem;min-height:34px;padding:6px 0}
+  .qb-app .tab{font-size:.75rem;gap:4px}.nav-icon{display:none}.qb-app #view{padding:26px 16px 48px}.qb-app .pagehead{gap:12px;margin-bottom:22px}.home-heading .btn{font-size:.75rem;min-height:34px;padding:6px 0}
   .home-campaign{display:block}.home-campaign-main{padding:26px 22px}.home-campaign h3{font-size:1.9rem;margin:14px 0 20px}.home-actions{margin-top:24px}.home-actions .btn{flex:1 1 auto}.home-actions .btn.primary{flex-basis:100%;justify-content:space-between}.home-actions .btn.ghost{padding-inline:8px}
-  .home-stats{border-left:0;border-top:1px solid var(--line);grid-template-columns:repeat(3,1fr);gap:12px;padding:18px 22px}.home-stats dd{font-size:1.3rem}.home-stats dt{font-size:.65rem}
+  .home-stats{border-left:0;border-top:1px solid var(--line);grid-template-columns:repeat(3,1fr);gap:12px;padding:18px 22px}.home-stats dd{font-size:1.3rem}.home-stats dt{font-size:.75rem}
   .home-tools,.home-player-options{grid-template-columns:1fr;gap:12px}.home-tool{padding:20px 22px;gap:5px}.home-tool-number{margin:0 0 6px}.home-tool small{max-width:45ch}.home-section-head{margin-top:28px}.home-footnote{font-size:.7rem;line-height:1.7}
   .qb-app .ov-grid{display:block}.qb-app .ov-nav,.qb-app .ov-people{position:static;max-height:none;margin-bottom:18px}.qb-app .ov-nav{max-height:260px}.qb-app .ov-scene{padding:22px}.qb-app .ov-scene h2{font-size:1.5rem}.qb-app .card{padding:18px}.qb-app .ov-main{margin-bottom:18px}
 }

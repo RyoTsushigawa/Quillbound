@@ -21,14 +21,14 @@
 .top-in{display:flex;align-items:center;gap:8px 20px;flex-wrap:wrap;padding-block:10px}
 .brand{display:flex;align-items:center;gap:8px;font-family:var(--display);font-size:1.55rem;font-weight:700;letter-spacing:.01em}
 .brand svg{width:26px;height:26px;color:var(--accent)}
-.proto{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid currentColor;border-radius:3px;padding:1px 5px;font-weight:600}
+.proto{font-family:var(--mono);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid currentColor;border-radius:3px;padding:1px 5px;font-weight:600}
 .tabs{display:flex;flex-wrap:wrap;gap:2px;flex:1;min-width:0;order:3;flex-basis:100%} /* their own row, wrapping: no tab is ever scrolled out of sight */
 .tab{white-space:nowrap}
 @media (max-width:640px){ .tabs{order:3;flex-basis:100%} }
 .tab{font:inherit;font-weight:500;background:none;border:0;color:var(--muted);padding:7px 12px;border-radius:5px;cursor:pointer;display:flex;align-items:baseline;gap:7px}
 .tab .n{font-family:var(--mono);font-size:.7rem;opacity:.8}
 .tab:hover{color:var(--ink);background:var(--surface-2)}
-.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.tab[aria-current="page"]{background:var(--accent);color:var(--accent-ink)}
 main{padding-block:22px 56px}
 
 /* basics */
@@ -56,7 +56,7 @@ label.f{display:grid;gap:4px;font-size:.88rem;color:var(--muted);font-weight:500
 button.chip{cursor:pointer;font-family:inherit}
 button.chip:hover{border-color:var(--accent)}
 button.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.why{font-family:var(--mono);font-size:.68rem;color:var(--muted)}
+.why{font-family:var(--mono);font-size:.75rem;color:var(--muted)}
 .empty{border:1px dashed var(--line);border-radius:var(--r);padding:16px;color:var(--muted);text-align:center;font-size:.92rem}
 .pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px}
 .pagehead p{max-width:62ch;color:var(--muted);margin-top:6px}
@@ -64,7 +64,7 @@ button.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink
 /* creator */
 .stepper{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px;counter-reset:s}
 .stepper button{font:inherit;font-size:.9rem;background:none;border:1px solid transparent;border-radius:99px;padding:4px 12px 4px 6px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:7px}
-.stepper button::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-size:.72rem;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line)}
+.stepper button::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-size:.75rem;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line)}
 .stepper button[aria-current="step"]{color:var(--ink);border-color:var(--line);background:var(--surface)}
 .stepper button[aria-current="step"]::before{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .stepper button.done::before{background:var(--accent-soft);color:var(--accent);border-color:transparent}
@@ -231,14 +231,15 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
   @keyframes pop{from{transform:scale(.97);opacity:.6}to{transform:none;opacity:1}}
 }
 </style>
-<link rel="stylesheet" href="campaign-ui.css?v=20261102-glossary9">
+<link rel="stylesheet" href="campaign-ui.css?v=20261103-clean1">
+<link rel="stylesheet" href="clean.css?v=20261103-clean1">
 <body class="qb-app">
 <a class="skip-link" href="#view">Skip to content</a>
 <header class="top">
   <div class="wrap top-in">
     <div class="brand">
       <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M16 2 29 9.5v13L16 30 3 22.5v-13Z"/><path d="M16 2 9 20h14Z"/><path d="M3 9.5 9 20 3 22.5M29 9.5 23 20l6 2.5M9 20l7 10 7-10"/></svg>
-      Quillbound <span class="proto">Prototype</span>
+      Quillbound
     </div>
     <nav class="tabs" aria-label="Tools">
       <div class="nav-caption nav-dm">At the table</div>
@@ -264,7 +265,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
   </div>
 </header>
 <main class="wrap" id="view" tabindex="-1"></main>
-<div id="toast"></div>
+<div id="toast" role="status"></div>
 
 <script src="src/app/player-core.js"></script>
 <script src="src/app/scene-maps.js?v=20261103-modules1" data-ui></script>
@@ -308,7 +309,7 @@ dialog.dialog img.preview{width:100%;height:auto;border-radius:4px;background:va
 <script src="src/ui/hero-import.js"></script>
 <script src="src/ui/combat-objectives.js"></script>
 <script src="src/ui/scene-maps.js?v=20261103-handouts1"></script>
-<script src="src/ui/session-overview.js?v=20261102-rooms1"></script>
+<script src="src/ui/session-overview.js?v=20261103-clean1"></script>
 <script src="src/ui/security-alert.js"></script>
 <script src="src/ui/package-import.js?v=20261102-rooms1"></script>
 <script src="src/ui/drive.js?v=20261102-adventures1"></script>
@@ -596,7 +597,7 @@ function load(){ try{const t=localStorage.getItem(KEY); if(t){const s=JSON.parse
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pc=id=>S.party.find(p=>p.id===id);
-function toast(msg){ const t=$('#toast'); t.innerHTML='<div class="toast" role="status">'+esc(msg)+'</div>'; clearTimeout(toast.t); toast.t=setTimeout(()=>t.innerHTML='',2600); }
+function toast(msg){ const t=$('#toast'); t.innerHTML='<div class="toast">'+esc(msg)+'</div>'; clearTimeout(toast.t); toast.t=setTimeout(()=>t.innerHTML='',Math.max(4000,String(msg).length*70)); }
 function setPath(path,val){ const k=path.split('.'); let o=S; for(let i=0;i<k.length-1;i++){o=o[k[i]]; if(o==null) return;} o[k[k.length-1]]=val; }
 function recommended(cls){ const o=CLASSES[cls].order, arr=[15,14,13,12,10,8], a={}; o.forEach((k,i)=>a[k]=arr[i]); a[o[0]]+=2; a[o[1]]+=1; return a; }
 function hpFor(cls,anc,abil,level=1){ const c=CLASSES[cls]; const per=Math.floor(c.die/2)+1; return c.die+mod(abil.CON)+(level-1)*(per+mod(abil.CON))+((ANCESTRY[anc]||{}).hp||0)*level; }
@@ -1102,7 +1103,7 @@ function combatComposer(){
     <label class="f">Apply this change<select data-bind="combat.lite.draft.effect" data-rerender>${[['condition','Create a condition'],['damage','Deal your attack’s damage'],['move','Move the target'],['objective','Achieve a scene objective'],['context','Resolve a physical situation (automatic conditions)']].map(([v,x])=>`<option value="${v}" ${d.effect===v?'selected':''}>${x}</option>`).join('')}</select></label>
     ${d.effect==='condition'?`<label class="f">Condition<input data-bind="combat.lite.draft.condition" maxlength="80" value="${esc(d.condition)}" list="lt-conditions"></label>`:''}`:'';
   const destination=!enemy&&(d.action==='move'||(d.action==='improvise'&&d.effect==='move'))?zoneSelect('combat.lite.draft.destination',d.destination):'';
-  const describe=!enemy&&d.action!=='improvise'?`<details><summary>Add a description (optional)</summary><input data-bind="combat.lite.draft.intent" value="${esc(d.intent)}" placeholder="A plain attack is a complete action."></details>`:'';
+  const describe=!enemy&&d.action!=='improvise'?`<details><summary>Add a description (optional)</summary><input data-bind="combat.lite.draft.intent" value="${esc(d.intent)}" placeholder="A plain attack is a complete action." aria-label="Description of the action"></details>`:'';
   const stakes=!enemy?`<label class="f">What's at risk? Say it before you roll.<input data-bind="combat.lite.draft.stakes" value="${esc(d.stakes)}" maxlength="200" placeholder="${esc(STAKES_HINT[d.action]||'')}"><span class="small muted">Optional. If the roll goes wrong and the enemy can’t strike back, this becomes the suggested consequence.</span></label>`:'';
   const atk=!enemy&&roller?QBAttacks.heroAttack(roller):null, n=Stakes.rollsNeeded(S,d);
   const choices=!enemy&&d.action==='attack'?QBAttacks.heroAttackOptions(roller):[];
@@ -1286,7 +1287,7 @@ function eye(kind, record) {
 function openDialog(title, body, { wide = false } = {}) {
   document.getElementById('app-dialog')?.remove();
   const dlg = document.createElement('dialog'); dlg.id = 'app-dialog'; dlg.className = 'dialog' + (wide ? ' wide' : '');
-  dlg.innerHTML = `<div class="stack"><div class="dialog-h"><h3>${esc(title)}</h3><button type="button" class="btn sm ghost" data-dialog-close>Close</button></div>${body}</div>`;
+  dlg.setAttribute('aria-labelledby', 'app-dialog-title'); dlg.innerHTML = `<div class="stack"><div class="dialog-h"><h3 id="app-dialog-title">${esc(title)}</h3><button type="button" class="btn sm ghost" data-dialog-close>Close</button></div>${body}</div>`;
   document.body.append(dlg); dlg.querySelector('[data-dialog-close]').onclick = () => dlg.close();
   dlg.addEventListener('close', () => dlg.remove()); dlg.showModal(); return dlg;
 }
@@ -1390,7 +1391,7 @@ function render(){
   if(typeof inviteFromUrl==='function' && !inviteUI.token)inviteFromUrl();
   cmShell(); // player or DM mode (src/ui/campaigns.js)
   campaignShell();
-  document.querySelectorAll('.tab').forEach(t=>{const active=t.dataset.v===S.tab;t.setAttribute('aria-selected',active);if(active)t.setAttribute('aria-current','page');else t.removeAttribute?.('aria-current');});
+  document.querySelectorAll('.tab').forEach(t=>{const active=t.dataset.v===S.tab;if(active)t.setAttribute('aria-current','page');else t.removeAttribute?.('aria-current');});
   const prepNav=document.getElementById('nav-preparation');
   if(prepNav && ['heroes','create','import','homebrew'].includes(S.tab))prepNav.open=true;
   $('#view').innerHTML={home:S.role==='dm'?vHome:vPlayerHome,create:vCreate,heroes:vHeroes,campaigns:vCampaigns,import:vImport,desk:vDesk,combat:vCombat,homebrew:vHomebrew}[S.tab]();
@@ -1492,6 +1493,7 @@ Object.assign(S.importer,{busy:false,status:''});
 if(S.importer.lib){ S.importer.lib=null; if(S.importer.phase==='product') S.importer.phase='library'; }
 render();
 </script>
+<script src="src/ui/a11y.js?v=20261103-clean1"></script>
 <script type="module">
 import * as QB from './src/app/library-session.js';
 window.QB=QB;
