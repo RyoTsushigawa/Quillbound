@@ -40,7 +40,7 @@ function sharedApply(record,party,remote){
  if(party){
   const before=cmSheet(record.build),next=QBHeroRules.toHero(data.build,data.sheet,{...record});
   if(before){if(before.ac===data.sheet.ac)next.ac=record.ac;if(before.hp.max===data.sheet.hp.max)next.hp=record.hp;if(before.skills.perception.bonus===data.sheet.skills.perception.bonus)next.perceptionBonus=record.perceptionBonus;}
-  next.hpNow=Math.min(record.hpNow ?? next.hp,next.hp);next.name=data.build.name;next.heroStory=data.story;next.want=data.story.want;Object.assign(record,next);
+  next.hpNow=Math.min(next.hpNow,next.hp);next.name=data.build.name;next.heroStory=data.story;next.want=data.story.want;Object.assign(record,next);
  }else{record.previousVersion={build:record.build,story:record.story,saved:record.saved};record.build=data.build;record.story=data.story;record.saved=Date.now();}
  record.cloudLink={...record.cloudLink,revision:remote.revision,baseJson:remote.sheetJson};
 }
