@@ -38,6 +38,7 @@ const sentences = t => ((t || '').replace(ABBR, '$1․').match(/[^.!?]+[.!?]+["�
 const firstSentences = (t, n = 2) => sentences(t).slice(0, n).join(' ');
 const isCaps = t => /[A-Z]/.test(t) && t === t.toUpperCase() && /[A-Z]{3}/.test(t);
 const titleCaseRatio = t => { const w = t.split(/\s+/).filter(x => /^[A-Za-zÄÖÜäöü]/.test(x) && !/^(of|the|and|a|an|in|on|to|at|for|der|die|das|und|von|im)$/i.test(x)); return w.length ? w.filter(x => /^[A-ZÄÖÜ]/.test(x)).length / w.length : 0; };
+const normalizeName = t => String(t).toLowerCase().replace(/[^a-z0-9äöüß]/g, '');
 const prettyCaps = t => isCaps(t) ? t.toLowerCase().replace(/(^|[\s(“"'-])([a-zäöü])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Of|The|And|In|On|To|At|For|A|An)\b(?!$)/g, w => w.toLowerCase()).replace(/^./, c => c.toUpperCase()) : t;
 let uidN = 0;
 const uid = p => p + (++uidN).toString(36) + Math.random().toString(36).slice(2, 6);
@@ -273,8 +274,15 @@ function parseStatBlocks(blocks, typo) {
       const p = blocks[j];
       if (p.type === 'heading') {
         if (ACTION_HEADS.test(p.text.trim())) { section = /legendary|mythic/i.test(p.text) ? 'legendary' : /reaction/i.test(p.text) ? 'reactions' : /lair|regional/i.test(p.text) ? 'legendary' : 'actions'; continue; }
-        break;
+        // The wrapped end of a stat line ("can't speak") can look like a heading, but the stat block goes on.
+        if (STAT_LINE.test(p.text)) { statText.push(p.text); continue; }
+        if (statText.length && !sb.traits.length && !sb.actions.length && /^[a-z]/.test(p.text)) { statText[statText.length - 1] += ' ' + p.text; continue; }
+        // A sidebar beside the stat block repeats the creature's name in big letters; the block carries on after it.
+        if (statText.length && normalizeName(p.text) === normalizeName(sb.name)) continue;
+        // Same size as the stat block's own lines: an indented wrapped line, not a new chapter.
+        if (!statText.length || Math.abs((p.size || 0) - (b.size || 0)) > 0.6) break;
       }
+      if (statText.length && p.size && b.size && p.size < b.size - 1) continue; // the sidebar's small print
       if (TYPE_RE.test(p.text)) break;
       if (ACTION_HEADS.test(p.text.trim())) { section = /legendary|mythic/i.test(p.text) ? 'legendary' : /reaction/i.test(p.text) ? 'reactions' : 'actions'; continue; }
       if (STAT_LINE.test(p.text) || /^[\d\s()+\-–−]+$/.test(p.text)) { statText.push(p.text); continue; }
@@ -305,6 +313,15 @@ function parseStatBlocks(blocks, typo) {
     const scores = [...st.matchAll(/(\d{1,2})\s*\(\s*([+\-–−]\s*\d+)\s*\)/g)].slice(0, 6).map(x => +x[1]);
     if (scores.length === 6) sb.abilities = { STR: scores[0], DEX: scores[1], CON: scores[2], INT: scores[3], WIS: scores[4], CHA: scores[5] };
     if (!sb.ac && !sb.hp) continue;
+    shapeFoe(sb);
+    sb.statLines = j - i;
+    out.push(sb);
+  }
+  return out;
+}
+
+// Tier, morale, goal and combat numbers from a filled-in stat block, whether it came from a book or a module.
+export function shapeFoe(sb) {
     const [tier, slots] = tierFor(crNum(sb.cr));
     sb.tier = tier; sb.slots = slots;
     const k = sb.kind;
@@ -314,11 +331,8 @@ function parseStatBlocks(blocks, typo) {
     sb.goal = { humanoid: 'Get what they came for and live', undead: 'Drag the living into death', beast: 'Eat or escape', fiend: 'Corrupt or destroy', construct: 'Follow its orders' }[k.split(' ')[0]] || 'Defend its ground';
     sb.moves = [...sb.actions, ...sb.legendary].map(a => a.name).filter(n => !/^multiattack$/i.test(n));
     if (!sb.moves.length) sb.moves = ['Attack'];
-    sb.statLines = j - i;
     Object.assign(sb, globalThis.QBAttacks.fromStatBlock(sb)); // hpMax, acNum, crNum, attacks, turn, breaks
-    out.push(sb);
-  }
-  return out;
+    return sb;
 }
 
 /* ---------------- 6. NPCs ---------------- */

@@ -135,6 +135,65 @@ async function sceneMapDialog(id) {
     catch (error) { if (dlg.isConnected) field('status').textContent = error.message; }
   }
 }
+function sceneMapRooms() {
+  const scenes = (S.beats || []).filter(b => !b.reference && !(typeof overviewReference === 'function' && overviewReference(b)));
+  const every = SceneMaps.candidates(S.importer?.lib), own = every.filter(f => scenes.some(b => b.source === f.product));
+  // A map folder that belongs to an adventure is matched with that adventure's own rooms.
+  const rooms = own.length ? scenes.filter(b => own.some(f => f.product === b.source)) : scenes;
+  return { rooms, files: own.length ? own : every };
+}
+const sceneMapRoomsReady = () => { const { rooms, files } = sceneMapRooms(); return rooms.length > 1 && files.length > 0; };
+function sceneMapRoomsDialog() {
+  const { rooms, files } = sceneMapRooms(), campaign = S.campaigns?.current;
+  if (!files.length) { toast('Add the map files to the library first.'); return; }
+  const plan = SceneMaps.suggestRooms(rooms, files);
+  const row = b => {
+    const ref = SceneMaps.reference(b.playerMap), idea = plan[b.id];
+    return `<label class="map-room"><span>${esc(b.title)}${!ref && idea && !idea.sure ? ' <span class="chip">best guess</span>' : ''}</span><select data-room="${esc(b.id)}">${ref ? `<option value="keep" selected>Keep: ${esc(ref.title)}</option>` : ''}<option value=""${!ref && !idea ? ' selected' : ''}>No map</option>${files.map((f, i) => `<option value="${i}"${!ref && idea?.file === i ? ' selected' : ''}>${esc(SceneMaps.mapTitle(f, files))}</option>`).join('')}</select></label>`;
+  };
+  const dlg = openDialog('Match maps to rooms', `<p>These are first ideas from the file and room names. Check each image for secrets, then change anything that is wrong. Players only ever see maps you confirm here.</p>
+    <div class="map-rooms-gallery">${files.map((f, i) => `<figure><img data-map-image="${i}" alt="${esc(f.name)}" title="Select to enlarge"><figcaption><label class="f">Title players see<input data-map-title="${i}" value="${esc(SceneMaps.mapTitle(f, files))}" maxlength="200"></label><span class="small muted" data-map-count="${i}"></span></figcaption></figure>`).join('')}</div>
+    <h4>Rooms</h4><div class="map-rooms-list">${rooms.map(row).join('')}</div>
+    <label><input type="checkbox" id="map-rooms-auto" checked> Show the map when one of these rooms becomes active</label>
+    <p id="map-rooms-status" role="status" class="small"></p>
+    <div class="row"><button class="btn primary" id="map-rooms-save">Confirm</button></div>`, { wide: true });
+  const selects = [...dlg.querySelectorAll('[data-room]')], save = dlg.querySelector('#map-rooms-save'), status = dlg.querySelector('#map-rooms-status');
+  const chosen = () => selects.filter(s => s.value !== '' && s.value !== 'keep');
+  const refresh = () => {
+    for (const [i] of files.entries()) { const n = selects.filter(s => s.value === String(i) || s.value === 'keep' && S.beats.find(x => x.id === s.dataset.room)?.playerMap?.fileName === files[i].name).length; dlg.querySelector(`[data-map-count="${i}"]`).textContent = n ? `${n} room${n === 1 ? '' : 's'}` : 'Not used'; }
+    const n = chosen().length; save.disabled = !n && !selects.some(s => s.dataset.changed); save.textContent = n ? `I checked these maps. Link ${n} room${n === 1 ? '' : 's'}` : 'Save';
+  };
+  for (const s of selects) s.onchange = () => { s.dataset.changed = '1'; refresh(); };
+  refresh();
+  for (const [i, f] of files.entries()) {
+    const img = dlg.querySelector(`[data-map-image="${i}"]`); img.onclick = () => img.closest('figure').classList.toggle('big');
+    QB.previewUrl(f.pi, f.path).then(url => { img.src = url; }).catch(() => { img.alt = 'This image could not be loaded.'; });
+  }
+  save.onclick = async () => {
+    save.disabled = true;
+    const automatic = dlg.querySelector('#map-rooms-auto').checked;
+    try {
+      const used = [...new Set(chosen().map(s => +s.value))], ready = new Map();
+      for (const [n, i] of used.entries()) {
+        status.textContent = `Saving map ${n + 1} of ${used.length}…`;
+        const source = await QB.blobFor(files[i].pi, files[i].path);
+        if (source.dm || SceneMaps.dmFile(files[i])) throw new Error(files[i].name + ' is marked for the DM only. Choose a player version.');
+        const image = { key: await SceneMaps.fingerprint(source.blob), url: await SceneMaps.pixels(source.blob) };
+        await SceneMaps.assets.put(image); ready.set(i, image);
+      }
+      if (!dlg.isConnected || campaign !== S.campaigns?.current) return;
+      let linked = 0;
+      for (const select of selects) {
+        const beat = S.beats.find(b => b.id === select.dataset.room); if (!beat) continue;
+        if (select.value === 'keep') continue;
+        if (select.value === '') { if (select.dataset.changed && beat.playerMap) { delete beat.playerMap; beat.playerMapAutoOff = true; } continue; }
+        const i = +select.value, title = dlg.querySelector(`[data-map-title="${i}"]`).value.trim() || SceneMaps.mapTitle(files[i], files);
+        linked += SceneMaps.linkScenes(S.beats, [beat.id], { key: ready.get(i).key, fileName: files[i].name, title, auto: automatic, reviewed: true });
+      }
+      sceneMapController?.reset(); dlg.close(); render(); toast(linked ? `Player maps linked to ${linked} rooms.` : 'Saved.');
+    } catch (error) { status.textContent = error.message; save.disabled = false; }
+  };
+}
 async function sceneMapShow(id) {
   const beat = S.beats.find(b => b.id === id), ref = SceneMaps.reference(beat?.playerMap), campaign = S.campaigns?.current;
   if (!ref) return;

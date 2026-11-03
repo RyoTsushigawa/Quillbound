@@ -5,9 +5,11 @@ import { scanLibrary, KIND_LABEL } from '../importer/library.js';
 import { listPackage } from '../importer/package.js';
 import { extractPdf } from '../importer/pdftext.js';
 import { readAdventure, readCards, textQuality } from '../importer/reader.js';
+import { readModule, applyLevel, levelForParty } from '../importer/foundry.js';
 import { readCharacterOptions, mergeCharacterOptions } from '../importer/character-options.js';
 import { compareBookVersions } from '../importer/versions.js';
 export { findConnections, suggestOrder, bridgeIdeas } from '../importer/campaign.js';
+export { applyLevel, levelForParty };
 
 const normName = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 const PDFJS = './vendor/pdf.min.js';
@@ -57,6 +59,13 @@ export async function addDropped(dataTransfer) {
 
 export function clear() { for (const u of RT.urls.values()) URL.revokeObjectURL(u); RT.urls.clear(); RT.entries = []; RT.products = []; RT.scanned = null; }
 
+// A Foundry VTT module among this product's files: the folder that holds packs/*.db.
+const PACK = /(^|\/)packs\/[^/]+\.db$/i;
+function moduleRoot(p) {
+  const roots = RT.entries.filter(e => PACK.test(e.path)).map(e => e.path.replace(/packs\/[^/]+\.db$/i, ''));
+  return roots.find(r => p.files.some(f => f.path.startsWith(r)));
+}
+
 const kindsOf = p => p.items.reduce((m, it) => (m[it.kind] = (m[it.kind] || 0) + 1, m), {});
 
 export async function scan() {
@@ -74,7 +83,7 @@ export function summary() {
     mirrors: RT.scanned.mirrors,
     products: RT.products.map((p, i) => ({
       i, name: p.name, type: p.type, system: p.system, language: p.language, unnamed: p.unnamed,
-      counts: p.counts, items: kindsOf(p), duplicates: p.duplicates, sources: p.units.length,
+      counts: p.counts, items: kindsOf(p), duplicates: p.duplicates, sources: p.units.length, module: !!moduleRoot(p),
       groups: p.items.map(it => ({
         kind: it.kind, kindLabel: KIND_LABEL[it.kind], label: it.label, primary: it.primary,
         files: it.files.map(f => ({ path: f.path, name: f.path.split('/').pop(), size: f.size, variant: f.variant, tags: f.tags, copyOf: f.duplicateOf ? f.duplicateOf.split('/').pop() : '', inZip: f.inZip ? f.inZip.split('/').pop() : '', previewable: IMG_OK.test(f.path) }))
@@ -112,6 +121,11 @@ export async function compareVersions(pi, itemIndex) {
 // Read the adventure: the main book (smallest same-text version is fastest) plus every combat-card sheet.
 export async function readProduct(pi, onProgress = () => { }) {
   const p = RT.products[pi];
+  const root = moduleRoot(p);
+  if (root) {
+    const moduleResult = await readProductModule(p, root, onProgress);
+    if (moduleResult) return moduleResult;
+  }
   const lib = await pdfjs();
   const bookItems = p.items.filter(it => it.kind === 'book');
   const bookItem = bookItems[0];
@@ -167,15 +181,43 @@ export async function readProduct(pi, onProgress = () => { }) {
   // Book stat blocks that are missing a number (no attack line read, say) are completed from SRD 5.1 by name.
   for (const e of result.enemies) if (!e.fromCard) Object.assign(e, globalThis.QBAttacks?.fillFromSrd?.(e) || {});
 
-  // maps from the library, linked to the beats and areas that mention them
-  const maps = p.items.filter(it => it.kind === 'map').map(it => {
+  result.libraryMaps = mapsOf(p, result);
+  result.product = p.name;
+  return result;
+}
+
+// maps from the library, linked to the beats and areas that mention them
+function mapsOf(p, result) {
+  const norm = s => s.toLowerCase().replace(/[^a-z]/g, '');
+  return p.items.filter(it => it.kind === 'map').map(it => {
     const label = it.label.replace(/\b(labell?ed|vtt)\b/gi, '').trim();
     const re = new RegExp(label.split(/\s+/).filter(w => w.length > 2).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.{0,20}'), 'i');
     const usedIn = label ? result.beats.filter(b => re.test([b.title, b.summary, ...(b.scenes || [])].join(' '))).map(b => b.title) : [];
     const files = it.files.filter(f => !f.duplicateOf);
     return { id: 'map-' + norm(it.label), name: it.label, variants: files.map(f => ({ path: f.path, name: f.path.split('/').pop(), variant: f.variant, tags: f.tags })), usedIn, why: 'map files in the adventure folder', include: true };
   });
-  result.libraryMaps = maps;
+}
+
+// A module's journal, creatures and items are data files: no PDF reading, and nothing guessed from page layout.
+async function readProductModule(p, root, onProgress) {
+  onProgress('Reading the module…');
+  const text = async e => new TextDecoder().decode(await e.read());
+  const packs = { journal: [], actors: [], items: [] };
+  for (const e of RT.entries.filter(x => x.path.startsWith(root) && PACK.test(x.path))) {
+    for (const line of (await text(e)).split('\n')) {
+      if (!line.trim()) continue;
+      let doc; try { doc = JSON.parse(line); } catch { continue; }
+      if (typeof doc.content === 'string') packs.journal.push(doc);
+      else if (doc.data?.abilities) packs.actors.push(doc);
+      else if (doc.type && doc.data) packs.items.push(doc);
+    }
+  }
+  if (!packs.journal.length) return null;
+  const file = RT.entries.find(x => x.path === root + 'module.json');
+  let manifest = {}; if (file) { try { manifest = JSON.parse(await text(file)); } catch { /* the journal is enough */ } }
+  const result = readModule({ ...packs, manifest }, p.name);
+  result.source = manifest.title || p.name;
   result.product = p.name;
+  result.libraryMaps = mapsOf(p, result);
   return result;
 }
